@@ -9,16 +9,13 @@
 
 int main()
 {
-    Pointer<Node> node (OP2(NODE_ADD,
-        OP2(NODE_MUL, INT64(1), INT64(2)), 
-        OP2(NODE_MUL, INT64(3), INT64(4))));
+    pNode root = newOprNode(
+        { newOprNode( { newImmNode(1), newImmNode(2) }, OPR_MUL),
+          newOprNode( { newImmNode(3), newImmNode(4) }, OPR_MUL) } ,OPR_ADD);
     Chunk c;
     Regs regs;
-    Reg res = evaluate(c, node, regs);
-    c.print();
-    printf("  last reg: ");
-    res.print();
-    puts("");
+    Reg res = evaluate(c, root, regs);
+    printf("  last reg: %s\n", res.name);
     return 0;
 }
 

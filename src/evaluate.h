@@ -5,6 +5,4 @@
 #include "regs.h"
 #include "chunk.h"
 
-InstructionType convertTypeFromNodeToInstruction(OperationType t);
-
-Reg evaluate(Chunk &c, Pointer<Node> n, Regs &regs);
+Reg evaluate(Chunk &c, pNode n, Regs &regs);

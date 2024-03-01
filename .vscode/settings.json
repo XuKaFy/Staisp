@@ -2,6 +2,10 @@
     "files.associations": {
         "stack": "cpp",
         "vector": "cpp",
-        "memory": "cpp"
+        "memory": "cpp",
+        "compare": "cpp",
+        "xmemory": "cpp",
+        "xstddef": "cpp",
+        "xutility": "cpp"
     }
 }

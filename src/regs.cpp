@@ -1,69 +1,39 @@
 #include "regs.h"
 
 Regs::Regs()
+    : x { {0, "zero" },
+          {1, "ra" },
+          {2, "sp" },
+          {3, "gp" },
+          {4, "tp" },
+          {5, "t0" },
+          {6, "t1" },
+          {7, "t2" },
+          {8, "s0" },
+          {9, "s1" },
+          {10, "a0" },
+          {11, "a1" },
+          {12, "a2" },
+          {13, "a3" },
+          {14, "a4" },
+          {15, "a5" },
+          {16, "a6" },
+          {17, "a7" },
+          {18, "s2" },
+          {19, "s3" },
+          {20, "s4" },
+          {21, "s5" },
+          {22, "s6" },
+          {23, "s7" },
+          {24, "s8" },
+          {25, "s9" },
+          {26, "s10" },
+          {27, "s11" },
+          {28, "t3" },
+          {29, "t4" },
+          {30, "t5" },
+          {31, "t6" }
+        }, pc{ 32, "pc"} 
 {
-    memset(used, false, sizeof(used));
-    for(int i=0; i<31; ++i) {
-        x[i] = Reg::reg(REG_NATIVE_64, i);
-    }
-    sp = Reg::reg(REG_NATIVE_64, 31);
-    pc = Reg::reg(REG_NATIVE_64, 32);
-}
-
-Reg Regs::allocate()
-{
-    for(int i=0; i<31; ++i) {
-        if(used[i]) continue;
-        used[i] = true;
-        return x[i];
-    }
-    stack.push_back(Reg::reg(REG_STACK_64, stack.size()));
-    return stack.back();
-}
-
-void Regs::free(const Reg &x)
-{
-    switch(x.type) {
-    case REG_NATIVE_32:
-    case REG_NATIVE_64:
-        used[x.id] = false;
-        return ;
-    case REG_STACK_32:
-    case REG_STACK_64:
-        stack.pop_back();
-        return ;
-    default:
-        // cannot happen
-        return ;
-    }
-}
-
-Reg Regs::var(String name)
-{
-    if(vars.count(name)) {
-        return vars[name];
-    }
-    return Reg::null();
-}
-
-void Reg::print() const
-{
-    switch(type) {
-    case REG_NATIVE_32:
-    case REG_NATIVE_64:
-        printf("%%x%02d ", id);
-        return ;
-    case REG_STACK_32:
-    case REG_STACK_64:
-        printf("[sp+%d] ", id);
-        return ;
-    default:
-        // cannot happen
-        return ;
-    }
-}
-
-bool Reg::invaild() const
-{
-    return type == REG_NULL;
+    ;
 }
