@@ -5,6 +5,7 @@
 #include <stack>
 #include <map>
 #include <memory>
+#include <cstring>
 
 #include <variant>
 

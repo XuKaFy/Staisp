@@ -4,6 +4,8 @@
 
 #include <cstring>
 
+namespace Asm {
+
 struct Reg
 {
     Immediate id;
@@ -17,3 +19,5 @@ struct Regs {
     Reg x[32];
     Reg pc;
 };
+
+} // namespace asm

@@ -1,4 +1,6 @@
-#include "node.h"
+#include "ast_node.h"
+
+namespace Ast {
 
 pNode newImmNode(Immediate imm, int bits)
 {
@@ -15,3 +17,4 @@ pNode newOprNode(Vector<pNode> ch, OprType type)
     return pNode(new OprNode(ch, type));
 }
 
+}  // namespace ast

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "def.h"
-#include "regs.h"
+#include "asm_regs.h"
 
-#define INSTRUCTION_AND_NAME \
+namespace Asm {
+
+#define Instr_AND_NAME \
     ENTRY(LUI, lui) \
     ENTRY(BEQ, beq) \
     ENTRY(BNE, bne) \
@@ -25,26 +27,28 @@
     ENTRY(DIVW, divw) \
     ENTRY(REMW, remw) \
 
-enum InstructionType
+enum InstrType
 {
 #define ENTRY(x, y) INST_##x,
-    INSTRUCTION_AND_NAME
+    Instr_AND_NAME
 #undef ENTRY
 };
 
 const Symbol InsName[32] {
 #define ENTRY(x, y) Symbol(#y),
-    INSTRUCTION_AND_NAME
+    Instr_AND_NAME
 #undef ENTRY
 };
 
-#undef INSTRUCTION_AND_NAME
+#undef Instr_AND_NAME
 
-struct Instruction
+struct Instr
 {
     Symbol to_string() const;
 
-    InstructionType type;
+    InstrType type;
     Immediate imm, imm1, imm2, imm3;
     pReg rs1, rs2, rd;
 };
+
+} // namespace asm

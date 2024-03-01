@@ -1,4 +1,6 @@
-#include "regs.h"
+#include "asm_regs.h"
+
+namespace Asm {
 
 Regs::Regs()
     : x { {0, "zero" },
@@ -37,3 +39,5 @@ Regs::Regs()
 {
     ;
 }
+
+} // namespace asm

@@ -1,6 +1,6 @@
 #include "def.h"
 
-static struct GlobalSymbols {
+struct GlobalSymbols {
     ~GlobalSymbols() {
         for(auto i : s)
             delete i;

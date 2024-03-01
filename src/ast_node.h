@@ -2,6 +2,8 @@
 
 #include "def.h"
 
+namespace Ast {
+
 enum NodeType
 {
     NODE_IMM,
@@ -50,3 +52,5 @@ struct OprNode : public Node
 pNode newImmNode(Immediate imm, int bits = 64);
 pNode newSymNode(Symbol symbol);
 pNode newOprNode(Vector<pNode> ch, OprType type);
+
+} // namespace ast

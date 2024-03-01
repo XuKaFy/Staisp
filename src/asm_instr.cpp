@@ -1,6 +1,8 @@
-#include "instruction.h"
+#include "asm_instr.h"
 
-Symbol Instruction::to_string() const
+namespace Asm {
+
+Symbol Instr::to_string() const
 {
     switch(type) {
     // R-type rs2, rs1, rd
@@ -23,4 +25,6 @@ Symbol Instruction::to_string() const
     // U-type imm[31:12], rd
     }
 }
+
+}  // namespace asm
 
