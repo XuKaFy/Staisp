@@ -21,11 +21,11 @@ OBJ = $(AST_OBJ) $(IR_OBJ) $(ASM_OBJ) $(GLOBAL_OBJ) $(EXECUTABLE).o
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-compiler: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS)
-
 run: $(EXECUTABLE).exe
 	./$(EXECUTABLE).exe
+
+$(EXECUTABLE).exe: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS)
 
 .PHONY: clean
 
