@@ -34,7 +34,7 @@ enum InstrType
 #undef ENTRY
 };
 
-const Symbol InsName[32] {
+const Symbol gInstrName[] {
 #define ENTRY(x, y) Symbol(#y),
     Instr_AND_NAME
 #undef ENTRY

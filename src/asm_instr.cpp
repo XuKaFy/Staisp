@@ -19,7 +19,7 @@ Symbol Instr::to_string() const
     case INST_MULW:
     case INST_DIVW:
     case INST_REMW:
-        return to_symbol(String(InsName[type]) + "\t" + rd->name + "," + rs1->name + "," + rs2->name);
+        return to_symbol(String(gInstrName[type]) + "\t" + rd->name + "," + rs1->name + "," + rs2->name);
     // I-type imm[11:0], rs1, rd
     // S-type imm[11:5], rs2, rs1, imm[4:0]
     // U-type imm[31:12], rd
