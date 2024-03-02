@@ -12,4 +12,6 @@ struct Block : public Val {
     Vector<pInstr> instrs;
 };
 
+typedef Pointer<Block> pBlock;
+
 } // namespace Ir

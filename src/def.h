@@ -6,8 +6,11 @@
 #include <map>
 #include <memory>
 #include <cstring>
+#include <cassert>
 
 #include <variant>
+
+#define my_assert(x, y) assert(x)
 
 template<typename T>
 using Pointer = std::shared_ptr<T>;
@@ -26,3 +29,4 @@ typedef const char* Symbol;
 typedef std::string String;
 
 Symbol to_symbol(String s);
+

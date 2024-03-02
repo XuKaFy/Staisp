@@ -7,12 +7,12 @@ GLOBAL_DEPS = def.h
 GLOBAL_OBJ = def.o
 
 AST_DEPS = ast_node.h
-AST_OBJ = ast_node.o
+AST_OBJ =  ast_node.o
 
-IR_DEPS = ir_block.h ir_constant.h ir_instr.h ir_val.h
-IR_OBJ = ir_block.o ir_constant.o ir_instr.o ir_val.o
+IR_DEPS = ir_block.h ir_constant.h ir_instr.h ir_val.h ir_opr_instr.h ir_func.h ir_func_defined.h ir_call_instr.h
+IR_OBJ =  ir_block.o ir_constant.o ir_instr.o ir_val.o ir_opr_instr.o ir_func.o ir_func_defined.o ir_call_instr.o
 
-ASM_OBJ = asm_instr.o asm_regs.o
+ASM_OBJ =  asm_instr.o asm_regs.o
 ASM_DEPS = asm_instr.h asm_regs.h
 
 DEPS = $(AST_DEPS) $(IR_DEPS) $(ASM_DEPS) $(GLOBAL_DEPS)
