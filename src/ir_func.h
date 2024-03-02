@@ -8,11 +8,11 @@ struct Func : public Val {
     Func(ImmType tr, Symbol func_name, Vector<ImmType> arg_types)
         : tr(tr), func_name(func_name), arg_types(arg_types) { }
 
-    virtual Symbol print_impl() const;
+    virtual Symbol print_impl() const override;
 
+    ImmType tr;
     Symbol func_name;
     Vector<ImmType> arg_types;
-    ImmType tr;
 };
 
 typedef Pointer<Func> pFunc;

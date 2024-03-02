@@ -7,6 +7,7 @@
 namespace Ir {
 
 enum InstrType {
+    INSTR_TYPE_AS_ARG,
     INSTR_TYPE_BIN,
     INSTR_TYPE_UNARY,
     INSTR_TYPE_RET,
@@ -18,7 +19,7 @@ struct Instr : public Val {
         : instrType(instrType), tr(tr) { }
     
     Symbol instr_print();
-    virtual Symbol instr_print_impl() const = 0;
+    virtual Symbol instr_print_impl() const;
     virtual Symbol print_impl() const override;
 
     InstrType instrType;
@@ -28,5 +29,7 @@ struct Instr : public Val {
 };
 
 typedef Pointer<Instr> pInstr;
+
+pInstr make_arg_instr(ImmType tr);
 
 } // namespace Ir

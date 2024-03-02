@@ -17,5 +17,15 @@ Symbol Instr::print_impl() const
     return to_symbol(String(buf));
 }
 
+Symbol Instr::instr_print_impl() const
+{
+    return print_impl();
+}
+
+pInstr make_arg_instr(ImmType tr)
+{
+    return pInstr(new Instr(INSTR_TYPE_AS_ARG, tr));
+}
+
 }  // namespace ir
 
