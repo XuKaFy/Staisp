@@ -11,17 +11,17 @@ Symbol CallInstr::instr_print_impl() const
         + func->print()
         + "("; // %1 = call @fun(i32 1, i64 2)
     
-    my_assert(args.size() == func->arg_types.size(), "Error: size of arguments unequal to the inputs");
+    my_assert(args.size() == func->args.size(), "Error: size of arguments unequal to the inputs");
     
     if(args.empty()) goto INSTR_PRINT_IMPL_END;
 
-    res += gImmName[func->arg_types[0]];
+    res += gImmName[func->args[0].tr];
     res += " ";
     res += args[0]->print();
     
     for(size_t i=1; i<args.size(); ++i) {
         res += ", ";
-        res += gImmName[func->arg_types[i]];
+        res += gImmName[func->args[i].tr];
         res += " ";
         res += args[i]->print();
     }

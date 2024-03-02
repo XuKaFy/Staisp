@@ -43,6 +43,7 @@ Ast::AstProg test()
     }));
     prog.push_back(newFuncDefNode("main", IMM_I32, { }, {
         DEF_I32VAR(ans, 0),
+        ASSIGN(n, I32NUM(100)),
         ASSIGN(ans, CALL(fib, { SYM(n) } )),
         RET(SYM(ans))
     }));

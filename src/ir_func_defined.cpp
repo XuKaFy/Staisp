@@ -7,20 +7,18 @@ Symbol FuncDefined::print_impl() const
     String whole_function = String("define ") + gImmName[tr] + " " + func_name->print() + "(";
 
     my_assert(!body.empty(), "Error: function has no block");
-    pBlock first_block = body[0];
-    my_assert(first_block->instrs.size() == arg_types.size(), "Error, Function's first block has different size from arg_types");
 
-    if(arg_types.empty()) goto PRINT_IMPL_END;
+    if(args.empty()) goto PRINT_IMPL_END;
     
-    whole_function += gImmName[arg_types[0]];
-    whole_function += " ";
-    whole_function += first_block->instrs[0]->print();
+    whole_function += gImmName[args[0].tr];
+    whole_function += " %";
+    whole_function += args[0].sym;
     
-    for(size_t i=1; i<first_block->instrs.size(); ++i) {
+    for(size_t i=1; i<args.size(); ++i) {
         whole_function += ", ";
-        whole_function += gImmName[arg_types[i]];
-        whole_function += " ";
-        whole_function += first_block->instrs[i]->print();
+        whole_function += gImmName[args[i].tr];
+        whole_function += " %";
+        whole_function += args[i].sym;
     }
 
 PRINT_IMPL_END:
@@ -28,7 +26,7 @@ PRINT_IMPL_END:
     return to_symbol(whole_function);
 }
 
-pFuncDefined make_func_defined(ImmType tr, pSym func_name, Vector<ImmType> arg_types)
+pFuncDefined make_func_defined(ImmType tr, pSym func_name, Vector<TypedSym> arg_types)
 {
     return pFuncDefined(new FuncDefined(tr, func_name, arg_types));
 }
@@ -42,13 +40,8 @@ Symbol FuncDefined::print_func() const
 {
     String ans = print_impl();
     ans += " {\n";
-    if(body[0]->instrs.empty()) {
-        ans += body[1]->print_block(0);
-    } else {
-        ans += body[1]->print_block(body[0]->instrs.back()->line + 1);
-    }
-    int line_count = body[1]->instrs.back()->line + 1;
-    for(size_t i=2; i<body.size(); ++i) {
+    int line_count = 0;
+    for(size_t i=0; i<body.size(); ++i) {
         ans += body[i]->print_block(line_count);
         line_count = body[i]->instrs.back()->line + 1;
     }

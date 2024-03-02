@@ -7,9 +7,11 @@ Symbol Block::print_block(size_t line) const
     String s;
     int lineCount = line;
     for(auto i : instrs) {
-        if(i->instrType == INSTR_TYPE_NEED_REG)
+        if(i->instrType != INSTR_TYPE_NO_REG)
             i->line = lineCount++;
-        s += "  " + String(i->instr_print()) + "\n";
+        if(i->instrType != INSTR_TYPE_LABEL)
+            s += "  ";
+        s += String(i->instr_print()) + "\n";
     }
     return to_symbol(s);
 }

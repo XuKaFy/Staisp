@@ -50,3 +50,9 @@ const Symbol gImmName[] = {
 #undef ENTRY
 
 #undef IMM_TYPE_TABLE
+
+struct TypedSym
+{
+    Symbol sym;
+    ImmType tr;
+};

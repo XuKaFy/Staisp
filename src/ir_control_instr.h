@@ -7,7 +7,7 @@ namespace Ir {
 struct LabelInstr : public Instr
 {
     LabelInstr()
-        : Instr(INSTR_TYPE_NEED_REG, IMM_VOID) { }
+        : Instr(INSTR_TYPE_LABEL, IMM_VOID) { }
     
     virtual Symbol instr_print_impl() const override;
 };

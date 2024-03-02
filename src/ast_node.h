@@ -79,12 +79,6 @@ struct VarDefNode : public Node
     ImmType tr;
 };
 
-struct TypedSym
-{
-    Symbol sym;
-    ImmType tr;
-};
-
 struct FuncDefNode : public Node
 {
     FuncDefNode(Symbol sym, ImmType tr, Vector<TypedSym> args, Vector<pNode> body)
