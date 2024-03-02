@@ -2,9 +2,9 @@
 
 namespace Ast {
 
-pNode newImmNode(Immediate imm, int bits)
+pNode newImmNode(Immediate imm, ImmType tr)
 {
-    return pNode(new ImmNode(imm, bits));
+    return pNode(new ImmNode(imm, tr));
 }
 
 pNode newSymNode(Symbol str)
@@ -12,9 +12,24 @@ pNode newSymNode(Symbol str)
     return pNode(new SymNode(str));
 }
 
-pNode newOprNode(Vector<pNode> ch, OprType type)
+pNode newOprNode(OprType type, Vector<pNode> ch)
 {
-    return pNode(new OprNode(ch, type));
+    return pNode(new OprNode(type, ch));
+}
+
+pNode newAssignNode(Symbol sym, pNode val)
+{
+    return pNode(new AssignNode(sym, val));
+}
+
+pNode newVarDefNode(Symbol sym, ImmType tr)
+{
+    return pNode(new VarDefNode(sym, tr));
+}
+
+pNode newFuncDefNode(Symbol sym, ImmType tr, Vector<TypedSym> args, Vector<pNode> body)
+{
+    return pNode(new FuncDefNode(sym, tr, args, body));
 }
 
 }  // namespace ast

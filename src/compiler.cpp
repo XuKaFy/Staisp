@@ -1,43 +1,58 @@
-#include "ir_instr.h"
-#include "ir_block.h"
-#include "ir_opr_instr.h"
-#include "ir_call_instr.h"
-#include "ir_constant.h"
-#include "ir_func.h"
-#include "ir_func_defined.h"
 #include "ir_module.h"
-#include "ir_mem_instr.h"
+#include "ast_node.h"
+#include "convert_ast_to_ir.h"
 
-Ir::pFuncDefined a_plus_b(Ir::pGlobal g)
+#define IF(x, y) newOprNode(OPR_IF, { y } )
+#define OR(x, y) newOprNode(OPR_OR, {x, y} )
+#define EQ(x, y) newOprNode(OPR_EQ, {x, y} )
+#define ADD(x, y) newOprNode(OPR_ADD, {x, y} )
+#define SUB(x, y) newOprNode(OPR_SUB, {x, y} )
+#define SYM(x) newSymNode(#x)
+#define RET(x) newOprNode(OPR_RET, {x} )
+#define I32NUM(x) newImmNode(x, IMM_I32)
+#define CALL(x, y) newOprNode(OPR_CALL, y)
+#define DEF_I32VAR(x) newVarDefNode(#x, IMM_I32)
+#define DECL(x, y) (TypedSym { #y, x })
+#define ASSIGN(x, y) newAssignNode(#x, y)
+
+Ast::AstProg test()
 {
-    Ir::pFuncDefined func = make_func_defined(Ir::IMM_I32, Ir::make_sym("hi"), { Ir::IMM_I32, Ir::IMM_I32 });
+    using namespace Ast;
+    AstProg prog;
+/*
+    int n = 50;
 
-    Ir::pBlock first_block = func->body.front();
-    Ir::pBlock block = Ir::make_block();
-    Ir::pInstr lastInstr;
+    int fib(int n)
+    {
+        if(n == 1 || n == 2)
+            return 1;
+        return fib(n-1) + fib(n-2);
+    }
 
-    Ir::pInstr alloced = block->add_instr(Ir::make_alloc_instr(Ir::IMM_I64));
-    
-    lastInstr = block->add_instr(Ir::make_binary_instr(Ir::INSTR_ADD, Ir::IMM_I32, first_block->instrs[0], first_block->instrs[1]));
-    lastInstr = block->add_instr(Ir::make_binary_instr(Ir::INSTR_MUL, Ir::IMM_I32, lastInstr, g));
-    
-    block->add_instr(Ir::make_store_instr(Ir::IMM_I32, alloced, lastInstr));
-    lastInstr = block->add_instr(Ir::make_load_instr(Ir::IMM_I32, alloced));
-    
-    block->add_instr(Ir::make_ret_instr(Ir::IMM_I32, lastInstr));
-
-
-    func->add_block(block);
-
-    return func;
+    int main() {
+        int ans = fib(n);
+        return ans;
+    }
+*/
+    prog.push_back(DEF_I32VAR(n));
+    prog.push_back(ASSIGN(n, I32NUM(50)));
+    prog.push_back(newFuncDefNode("fib", IMM_I32, { DECL(IMM_I32, n) }, {
+        IF(OR(EQ(SYM(n), I32NUM(1)), EQ(SYM(n), I32NUM(2))),
+            RET(I32NUM(1))
+        ),
+        RET(ADD(CALL(fib, { SUB(SYM(n), I32NUM(1)) }), CALL(fib, { SUB(SYM(n), I32NUM(2)) })))
+    }));
+    prog.push_back(newFuncDefNode("main", IMM_I32, { }, {
+        DEF_I32VAR(ans),
+        ASSIGN(ans, CALL(fib, { SYM(n) } )),
+        RET(SYM(ans))
+    }));
+    return prog;
 }
 
 int main()
 {
-    Ir::Module mod;
-    Ir::pGlobal g = Ir::make_global(Ir::IMM_I32, 30, Ir::make_sym("a"));
-    mod.add_global(g);
-    mod.add_func(a_plus_b(g));
-    printf("%s\n", mod.print_module());
+    Ir::pModule mod = AstToIr::generate(test());
+    printf("%s\n", mod->print_module());
     return 0;
 }

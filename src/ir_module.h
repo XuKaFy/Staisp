@@ -16,4 +16,8 @@ struct Module {
     Vector<pGlobal> globs;
 };
 
+typedef Pointer<Module> pModule;
+
+pModule make_module();
+
 } // namespace ir

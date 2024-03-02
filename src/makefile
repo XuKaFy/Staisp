@@ -15,8 +15,11 @@ IR_OBJ =  ir_block.o ir_constant.o ir_instr.o ir_val.o ir_opr_instr.o ir_func.o 
 ASM_DEPS = asm_instr.h asm_regs.h
 ASM_OBJ =  asm_instr.o asm_regs.o
 
-DEPS = $(AST_DEPS) $(IR_DEPS) $(ASM_DEPS) $(GLOBAL_DEPS)
-OBJ = $(AST_OBJ) $(IR_OBJ) $(ASM_OBJ) $(GLOBAL_OBJ) $(EXECUTABLE).o
+CONVERT_AST_TO_IR_DEPS = convert_ast_to_ir.h
+CONVERT_AST_TO_IR_OBJ  = convert_ast_to_ir.o
+
+DEPS = $(AST_DEPS) $(IR_DEPS) $(ASM_DEPS) $(GLOBAL_DEPS) $(CONVERT_AST_TO_IR_DEPS)
+OBJ = $(AST_OBJ) $(IR_OBJ) $(ASM_OBJ) $(GLOBAL_OBJ) $(EXECUTABLE).o $(CONVERT_AST_TO_IR_OBJ)
 
 %.o: %.cpp $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)

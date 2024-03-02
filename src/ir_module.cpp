@@ -31,4 +31,9 @@ Symbol Module::print_module() const
     return to_symbol(ans);
 }
 
+pModule make_module()
+{
+    return pModule(new Module());
+}
+
 } // namespace ir
