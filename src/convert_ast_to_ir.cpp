@@ -41,7 +41,6 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         } else { // global
             // TODO: no instr can modify global vars
             for(auto i : mod->globs) {
-                printf("  comp %s = %d\n", i->name->name, strcmp(i->name->name, r->sym));
                 if(strcmp(i->name->name, r->sym) == 0) {
                     func->body.back()->instrs.push_back(Ir::make_store_instr(i->tr, Ir::make_sym_instr(i->name, Ir::SYM_GLOBAL), analyze_value(r->val, func)));
                     goto ANALYZE_ASSIGN_END;

@@ -17,7 +17,7 @@ struct FuncDefined : public Func {
         for(auto i : arg_types) {
             pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
             tmp->line = line_count++;
-            first_block->add_instr(make_store_instr(i.tr, tmp, make_sym(i.sym)));
+            first_block->add_instr(make_store_instr(i.tr, tmp, make_sym_instr(make_sym(i.sym))));
         }
         
         body.push_back(first_block);
