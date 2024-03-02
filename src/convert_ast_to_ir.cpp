@@ -6,11 +6,15 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func)
 {
     switch(root->type) {
     case Ast::NODE_OPR: {
-        return Ir::make_binary_instr(Ir::INSTR_ADD, IMM_I16, Ir::make_constant(-1), Ir::make_constant(-1));
+        auto res = Ir::make_binary_instr(Ir::INSTR_ADD, IMM_I16, Ir::make_constant(-1), Ir::make_constant(-1));
+        func->body.back()->instrs.push_back(res);
+        return res;
     }
     case Ast::NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
-        return Ir::make_binary_instr(Ir::INSTR_ADD, r->tr, Ir::make_constant(0), Ir::make_constant(r->imm));
+        auto res = Ir::make_binary_instr(Ir::INSTR_ADD, r->tr, Ir::make_constant(0), Ir::make_constant(r->imm));
+        func->body.back()->instrs.push_back(res);
+        return res;
     }
     case Ast::NODE_SYM: {
         auto r = std::static_pointer_cast<Ast::SymNode>(root);
