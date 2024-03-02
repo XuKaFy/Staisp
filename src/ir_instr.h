@@ -8,7 +8,7 @@ namespace Ir {
 
 enum InstrType {
     INSTR_TYPE_NEED_REG,
-    INSTR_TYPE_NO_REG
+    INSTR_TYPE_NO_REG,
 };
 
 struct Instr : public Val {
