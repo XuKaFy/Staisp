@@ -4,7 +4,7 @@ namespace Ir {
 
 Symbol FuncDefined::print_impl() const
 {
-    String whole_function = String("define ") + gImmName[tr] + " @" + func_name + "(";
+    String whole_function = String("define ") + gImmName[tr] + " " + func_name->print() + "(";
 
     my_assert(!body.empty(), "Error: function has no block");
     pBlock first_block = body.front();
@@ -28,7 +28,7 @@ PRINT_IMPL_END:
     return to_symbol(whole_function);
 }
 
-pFuncDefined make_func_defined(ImmType tr, Symbol func_name, Vector<ImmType> arg_types)
+pFuncDefined make_func_defined(ImmType tr, pSym func_name, Vector<ImmType> arg_types)
 {
     return pFuncDefined(new FuncDefined(tr, func_name, arg_types));
 }

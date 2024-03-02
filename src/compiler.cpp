@@ -8,7 +8,7 @@
 
 Ir::pFuncDefined a_plus_b()
 {
-    Ir::pFuncDefined func = make_func_defined(Ir::IMM_I32, "hi", { Ir::IMM_I32, Ir::IMM_I32 });
+    Ir::pFuncDefined func = make_func_defined(Ir::IMM_I32, Ir::make_sym("hi"), { Ir::IMM_I32, Ir::IMM_I32 });
 
     Ir::pBlock first_block = func->body.front();
     Ir::pBlock block = Ir::make_block();

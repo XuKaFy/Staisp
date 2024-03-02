@@ -7,7 +7,7 @@
 namespace Ir {
 
 struct FuncDefined : public Func {
-    FuncDefined(ImmType tr, Symbol func_name, Vector<ImmType> arg_types)
+    FuncDefined(ImmType tr, pSym func_name, Vector<ImmType> arg_types)
         : Func(tr, func_name, arg_types) {
         pBlock first_block = make_block();
         size_t line_count = 0;
@@ -28,6 +28,6 @@ struct FuncDefined : public Func {
 
 typedef Pointer<FuncDefined> pFuncDefined;
 
-pFuncDefined make_func_defined(ImmType tr, Symbol func_name, Vector<ImmType> arg_types);
+pFuncDefined make_func_defined(ImmType tr, pSym func_name, Vector<ImmType> arg_types);
 
 } // namespace ir
