@@ -51,7 +51,7 @@ Ast::AstProg test()
 
 int main()
 {
-    Ir::pModule mod = AstToIr::generate(test());
+    Ir::pModule mod = AstToIr::Convertor().generate(test());
     printf("%s\n", mod->print_module());
     return 0;
 }

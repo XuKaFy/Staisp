@@ -2,15 +2,16 @@
 
 namespace AstToIr {
 
-void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func)
+void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func)
 {
     switch(root->type) {
     case Ast::NODE_ASSIGN:
         break;
     case Ast::NODE_DEF_VAR:
         break;
+    case Ast::NODE_OPR: // may have meaning, for executing may contain function call
+        break;
     case Ast::NODE_IMM: // meaningless
-    case Ast::NODE_OPR: // meaningless
     case Ast::NODE_SYM: // meaningless
         break;
     case Ast::NODE_DEF_FUNC:
@@ -18,9 +19,9 @@ void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func)
     }
 }
 
-void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod)
+void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod)
 {
-    Map<String, int> var_map;
+    var_map.clear();
     Ir::pFuncDefined func;
     {
         Vector<ImmType> no_type_args;
@@ -37,12 +38,12 @@ void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod)
     mod->add_func(func);
 }
 
-void generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
+void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
     mod->add_global(Ir::make_global(root->tr, root->val, Ir::make_sym(root->sym)));
 }
 
-void generate_single(Ast::pNode root, Ir::pModule mod)
+void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
 {
     switch(root->type) {
     case Ast::NODE_DEF_FUNC:
@@ -56,7 +57,7 @@ void generate_single(Ast::pNode root, Ir::pModule mod)
     }
 }
 
-Ir::pModule generate(Ast::AstProg asts)
+Ir::pModule Convertor::generate(Ast::AstProg asts)
 {
     Ir::pModule mod = Ir::pModule(new Ir::Module());
     for(auto i : asts) {
