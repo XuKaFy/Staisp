@@ -14,9 +14,9 @@ struct Global : public Val {
     virtual Symbol print_impl() const override;
     Symbol print_global() const;
 
-    pSym name;
     ImmType tr;
     Const con;
+    pSym name;
 };
 
 typedef Pointer<Global> pGlobal;

@@ -23,6 +23,7 @@ Symbol Instr::to_string() const
     // I-type imm[11:0], rs1, rd
     // S-type imm[11:5], rs2, rs1, imm[4:0]
     // U-type imm[31:12], rd
+    default: break;
     }
 }
 

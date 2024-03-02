@@ -6,6 +6,7 @@
 #include "ir_func.h"
 #include "ir_func_defined.h"
 #include "ir_module.h"
+#include "ir_mem_instr.h"
 
 Ir::pFuncDefined a_plus_b(Ir::pGlobal g)
 {
@@ -13,11 +14,18 @@ Ir::pFuncDefined a_plus_b(Ir::pGlobal g)
 
     Ir::pBlock first_block = func->body.front();
     Ir::pBlock block = Ir::make_block();
-    Ir::pVal lastInstr;
+    Ir::pInstr lastInstr;
 
+    Ir::pInstr alloced = block->add_instr(Ir::make_alloc_instr(Ir::IMM_I64));
+    
     lastInstr = block->add_instr(Ir::make_binary_instr(Ir::INSTR_ADD, Ir::IMM_I32, first_block->instrs[0], first_block->instrs[1]));
     lastInstr = block->add_instr(Ir::make_binary_instr(Ir::INSTR_MUL, Ir::IMM_I32, lastInstr, g));
-    lastInstr = block->add_instr(Ir::make_ret_instr(Ir::IMM_I32, lastInstr));
+    
+    block->add_instr(Ir::make_store_instr(Ir::IMM_I32, alloced, lastInstr));
+    lastInstr = block->add_instr(Ir::make_load_instr(Ir::IMM_I32, alloced));
+    
+    block->add_instr(Ir::make_ret_instr(Ir::IMM_I32, lastInstr));
+
 
     func->add_block(block);
 

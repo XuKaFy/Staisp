@@ -7,7 +7,8 @@ Symbol Block::print_block(size_t line) const
     String s;
     int lineCount = line;
     for(auto i : instrs) {
-        i->line = lineCount++;
+        if(i->instrType == INSTR_TYPE_NEED_REG)
+            i->line = lineCount++;
         s += "  " + String(i->instr_print()) + "\n";
     }
     return to_symbol(s);

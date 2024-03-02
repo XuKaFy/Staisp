@@ -7,11 +7,8 @@
 namespace Ir {
 
 enum InstrType {
-    INSTR_TYPE_AS_ARG,
-    INSTR_TYPE_BIN,
-    INSTR_TYPE_UNARY,
-    INSTR_TYPE_RET,
-    INSTR_TYPE_CALL,
+    INSTR_TYPE_NEED_REG,
+    INSTR_TYPE_NO_REG
 };
 
 struct Instr : public Val {

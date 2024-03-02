@@ -48,7 +48,7 @@ const Symbol gBinInstrName[] = {
 
 struct UnaryInstr : public Instr {
     UnaryInstr(UnaryInstrType unaryType, ImmType tr, pVal oprd)
-        : Instr(INSTR_TYPE_UNARY, tr), unaryType(unaryType), oprd(oprd) { }
+        : Instr(INSTR_TYPE_NEED_REG, tr), unaryType(unaryType), oprd(oprd) { }
 
     virtual Symbol instr_print_impl() const override;
     UnaryInstrType unaryType;
@@ -57,7 +57,7 @@ struct UnaryInstr : public Instr {
 
 struct BinInstr : public Instr {
     BinInstr(BinInstrType binType, ImmType tr, pVal oprd[2])
-        : Instr(INSTR_TYPE_BIN, tr), binType(binType), oprd{oprd[0], oprd[1]} { }
+        : Instr(INSTR_TYPE_NEED_REG, tr), binType(binType), oprd{oprd[0], oprd[1]} { }
 
     virtual Symbol instr_print_impl() const override;
     BinInstrType binType;

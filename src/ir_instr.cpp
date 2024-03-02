@@ -24,7 +24,7 @@ Symbol Instr::instr_print_impl() const
 
 pInstr make_arg_instr(ImmType tr)
 {
-    return pInstr(new Instr(INSTR_TYPE_AS_ARG, tr));
+    return pInstr(new Instr(INSTR_TYPE_NO_REG, tr));
 }
 
 }  // namespace ir

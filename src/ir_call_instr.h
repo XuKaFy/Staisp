@@ -7,7 +7,7 @@ namespace Ir {
 
 struct CallInstr : public Instr {
     CallInstr(ImmType tr, pFunc func, Vector<pVal> args)
-        : Instr(INSTR_TYPE_CALL, tr), func(func), args(args) { }
+        : Instr(INSTR_TYPE_NO_REG, tr), func(func), args(args) { }
     
     virtual Symbol instr_print_impl() const override;
 
@@ -17,7 +17,7 @@ struct CallInstr : public Instr {
 
 struct RetInstr : public Instr {
     RetInstr(ImmType tr, pVal oprd)
-        : Instr(INSTR_TYPE_RET, tr), ret(oprd) { }
+        : Instr(INSTR_TYPE_NO_REG, tr), ret(oprd) { }
     
     virtual Symbol instr_print_impl() const override;
     pVal ret;
