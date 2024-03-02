@@ -19,7 +19,7 @@ struct FuncDefined : public Func {
     }
 
     virtual Symbol print_impl() const override;
-    Symbol to_string() const;
+    Symbol print_func() const;
 
     void add_block(pBlock block);
 

@@ -38,7 +38,7 @@ void FuncDefined::add_block(pBlock block)
     body.push_back(block);
 }
 
-Symbol FuncDefined::to_string() const
+Symbol FuncDefined::print_func() const
 {
     String ans = print_impl();
     ans += " {\n";
