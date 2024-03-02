@@ -5,15 +5,18 @@ namespace Ir {
 Symbol Block::print_impl() const
 {
     String s;
+    int lineCount = 0;
     for(auto i : instrs) {
-        s += String(i->print()) + "\n";
+        i->line = lineCount++;
+        s += String(i->instr_print()) + "\n";
     }
     return to_symbol(s);
 }
 
-void Block::add_instr(pInstr instr)
+pInstr Block::add_instr(pInstr instr)
 {
     instrs.push_back(instr);
+    return instr;
 }
 
 } // namespace ir

@@ -6,6 +6,7 @@
         "compare": "cpp",
         "xmemory": "cpp",
         "xstddef": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "xstring": "cpp"
     }
 }

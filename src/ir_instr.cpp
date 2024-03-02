@@ -2,9 +2,27 @@
 
 namespace Ir {
 
-Symbol BinInstr::print_impl() const
+Symbol Instr::instr_print()
 {
-    return to_symbol(String(gBinInstrName[binType]) 
+    if(instr_str_form == nullptr) {
+        return instr_str_form = instr_print_impl();
+    }
+    return instr_str_form;
+}
+
+Symbol Instr::print_impl() const
+{
+    static char buf[128];
+    sprintf(buf, "%%%d", line);
+    return to_symbol(String(buf));
+}
+
+Symbol BinInstr::instr_print_impl() const
+{
+    return to_symbol(
+        String(print_impl())
+        + " = "
+        + gBinInstrName[binType] 
         + " " 
         + gImmName[tr]
         + " "
@@ -13,9 +31,12 @@ Symbol BinInstr::print_impl() const
         + oprd[1]->print());
 }
 
-Symbol UnaryInstr::print_impl() const
+Symbol UnaryInstr::instr_print_impl() const
 {
-    return to_symbol(String(gUnaryInstrName[unaryType]) 
+    return to_symbol(
+        String(print_impl())
+        + " = "
+        + gUnaryInstrName[unaryType]
         + " " 
         + gImmName[tr]
         + " "

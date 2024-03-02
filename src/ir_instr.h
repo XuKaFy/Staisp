@@ -75,8 +75,15 @@ const Symbol gBinInstrName[] = {
 struct Instr : public Val {
     Instr(InstrType instrType, ImmType tr)
         : instrType(instrType), tr(tr) { }
+    
+    Symbol instr_print();
+    virtual Symbol instr_print_impl() const = 0;
+    virtual Symbol print_impl() const override;
+
     InstrType instrType;
     ImmType tr;
+    Symbol instr_str_form { nullptr };
+    int line;
 };
 
 typedef Pointer<Instr> pInstr;
@@ -85,7 +92,7 @@ struct UnaryInstr : public Instr {
     UnaryInstr(UnaryInstrType unaryType, ImmType tr, pVal oprd)
         : Instr(INSTR_TYPE_UNARY, tr), unaryType(unaryType), oprd(oprd) { }
 
-    virtual Symbol print_impl() const override;
+    virtual Symbol instr_print_impl() const override;
     UnaryInstrType unaryType;
     pVal oprd;
 };
@@ -94,7 +101,7 @@ struct BinInstr : public Instr {
     BinInstr(BinInstrType binType, ImmType tr, pVal oprd[2])
         : Instr(INSTR_TYPE_BIN, tr), binType(binType), oprd{oprd[0], oprd[1]} { }
 
-    virtual Symbol print_impl() const override;
+    virtual Symbol instr_print_impl() const override;
     BinInstrType binType;
     pVal oprd[2];
 };

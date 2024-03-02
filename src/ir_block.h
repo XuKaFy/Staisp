@@ -8,7 +8,7 @@ namespace Ir {
 
 struct Block : public Val {
     virtual Symbol print_impl() const override;
-    void add_instr(pInstr instr);
+    pInstr add_instr(pInstr instr);
     Vector<pInstr> instrs;
 };
 
