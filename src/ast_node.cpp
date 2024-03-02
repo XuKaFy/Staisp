@@ -22,9 +22,9 @@ pNode newAssignNode(Symbol sym, pNode val)
     return pNode(new AssignNode(sym, val));
 }
 
-pNode newVarDefNode(Symbol sym, ImmType tr)
+pNode newVarDefNode(Symbol sym, Immediate val, ImmType tr)
 {
-    return pNode(new VarDefNode(sym, tr));
+    return pNode(new VarDefNode(sym, val, tr));
 }
 
 pNode newFuncDefNode(Symbol sym, ImmType tr, Vector<TypedSym> args, Vector<pNode> body)

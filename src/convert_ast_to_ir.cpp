@@ -2,21 +2,57 @@
 
 namespace AstToIr {
 
-void generate_single(Ast::pNode root, Ir::pModule mod)
+void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func)
 {
     switch(root->type) {
-    case Ast::NODE_IMM:
-        break;
-    case Ast::NODE_OPR:
-        break;
-    case Ast::NODE_SYM:
-        break;
     case Ast::NODE_ASSIGN:
-        break;
-    case Ast::NODE_DEF_FUNC:
         break;
     case Ast::NODE_DEF_VAR:
         break;
+    case Ast::NODE_IMM: // meaningless
+    case Ast::NODE_OPR: // meaningless
+    case Ast::NODE_SYM: // meaningless
+        break;
+    case Ast::NODE_DEF_FUNC:
+        my_assert(false, "Error: function in function");
+    }
+}
+
+void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod)
+{
+    Map<String, int> var_map;
+    Ir::pFuncDefined func;
+    {
+        Vector<ImmType> no_type_args;
+        int count = 0;
+        for(auto i : root->args) {
+            no_type_args.push_back(i.tr);
+            var_map[i.sym] = count++;
+        }
+        func = Ir::make_func_defined(root->tr, Ir::make_sym(root->sym), no_type_args);
+    }
+    for(auto i : root->body) {
+        analyze_statement_node(i, func);
+    }
+    mod->add_func(func);
+}
+
+void generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
+{
+    mod->add_global(Ir::make_global(root->tr, root->val, Ir::make_sym(root->sym)));
+}
+
+void generate_single(Ast::pNode root, Ir::pModule mod)
+{
+    switch(root->type) {
+    case Ast::NODE_DEF_FUNC:
+        generate_function(std::static_pointer_cast<Ast::FuncDefNode>(root), mod);
+        break;
+    case Ast::NODE_DEF_VAR:
+        generate_global_var(std::static_pointer_cast<Ast::VarDefNode>(root), mod);
+        break;
+    default:
+        my_assert(false, "Error: global node has type that not implemented");
     }
 }
 

@@ -7,7 +7,7 @@ Symbol FuncDefined::print_impl() const
     String whole_function = String("define ") + gImmName[tr] + " " + func_name->print() + "(";
 
     my_assert(!body.empty(), "Error: function has no block");
-    pBlock first_block = body.front();
+    pBlock first_block = body[0];
     my_assert(first_block->instrs.size() == arg_types.size(), "Error, Function's first block has different size from arg_types");
 
     if(arg_types.empty()) goto PRINT_IMPL_END;
@@ -42,8 +42,13 @@ Symbol FuncDefined::print_func() const
 {
     String ans = print_impl();
     ans += " {\n";
-    int line_count = body[0]->instrs.back()->line + 1;
-    for(size_t i=1; i<body.size(); ++i) {
+    if(body[0]->instrs.empty()) {
+        ans += body[1]->print_block(0);
+    } else {
+        ans += body[1]->print_block(body[0]->instrs.back()->line + 1);
+    }
+    int line_count = body[1]->instrs.back()->line + 1;
+    for(size_t i=2; i<body.size(); ++i) {
         ans += body[i]->print_block(line_count);
         line_count = body[i]->instrs.back()->line + 1;
     }
