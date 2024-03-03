@@ -43,6 +43,12 @@ enum ImmType {
 #undef ENTRY
 };
 
+const Map<String, ImmType> gSymToImmType {
+#define ENTRY(x, y, z) { #z, IMM_##y },
+    IMM_TYPE_TABLE
+#undef ENTRY
+};
+
 ImmType join_type(ImmType a, ImmType b);
 
 #define ENTRY(x, y, z) #z,

@@ -181,7 +181,7 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
         func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
-        func->add_instr(Ir::make_store_instr(r->var.tr, tmp, Ir::make_constant(r->val)));
+        func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r, func, mod)));
         var_map[r->var.sym] = tmp;
         break;
     }
@@ -220,7 +220,10 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
-    mod->add_global(Ir::make_global(root->var, root->val));
+    if(root->val->type != Ast::NODE_IMM) {
+        my_assert(false, "Error, expression outside a function");
+    }
+    mod->add_global(Ir::make_global(root->var, std::static_pointer_cast<Ast::ImmNode>(root->val)->imm));
 }
 
 void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)

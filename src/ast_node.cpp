@@ -22,7 +22,7 @@ pNode newAssignNode(Symbol sym, pNode val)
     return pNode(new AssignNode(sym, val));
 }
 
-pNode newVarDefNode(TypedSym var, Immediate val)
+pNode newVarDefNode(TypedSym var, pNode val)
 {
     return pNode(new VarDefNode(var, val));
 }

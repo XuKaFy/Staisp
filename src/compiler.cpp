@@ -1,95 +1,26 @@
 #include "ir_module.h"
 #include "ast_node.h"
 #include "convert_ast_to_ir.h"
+#include "staisp_parser.h"
 
-#define IF(x, y) newOprNode(OPR_IF, { x, y } )
-#define WHILE(x, y) newOprNode(OPR_WHILE, { x, y } )
-#define OR(x, y) newOprNode(OPR_OR, {x, y} )
-#define EQ(x, y) newOprNode(OPR_EQ, {x, y} )
-#define ADD(x, y) newOprNode(OPR_ADD, {x, y} )
-#define SUB(x, y) newOprNode(OPR_SUB, {x, y} )
-#define MORE(x, y) newOprNode(OPR_UGT, {x, y} )
-#define ULE(x, y) newOprNode(OPR_ULE, {x, y} )
-#define SYM(x) newSymNode(#x)
-#define RET(x) newOprNode(OPR_RET, { x } )
-#define I32NUM(x) newImmNode(x, IMM_I32)
-#define TYPE(x, y) (TypedSym { #y, x })
-#define DEF_I32VAR(x, y) newVarDefNode(TYPE(IMM_I32, x), y)
-#define ASSIGN(x, y) newAssignNode(#x, y)
+#include <fstream>
 
-Ast::AstProg test()
+int main(int argc, char *argv[])
 {
-    using namespace Ast;
-    AstProg prog;
-/*
-    int n = 50;
-
-    int fib(int n)
-    {
-        if(n == 1 || n == 2)
-            return 1;
-        return fib(n-1) + fib(n-2);
+    if(argc != 2) {
+        puts("Usage: staisp [in_file]");
+        return 1;
     }
-
-    int main() {
-        n = 10;
-        int ans = fib(n);
-        return ans;
+    std::ifstream in;
+    in.open(argv[1], std::fstream::in);
+    if(!in.is_open()) {
+        printf("Error: cannot open file \"%s\".", argv[1]);
+        return 1;
     }
-*/
-    prog.push_back(DEF_I32VAR(n, 50));
-    prog.push_back(newFuncDefNode(TYPE(IMM_I32, fib), { TYPE(IMM_I32, n) }, newBlockNode({
-        IF(OR(EQ(SYM(n), I32NUM(1)), EQ(SYM(n), I32NUM(2))),
-            RET(I32NUM(1))
-        ),
-        RET(ADD(newOprNode(OPR_CALL, { SYM(fib), SUB(SYM(n), I32NUM(1)) }), newOprNode(OPR_CALL, { SYM(fib), SUB(SYM(n), I32NUM(2)) })))
-    })));
-    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, newBlockNode({
-        DEF_I32VAR(ans, 0),
-        ASSIGN(n, I32NUM(10)),
-        ASSIGN(ans, newOprNode(OPR_CALL, { SYM(fib), SYM(n) } )),
-        RET(SYM(ans))
-    })));
-
-    return prog;
-}
-
-Ast::AstProg smalltest()
-{
-    using namespace Ast;
-    AstProg prog;
-
-    /*
-    int main()
-    {
-        int n = 10;
-        int b = 1;
-        int ans = 0;
-        while(b <= 10) {
-            ans += b;
-            b += 1;
-        }
-        return ans;
-    }
-    */
-
-    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, newBlockNode({
-        DEF_I32VAR(n, 10),
-        DEF_I32VAR(b, 1),
-        DEF_I32VAR(ans, 0),
-        WHILE(ULE(SYM(b), SYM(n)), newBlockNode({
-            ASSIGN(ans, ADD(SYM(ans), SYM(b))),
-            ASSIGN(b, ADD(SYM(b), I32NUM(1))),   
-        })),
-        RET(SYM(ans))
-    })));
-
-    return prog;
-}
-
-int main()
-{
-    Ir::pModule mod = AstToIr::Convertor().generate(test());
+    String code((std::istreambuf_iterator<char>(in)),  
+                 std::istreambuf_iterator<char>()); 
+    Ast::AstProg root = Staisp::Parser().parser(code);
+    Ir::pModule mod = AstToIr::Convertor().generate(root);
     printf("%s\n", mod->print_module());
     return 0;
 }

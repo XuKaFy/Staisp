@@ -19,7 +19,7 @@ DEFFUNC main ( ) BLOCK {
     ASSIGN n 10
     DEFVAR i32:ans 10
     WHILE ULE n 20
-        ASSIGN n ADD n 1
+    ASSIGN n ADD n 1
     BLOCK {
         ASSIGN ans fib ( n )
     }
@@ -30,6 +30,7 @@ DEFFUNC main ( ) BLOCK {
 每一个句子的开头都是一个谓词，表示本句的动作。除自定义函数，句子后面直接跟上相等数量的参数，无需括号。自定义函数需要跟上不定长列表。
 
 ```
+program -> *statement
 statement -> "DEFVAR"    typed_sym   vaimage.pnglue
            | "DEFFUNC"   typed_sym   typed_sym_list  statement
            | "ASSIGN"    sym         value
@@ -54,11 +55,15 @@ stat_list -> { }
            | { statement, stat_list }
 value -> function
        | interger
-interger    -> 0 | (1|2|3|4|5|6|7|8|9)*(0|1|2|3|4|5|6|7|8|9)
-sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
+       | variant
+variant -> sym
 unary_func  -> ......
 binary_func -> ......
 triple_func -> ......
+defined_function -> sym
+
+interger    -> 0 | (1|2|3|4|5|6|7|8|9)*(0|1|2|3|4|5|6|7|8|9)
+sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
 ```
 
 ## 运行

@@ -18,8 +18,8 @@ ASM_OBJ =  asm_instr.o asm_regs.o
 CONVERT_AST_TO_IR_DEPS = convert_ast_to_ir.h
 CONVERT_AST_TO_IR_OBJ  = convert_ast_to_ir.o
 
-STAISP_DEPS = staisp_parser.h
-STAISP_OBJ  = staisp_parser.o
+STAISP_DEPS = staisp_parser.h staisp_lexer.h
+STAISP_OBJ  = staisp_parser.o staisp_lexer.o
 
 DEPS = $(AST_DEPS) $(IR_DEPS) $(ASM_DEPS) $(GLOBAL_DEPS) $(CONVERT_AST_TO_IR_DEPS) $(STAISP_DEPS)
 OBJ = $(AST_OBJ) $(IR_OBJ) $(ASM_OBJ) $(GLOBAL_OBJ) $(EXECUTABLE).o $(CONVERT_AST_TO_IR_OBJ) $(STAISP_OBJ)

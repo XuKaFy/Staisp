@@ -82,10 +82,10 @@ struct AssignNode : public Node
 
 struct VarDefNode : public Node
 {
-    VarDefNode(TypedSym var, Immediate val)
+    VarDefNode(TypedSym var, pNode val)
         : Node(NODE_DEF_VAR), var(var), val(val) { }
     TypedSym var;
-    Immediate val;
+    pNode val;
 };
 
 struct FuncDefNode : public Node
@@ -108,7 +108,7 @@ pNode newImmNode(Immediate imm, ImmType tr = IMM_I64);
 pNode newSymNode(Symbol symbol);
 pNode newOprNode(OprType type, Vector<pNode> ch);
 pNode newAssignNode(Symbol sym, pNode val);
-pNode newVarDefNode(TypedSym var, Immediate val);
+pNode newVarDefNode(TypedSym var, pNode val);
 pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, pNode body);
 pNode newBlockNode(Vector<pNode> body);
 
