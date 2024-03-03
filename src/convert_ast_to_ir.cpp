@@ -2,7 +2,23 @@
 
 namespace AstToIr {
 
-Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func)
+Ir::pInstr Convertor::find_value(Symbol sym, Ir::pModule mod)
+{
+    if(var_map.count(sym)) { // local
+        return var_map[sym];
+    } else { // global
+        // TODO: no instr can modify global vars
+        for(auto i : mod->globs) {
+            if(strcmp(i->name->name, sym) == 0) {
+                printf("found %s: %d\n", i->name->name, i->tr);
+                return Ir::make_sym_instr(TypedSym { i->name->name, i->tr }, Ir::SYM_GLOBAL);
+            }
+        }
+    }
+    my_assert(false, "Error: symbol cannot be found");
+}
+
+Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod)
 {
     switch(root->type) {
     case Ast::NODE_OPR: {
@@ -18,10 +34,8 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func)
     }
     case Ast::NODE_SYM: {
         auto r = std::static_pointer_cast<Ast::SymNode>(root);
-        if(var_map.count(r->sym)) {
-            return var_map[r->sym];
-        }
-        return Ir::make_sym_instr(Ir::make_sym(r->sym));
+        auto to = find_value(r->sym, mod);
+        return to;
     }
     case Ast::NODE_ASSIGN:
     case Ast::NODE_DEF_VAR:
@@ -35,20 +49,8 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
     switch(root->type) {
     case Ast::NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
-        if(var_map.count(r->sym)) { // local
-            func->body.back()->instrs.push_back(Ir::make_store_instr(var_map[r->sym]->tr, var_map[r->sym], analyze_value(r->val, func)));
-            goto ANALYZE_ASSIGN_END;
-        } else { // global
-            // TODO: no instr can modify global vars
-            for(auto i : mod->globs) {
-                if(strcmp(i->name->name, r->sym) == 0) {
-                    func->body.back()->instrs.push_back(Ir::make_store_instr(i->tr, Ir::make_sym_instr(i->name, Ir::SYM_GLOBAL), analyze_value(r->val, func)));
-                    goto ANALYZE_ASSIGN_END;
-                }
-            }
-        }
-        my_assert(false, "Error: sym not found");
-ANALYZE_ASSIGN_END:
+        auto to = find_value(r->sym, mod);
+        func->body.back()->instrs.push_back(Ir::make_store_instr(to->tr, to, analyze_value(r->val, func, mod)));
         break;
     }
     case Ast::NODE_DEF_VAR: {
@@ -60,7 +62,7 @@ ANALYZE_ASSIGN_END:
         break;
     }
     case Ast::NODE_OPR:
-        analyze_value(root, func);
+        analyze_value(root, func, mod);
         break;
     case Ast::NODE_IMM: // meaningless
     case Ast::NODE_SYM: // meaningless

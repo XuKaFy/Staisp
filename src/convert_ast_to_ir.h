@@ -17,7 +17,8 @@ private:
     void generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod);
     void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod);
     void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr analyze_value(Ast::pNode root, Ir::pFuncDefined func);
+    Ir::pInstr analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
+    Ir::pInstr find_value(Symbol sym, Ir::pModule mod);
 
     Map<String, Ir::pInstr> var_map;
 };
