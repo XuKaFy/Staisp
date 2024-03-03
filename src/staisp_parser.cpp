@@ -78,6 +78,8 @@ Ast::pNode Parser::parse_value(Env &env)
         return parse_buildin_sym(cur.sym, env);
     }
     if(!env.count(cur.sym)) {
+        printf("Value symbol \"%s\" not found.\n", cur.sym);
+        printf("  at token %d\n", end - current);
         my_assert(false, "Error: value cannot be found.");
     }
     switch(env[cur.sym]) {
@@ -141,7 +143,11 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_typed_sym_list(env);
         env[a1.sym] = SYM_FUNC;
-        auto a3 = parse_statement(env);
+        Env newEnv = env;
+        for(auto i : a2) {
+            newEnv[i.sym] = SYM_VAL;
+        }
+        auto a3 = parse_statement(newEnv);
         return Ast::newFuncDefNode(a1, a2, a3);
     }
     case BUILDIN_BLOCK: {

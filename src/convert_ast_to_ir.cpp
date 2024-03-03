@@ -218,7 +218,8 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
         func = Ir::make_func_defined(root->var, root->args);
         func_map[func->var.sym] = func;
         for(size_t i=0; i<root->args.size(); ++i) {
-            var_map[root->args[i].sym] = func->body[0]->instrs[i+1];
+            // 2*i+1 is related to how first function block is initialized
+            var_map[root->args[i].sym] = func->body[0]->instrs[2*i+1];
         }
     }
     analyze_statement_node(root->body, func, mod);
