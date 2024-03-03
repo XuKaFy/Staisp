@@ -40,6 +40,8 @@ const Map<String, BuildinSym> gBuildinSymType {
     ENTRY(REM, rem) \
     ENTRY(AND, and) \
     ENTRY(OR, or) \
+    ENTRY(EQ, eq) \
+    ENTRY(NE, ne) \
     ENTRY(UGT, ugt) \
     ENTRY(UGE, uge) \
     ENTRY(ULT, ult) \
@@ -73,12 +75,13 @@ typedef Map<String, SymType> Env;
 
 struct Parser {
     Token get_token();
+    Token peek();
     void consume_token(TokenType t);
     bool has_token() const;
 
     static bool is_buildin_sym(Symbol sym);
 
-    Ast::pNode parse_buildin_sym(Symbol sym, Env &env, bool in_global = true);
+    Ast::pNode parse_buildin_sym(Symbol sym, Env &env, bool in_global = false);
     Ast::pNode parse_function_call(Symbol sym, Env &env);
     Ast::pNode parse_block(Env &env);
     Ast::pNode parse_statement(Env &env);
@@ -88,7 +91,7 @@ struct Parser {
     ImmType parse_type(Env &env);
     
     Vector<TypedSym> parse_typed_sym_list(Env &env);
-    Vector<Ast::pNode> parse_value_list(Env &env);
+    Ast::AstProg parse_value_list(Env &env);
 
     Ast::AstProg parser(String code);
     Ast::AstProg parser(TokenList list, Env env = {});

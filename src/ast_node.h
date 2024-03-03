@@ -48,7 +48,7 @@ struct Node
 };
 
 typedef Pointer<Node> pNode;
-typedef Vector<pNode> AstProg;
+typedef List<pNode> AstProg;
 
 struct ImmNode : public Node
 {
@@ -66,10 +66,10 @@ struct SymNode : public Node
 
 struct OprNode : public Node
 {
-    OprNode(OprType type, const Vector<pNode> &ch)
+    OprNode(OprType type, const Ast::AstProg &ch)
         : Node(NODE_OPR), type(type), ch(ch) { }
     OprType type;
-    Vector<pNode> ch;
+    Ast::AstProg ch;
 };
 
 struct AssignNode : public Node
@@ -99,17 +99,17 @@ struct FuncDefNode : public Node
 
 struct BlockNode : public Node
 {
-    BlockNode(Vector<pNode> body)
+    BlockNode(Ast::AstProg body)
         : Node(NODE_BLOCK), body(body) { }
-    Vector<pNode> body;
+    Ast::AstProg body;
 };
 
 pNode newImmNode(Immediate imm, ImmType tr = IMM_I64);
 pNode newSymNode(Symbol symbol);
-pNode newOprNode(OprType type, Vector<pNode> ch);
+pNode newOprNode(OprType type, Ast::AstProg ch);
 pNode newAssignNode(Symbol sym, pNode val);
 pNode newVarDefNode(TypedSym var, pNode val);
 pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, pNode body);
-pNode newBlockNode(Vector<pNode> body);
+pNode newBlockNode(Ast::AstProg body);
 
 } // namespace ast

@@ -8,12 +8,20 @@ Token Parser::get_token()
     if(current == end) {
         my_assert(false, "Error: reaches the end of code.");
     }
+    // printf("READ TOKEN ");
+    // current->print(); printf("\n");
     return *(current++);
+}
+
+Token Parser::peek()
+{
+    return *(current);
 }
 
 void Parser::consume_token(TokenType t)
 {
     if(get_token().t != t) {
+        // printf("consume %d, but found %d\n", (current-1)->t, t);
         my_assert(false, "Error: token out of expectation.");
     }
 }
@@ -25,7 +33,8 @@ bool Parser::has_token() const
 
 Ast::AstProg Parser::parser(String code)
 {
-    return parser(Lexer().lexer(code));
+    TokenList list = Lexer().lexer(code);
+    return parser(list);
 }
 
 bool Parser::is_buildin_sym(Symbol sym)
@@ -64,6 +73,9 @@ Ast::pNode Parser::parse_value(Env &env)
     Token cur = get_token();
     if(cur.t == TOKEN_INT) {
         return Ast::newImmNode(cur.val);
+    }
+    if(is_buildin_sym(cur.sym)) {
+        return parse_buildin_sym(cur.sym, env);
     }
     if(!env.count(cur.sym)) {
         my_assert(false, "Error: value cannot be found.");
@@ -128,6 +140,7 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
             my_assert(false, "Error: function in function.");
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_typed_sym_list(env);
+        env[a1.sym] = SYM_FUNC;
         auto a3 = parse_statement(env);
         return Ast::newFuncDefNode(a1, a2, a3);
     }
@@ -148,7 +161,7 @@ Ast::pNode Parser::parse_statement(Env &env)
         return { };
     }
     if(is_buildin_sym(cur.sym)) {
-        return parse_buildin_sym(cur.sym, env, false);
+        return parse_buildin_sym(cur.sym, env, true);
     }
     return parse_function_call(cur.sym, env);
 }
@@ -156,9 +169,8 @@ Ast::pNode Parser::parse_statement(Env &env)
 Vector<TypedSym> Parser::parse_typed_sym_list(Env &env)
 {
     consume_token(TOKEN_LB_S);
-    Token cur;
     Vector<TypedSym> ts;
-    while((cur = get_token()).t != TOKEN_RB_L) {
+    while(peek().t != TOKEN_RB_S) {
         ts.push_back(parse_typed_sym(env));
     }
     consume_token(TOKEN_RB_S);
@@ -168,9 +180,8 @@ Vector<TypedSym> Parser::parse_typed_sym_list(Env &env)
 Ast::AstProg Parser::parse_value_list(Env &env)
 {
     consume_token(TOKEN_LB_S);
-    Token cur;
     Ast::AstProg list;
-    while((cur = get_token()).t != TOKEN_RB_L) {
+    while(peek().t != TOKEN_RB_S) {
         list.push_back(parse_value(env));
     }
     consume_token(TOKEN_RB_S);
@@ -187,10 +198,9 @@ Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
         my_assert(false, "Error: try to call a variant.");    
         break;
     case SYM_FUNC: {
-        TypedSym name = parse_typed_sym(env);
-        Vector<TypedSym> args = parse_typed_sym_list(env);
-        Ast::pNode body = parse_statement(env);
-        return Ast::newFuncDefNode(name, args, body);
+        Ast::AstProg args = parse_value_list(env);
+        args.push_front(Ast::newSymNode(sym));
+        return Ast::newOprNode(Ast::OPR_CALL, args);
     }
     }
     // cannot reach
@@ -201,10 +211,9 @@ Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
 Ast::pNode Parser::parse_block(Env &env)
 {
     consume_token(TOKEN_LB_L);
-    Token cur;
     Ast::AstProg body;
     Env newEnv = env;
-    while((cur = get_token()).t != TOKEN_RB_L) {
+    while(peek().t != TOKEN_RB_L) {
         body.push_back(parse_statement(newEnv));
     }
     consume_token(TOKEN_RB_L);
@@ -216,8 +225,13 @@ Ast::AstProg Parser::parser(TokenList list, Env env)
     using namespace Ast;
 
     AstProg prog;
+
+    /*for(auto i : list)
+        i.print();
+    puts("");*/
+
     current = list.begin();
-    current = list.end();
+    end = list.end();
     while(has_token()) {
         prog.push_back(parse_statement(env));
     }

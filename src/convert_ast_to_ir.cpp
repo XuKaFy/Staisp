@@ -44,8 +44,9 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     case Ast::OPR_OR:
     case Ast::OPR_REM: {
         my_assert(root->ch.size() == 2, "Error: binary opr of ast has not 2 args");
-        auto a1 = analyze_value(root->ch[0], func, mod);
-        auto a2 = analyze_value(root->ch[1], func, mod);
+        auto a = root->ch.begin();
+        auto a1 = analyze_value(*(a++), func, mod);
+        auto a2 = analyze_value(*(a++), func, mod);
         // printf("[exec %d, joined_type = %d]\n", root->type, join_type(a1->tr, a2->tr));
         auto ir = Ir::make_binary_instr(fromBinaryOpr(root->type), join_type(a1->tr, a2->tr), a1, a2);
         func->add_instr(ir);
@@ -62,8 +63,9 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     case Ast::OPR_SLT:
     case Ast::OPR_SLE: {
         my_assert(root->ch.size() == 2, "Error: binary opr of ast has not 2 args");
-        auto a1 = analyze_value(root->ch[0], func, mod);
-        auto a2 = analyze_value(root->ch[1], func, mod);
+        auto a = root->ch.begin();
+        auto a1 = analyze_value(*(a++), func, mod);
+        auto a2 = analyze_value(*(a++), func, mod);
         auto ir = Ir::make_cmp_instr(fromCmpOpr(root->type), join_type(a1->tr, a2->tr), a1, a2);
         func->add_instr(ir);
         return ir;
@@ -74,7 +76,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto afterBlock = Ir::make_block();
         my_assert(root->ch.size() == 3 || root->ch.size() == 2, "Error: if opr of ast has not 2 or 3 args");
         
-        auto cond = analyze_value(root->ch[0], func, mod);
+        auto a = root->ch.begin();
+        auto cond = analyze_value(*(a++), func, mod);
         // printf("for if cond, tr = %d\n", cond->tr);
         if(root->ch.size() == 3) {
             func->add_instr(Ir::make_br_cond_instr(cond, trueBlock->label(), falseBlock->label()));
@@ -83,12 +86,12 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         }
 
         func->add_block(trueBlock);
-        analyze_statement_node(root->ch[1], func, mod);
+        analyze_statement_node(*(a++), func, mod);
         trueBlock->finish_block_with_jump(afterBlock);
         
         if(root->ch.size() == 3) {
             func->add_block(falseBlock);
-            analyze_statement_node(root->ch[2], func, mod);
+            analyze_statement_node(*(a++), func, mod);
             falseBlock->finish_block_with_jump(afterBlock);
         }
         
@@ -101,14 +104,16 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto afterBlock = Ir::make_block();
         my_assert(root->ch.size() == 3 || root->ch.size() == 2, "Error: while opr of ast has not 2 args");
 
+        auto a = root->ch.begin();
+
         func->current_block()->finish_block_with_jump(compBlock);
         
         func->add_block(compBlock);
-        auto cond = analyze_value(root->ch[0], func, mod);
+        auto cond = analyze_value(*(a++), func, mod);
         compBlock->add_instr(Ir::make_br_cond_instr(cond, trueBlock->label(), afterBlock->label()));
 
         func->add_block(trueBlock);
-        analyze_statement_node(root->ch[1], func, mod);   
+        analyze_statement_node(*(a++), func, mod);   
         trueBlock->finish_block_with_jump(compBlock);
         
         func->add_block(afterBlock);
@@ -116,18 +121,19 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     }
     case Ast::OPR_RET: {
         my_assert(root->ch.size() == 1, "Error: ret opr of ast has not 1 args");
-        auto a = analyze_value(root->ch[0], func, mod);
+        auto a = analyze_value(root->ch.front(), func, mod);
         func->add_instr(Ir::make_ret_instr(a->tr, a));
         return Ir::make_label_instr();
     }
     case Ast::OPR_CALL: {
         my_assert(root->ch.size() >= 1, "Error: call opr of ast has less than 1 args");
         Vector<Ir::pInstr> args;
-        my_assert(root->ch[0]->type == Ast::NODE_SYM, "Error: call opr gets a name that not sym");
-        for(size_t i=1; i<root->ch.size(); ++i) {
-            args.push_back(analyze_value(root->ch[i], func, mod));
+        // printf("CALLING %d\n", root->ch[0]->type);
+        my_assert(root->ch.front()->type == Ast::NODE_SYM, "Error: call opr gets a name that not sym");
+        for(auto i=++root->ch.begin(); i!=root->ch.end(); ++i) {
+            args.push_back(analyze_value(*i, func, mod));
         }
-        auto name_node = std::static_pointer_cast<Ast::SymNode>(root->ch[0]);
+        auto name_node = std::static_pointer_cast<Ast::SymNode>(root->ch.front());
         auto func_instr = func_map[name_node->sym];
         auto func_ir = Ir::make_call_instr(func_instr, args);
         func->add_instr(func_ir);
@@ -163,6 +169,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     case Ast::NODE_DEF_FUNC:
     case Ast::NODE_BLOCK:
     default:
+        printf("try to calucate %d\n", root->type);
         my_assert(false, "Error: not calculatable");
         return Ir::make_label_instr();
     }

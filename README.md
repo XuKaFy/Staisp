@@ -8,14 +8,14 @@ Staisp（STAtic lISP），即静态语法表，用于用一种相比于 IR 更�
 DEFVAR i32:n 50
 
 DEFFUNC i32:fib ( i32:n ) BLOCK {
-    IF OR EQ n i32:1
-          EQ n i32:2
-        RETURN i32:1
+    IF OR EQ n 1
+          EQ n 2
+        RETURN 1
     RETURN ADD fib ( SUB n 1 )
                fib ( SUB n 2 )
 }
 
-DEFFUNC main ( ) BLOCK {
+DEFFUNC i32:main ( ) BLOCK {
     ASSIGN n 10
     DEFVAR i32:ans 10
     WHILE ULE n 20

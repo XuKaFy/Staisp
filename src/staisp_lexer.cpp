@@ -35,20 +35,13 @@ TokenList Lexer::lexer(String code)
     while(has_char()) {
         list.push_back(lexer_one_token());
         jump_empty();
-        if(list.back().t == TOKEN_INT) {
-            printf("Token %lld\n", list.back().val);
-        } else if(list.back().t == TOKEN_SYM) {
-            printf("Token %s\n", list.back().sym);
-        } else {
-            printf("Token %c\n", (char)list.back().val);
-        }
     }
     return list;
 }
 
 Token Lexer::lexer_number(String::value_type head)
 {
-    Immediate var = 0;
+    Immediate var = head - '0';
     while(has_char() && !isspace(peek())) {
         if(!isdigit(peek())) {
             my_assert(false, "Error: not a number.");

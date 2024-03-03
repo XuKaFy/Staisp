@@ -12,7 +12,7 @@ pNode newSymNode(Symbol str)
     return pNode(new SymNode(str));
 }
 
-pNode newOprNode(OprType type, Vector<pNode> ch)
+pNode newOprNode(OprType type, Ast::AstProg ch)
 {
     return pNode(new OprNode(type, ch));
 }
@@ -32,7 +32,7 @@ pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, pNode body)
     return pNode(new FuncDefNode(var, args, body));
 }
 
-pNode newBlockNode(Vector<pNode> body)
+pNode newBlockNode(Ast::AstProg body)
 {
     return pNode(new BlockNode(body));
 }

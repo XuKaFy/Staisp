@@ -7,6 +7,7 @@
 #include <memory>
 #include <cstring>
 #include <cassert>
+#include <list>
 
 #include <variant>
 
@@ -14,6 +15,9 @@
 
 template<typename T>
 using Pointer = std::shared_ptr<T>;
+
+template<typename T>
+using List = std::list<T>;
 
 template<typename T>
 using Vector = std::vector<T>;

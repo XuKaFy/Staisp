@@ -25,6 +25,16 @@ struct Token {
         Immediate val;
         Symbol sym;
     };
+
+    void print() {
+        if(t == TOKEN_SYM) {
+            printf("[%s]", sym);
+        } else if(t == TOKEN_INT) {
+            printf("[%lld]", val);
+        } else {
+            printf("%c", (char) val);
+        }
+    }
 };
 
 typedef Vector<Token> TokenList;
