@@ -4,9 +4,9 @@ namespace Ir {
 
 Symbol Global::print_global() const
 {
-    String ans = name->print();
+    String ans = val.sym;
     ans += " = global ";
-    ans += gImmName[tr];
+    ans += gImmName[val.tr];
     ans += " ";
     ans += con.print_impl();
     return to_symbol(ans);
@@ -14,12 +14,12 @@ Symbol Global::print_global() const
 
 Symbol Global::print_impl() const
 {
-    return name->print();
+    return to_symbol(String("@") + val.sym);
 }
 
-pGlobal make_global(ImmType tr, Const con, pSym name)
+pGlobal make_global(TypedSym val, Const con)
 {
-    return pGlobal(new Global(tr, con, name));
+    return pGlobal(new Global(val, con));
 }
 
 } // ir

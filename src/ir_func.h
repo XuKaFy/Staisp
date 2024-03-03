@@ -6,18 +6,17 @@
 namespace Ir {
 
 struct Func : public Val {
-    Func(ImmType tr, pSym func_name, Vector<TypedSym> arg_types)
-        : tr(tr), func_name(func_name), args(arg_types) { }
+    Func(TypedSym var, Vector<TypedSym> arg_types)
+        : var(var), args(arg_types) { }
 
     virtual Symbol print_impl() const override;
 
-    ImmType tr;
-    pSym func_name;
+    TypedSym var;
     Vector<TypedSym> args;
 };
 
 typedef Pointer<Func> pFunc;
 
-pFunc make_func(ImmType tr, pSym func_name, Vector<ImmType> arg_types);
+pFunc make_func(TypedSym var, Vector<ImmType> arg_types);
 
 } // namespace ir

@@ -4,12 +4,13 @@ namespace Ir {
 
 Symbol Func::print_impl() const
 {
-    return func_name->print();
+    // functions are all global
+    return to_symbol(String("@") + var.sym);
 }
 
-pFunc make_func(ImmType tr, pSym func_name, Vector<TypedSym> arg_types)
+pFunc make_func(TypedSym var, Vector<TypedSym> arg_types)
 {
-    return pFunc(new Func(tr, func_name, arg_types));
+    return pFunc(new Func(var, arg_types));
 }
 
 }

@@ -8,19 +8,18 @@ namespace Ir
 {
 
 struct Global : public Val {
-    Global(ImmType tr, Const con, pSym name)
-        : tr(tr), con(con), name(name) {}
+    Global(TypedSym val, Const con)
+        : val(val), con(con) {}
     
     virtual Symbol print_impl() const override;
     Symbol print_global() const;
 
-    ImmType tr;
+    TypedSym val;
     Const con;
-    pSym name;
 };
 
 typedef Pointer<Global> pGlobal;
 
-pGlobal make_global(ImmType tr, Const con, pSym name);
+pGlobal make_global(TypedSym val, Const con);
 
 } // namespace ir

@@ -9,13 +9,13 @@ Ir::pInstr Convertor::find_value(Symbol sym, Ir::pModule mod)
     } else { // global
         // TODO: no instr can modify global vars
         for(auto i : mod->globs) {
-            if(strcmp(i->name->name, sym) == 0) {
-                printf("found %s: %d\n", i->name->name, i->tr);
-                return Ir::make_sym_instr(TypedSym { i->name->name, i->tr }, Ir::SYM_GLOBAL);
+            if(strcmp(i->val.sym, sym) == 0) {
+                return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
             }
         }
     }
     my_assert(false, "Error: symbol cannot be found");
+    return Ir::make_arg_instr(IMM_VOID);
 }
 
 Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod)
@@ -56,9 +56,9 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
     case Ast::NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
-        func->body.back()->instrs.push_back(tmp = Ir::make_alloc_instr(r->tr));
-        func->body.back()->instrs.push_back(Ir::make_store_instr(r->tr, tmp, Ir::make_constant(r->val)));
-        var_map[r->sym] = tmp;
+        func->body.back()->instrs.push_back(tmp = Ir::make_alloc_instr(r->var.tr));
+        func->body.back()->instrs.push_back(Ir::make_store_instr(r->var.tr, tmp, Ir::make_constant(r->val)));
+        var_map[r->var.sym] = tmp;
         break;
     }
     case Ast::NODE_OPR:
@@ -77,7 +77,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
     var_map.clear();
     Ir::pFuncDefined func;
     {
-        func = Ir::make_func_defined(root->tr, Ir::make_sym(root->sym), root->args);
+        func = Ir::make_func_defined(root->var, root->args);
         for(size_t i=0; i<root->args.size(); ++i) {
             var_map[root->args[i].sym] = func->body[0]->instrs[i];
         }
@@ -90,7 +90,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
-    mod->add_global(Ir::make_global(root->tr, root->val, Ir::make_sym(root->sym)));
+    mod->add_global(Ir::make_global(root->var, root->val));
 }
 
 void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)

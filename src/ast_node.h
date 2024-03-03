@@ -72,19 +72,17 @@ struct AssignNode : public Node
 
 struct VarDefNode : public Node
 {
-    VarDefNode(Symbol sym, Immediate val, ImmType tr)
-        : Node(NODE_DEF_VAR), sym(sym), val(val), tr(tr) { }
-    Symbol sym;
+    VarDefNode(TypedSym var, Immediate val)
+        : Node(NODE_DEF_VAR), var(var), val(val) { }
+    TypedSym var;
     Immediate val;
-    ImmType tr;
 };
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(Symbol sym, ImmType tr, Vector<TypedSym> args, Vector<pNode> body)
-        : Node(NODE_DEF_FUNC), sym(sym), tr(tr), args(args), body(body) { }
-    Symbol sym;
-    ImmType tr;
+    FuncDefNode(TypedSym var, Vector<TypedSym> args, Vector<pNode> body)
+        : Node(NODE_DEF_FUNC), var(var), args(args), body(body) { }
+    TypedSym var;
     Vector<TypedSym> args;
     Vector<pNode> body;
 };
@@ -93,7 +91,7 @@ pNode newImmNode(Immediate imm, ImmType tr = IMM_I64);
 pNode newSymNode(Symbol symbol);
 pNode newOprNode(OprType type, Vector<pNode> ch);
 pNode newAssignNode(Symbol sym, pNode val);
-pNode newVarDefNode(Symbol sym, Immediate val, ImmType tr);
-pNode newFuncDefNode(Symbol sym, ImmType tr, Vector<TypedSym> args, Vector<pNode> body);
+pNode newVarDefNode(TypedSym var, Immediate val);
+pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, Vector<pNode> body);
 
 } // namespace ast

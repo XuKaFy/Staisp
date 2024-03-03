@@ -8,8 +8,8 @@
 namespace Ir {
 
 struct FuncDefined : public Func {
-    FuncDefined(ImmType tr, pSym func_name, Vector<TypedSym> arg_types)
-        : Func(tr, func_name, arg_types) {
+    FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
+        : Func(var, arg_types) {
         pBlock first_block = make_block();
         first_block->add_instr(make_label_instr());
         
@@ -33,6 +33,6 @@ struct FuncDefined : public Func {
 
 typedef Pointer<FuncDefined> pFuncDefined;
 
-pFuncDefined make_func_defined(ImmType tr, pSym func_name, Vector<TypedSym> arg_types);
+pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types);
 
 } // namespace ir

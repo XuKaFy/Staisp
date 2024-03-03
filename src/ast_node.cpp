@@ -22,14 +22,14 @@ pNode newAssignNode(Symbol sym, pNode val)
     return pNode(new AssignNode(sym, val));
 }
 
-pNode newVarDefNode(Symbol sym, Immediate val, ImmType tr)
+pNode newVarDefNode(TypedSym var, Immediate val)
 {
-    return pNode(new VarDefNode(sym, val, tr));
+    return pNode(new VarDefNode(var, val));
 }
 
-pNode newFuncDefNode(Symbol sym, ImmType tr, Vector<TypedSym> args, Vector<pNode> body)
+pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, Vector<pNode> body)
 {
-    return pNode(new FuncDefNode(sym, tr, args, body));
+    return pNode(new FuncDefNode(var, args, body));
 }
 
 }  // namespace ast
