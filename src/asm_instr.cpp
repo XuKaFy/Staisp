@@ -25,6 +25,7 @@ Symbol Instr::to_string() const
     // U-type imm[31:12], rd
     default: break;
     }
+    return "";
 }
 
 }  // namespace asm

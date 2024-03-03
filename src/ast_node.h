@@ -19,7 +19,7 @@ enum OprType
     OPR_ADD,
     OPR_SUB,
     OPR_MUL,
-    OPR_DIV,
+    OPR_SDIV,
     OPR_REM,
     OPR_AND,
     OPR_OR,

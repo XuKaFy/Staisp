@@ -21,10 +21,20 @@ Symbol Block::print_impl() const
     return to_symbol("[block]");
 }
 
+pInstr Block::label() const
+{
+    return instrs.front();
+}
+
 pInstr Block::add_instr(pInstr instr)
 {
     instrs.push_back(instr);
     return instr;
+}
+
+pInstr Block::finish_block_with_jump(pBlock b)
+{
+    return add_instr(b->label());
 }
 
 pBlock make_block()

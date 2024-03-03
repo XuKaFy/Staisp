@@ -43,6 +43,8 @@ enum ImmType {
 #undef ENTRY
 };
 
+ImmType join_type(ImmType a, ImmType b);
+
 #define ENTRY(x, y, z) #z,
 const Symbol gImmName[] = {
     IMM_TYPE_TABLE

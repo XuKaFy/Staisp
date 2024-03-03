@@ -7,16 +7,23 @@
 
 namespace Ir {
 
+struct Block;
+typedef Pointer<Block> pBlock;
+
 struct Block : public Val {
+    Block() {
+        add_instr(make_label_instr());
+    }
+
     virtual Symbol print_impl() const override;
     
     Symbol print_block(size_t line = 0) const;
 
+    pInstr label() const;
     pInstr add_instr(pInstr instr);
+    pInstr finish_block_with_jump(pBlock b);
     Vector<pInstr> instrs;
 };
-
-typedef Pointer<Block> pBlock;
 
 pBlock make_block();
 

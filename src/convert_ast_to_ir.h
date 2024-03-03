@@ -11,6 +11,7 @@ namespace AstToIr {
 class Convertor {
 public:
     Ir::pModule generate(Ast::AstProg asts);
+    static Ir::BinInstrType fromBinaryOpr(Ast::OprType o);
 
 private:
     void generate_single(Ast::pNode root, Ir::pModule mod);
@@ -18,6 +19,7 @@ private:
     void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod);
     void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
+    Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr find_value(Symbol sym, Ir::pModule mod);
 
     Map<String, Ir::pInstr> var_map;

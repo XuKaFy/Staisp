@@ -31,9 +31,19 @@ pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types)
     return pFuncDefined(new FuncDefined(var, arg_types));
 }
 
+pBlock FuncDefined::current_block() const
+{
+    return body.back();
+}
+
 void FuncDefined::add_block(pBlock block)
 {
     body.push_back(block);
+}
+
+void FuncDefined::add_instr(pInstr ir)
+{
+    body.back()->add_instr(ir);
 }
 
 Symbol FuncDefined::print_func() const

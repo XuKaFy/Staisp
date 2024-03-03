@@ -11,7 +11,6 @@ struct FuncDefined : public Func {
     FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
         : Func(var, arg_types) {
         pBlock first_block = make_block();
-        first_block->add_instr(make_label_instr());
         
         size_t line_count = 1;
         for(auto i : arg_types) {
@@ -26,7 +25,9 @@ struct FuncDefined : public Func {
     virtual Symbol print_impl() const override;
     Symbol print_func() const;
 
+    pBlock current_block() const;
     void add_block(pBlock block);
+    void add_instr(pInstr ir);
 
     Vector<pBlock> body;
 };

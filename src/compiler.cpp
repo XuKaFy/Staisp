@@ -2,7 +2,7 @@
 #include "ast_node.h"
 #include "convert_ast_to_ir.h"
 
-#define IF(x, y) newOprNode(OPR_IF, { y } )
+#define IF(x, y) newOprNode(OPR_IF, { x, y } )
 #define OR(x, y) newOprNode(OPR_OR, {x, y} )
 #define EQ(x, y) newOprNode(OPR_EQ, {x, y} )
 #define ADD(x, y) newOprNode(OPR_ADD, {x, y} )

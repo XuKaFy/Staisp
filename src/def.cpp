@@ -18,3 +18,8 @@ Symbol to_symbol(String s)
     watcher.s.push_back(m);
     return Symbol(m);
 }
+
+ImmType join_type(ImmType a, ImmType b)
+{
+    return std::max(a, b);
+}
