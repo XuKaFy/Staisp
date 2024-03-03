@@ -14,7 +14,7 @@ Ir::pInstr Convertor::find_left_value(Symbol sym, Ir::pFuncDefined func, Ir::pMo
         }
     }
     my_assert(false, "Error: left symbol cannot be found");
-    return Ir::make_arg_instr(IMM_I8);
+    return Ir::make_label_instr();
 }
 
 Ir::pInstr Convertor::find_value(Symbol sym, Ir::pFuncDefined func, Ir::pModule mod)
@@ -24,12 +24,13 @@ Ir::pInstr Convertor::find_value(Symbol sym, Ir::pFuncDefined func, Ir::pModule 
     } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, sym) == 0) {
-                return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
+                auto sym = Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
+                return func->add_instr(Ir::make_load_instr(sym->tr, sym));
             }
         }
     }
     my_assert(false, "Error: symbol cannot be found");
-    return Ir::make_arg_instr(IMM_I8);
+    return Ir::make_label_instr();
 }
 
 Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod)
@@ -82,7 +83,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         }
 
         func->add_block(trueBlock);
-        analyze_statement_node(root->ch[1], func, mod);   
+        analyze_statement_node(root->ch[1], func, mod);
         trueBlock->finish_block_with_jump(afterBlock);
         
         if(root->ch.size() == 3) {
@@ -92,7 +93,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         }
         
         func->add_block(afterBlock);
-        return Ir::make_arg_instr(IMM_I8);
+        return Ir::make_label_instr();
     }
     case Ast::OPR_WHILE: {
         auto compBlock = Ir::make_block();
@@ -111,13 +112,13 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         trueBlock->finish_block_with_jump(compBlock);
         
         func->add_block(afterBlock);
-        return Ir::make_arg_instr(IMM_I8);
+        return Ir::make_label_instr();
     }
     case Ast::OPR_RET: {
         my_assert(root->ch.size() == 1, "Error: ret opr of ast has not 1 args");
         auto a = analyze_value(root->ch[0], func, mod);
         func->add_instr(Ir::make_ret_instr(a->tr, a));
-        return Ir::make_arg_instr(IMM_I8);
+        return Ir::make_label_instr();
     }
     case Ast::OPR_CALL: {
         my_assert(root->ch.size() >= 1, "Error: call opr of ast has less than 1 args");
@@ -135,7 +136,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     default:
         printf("opr %d not implemented\n", root->type);
         my_assert(false, "Error: opr of ast is not implemented");
-        return Ir::make_arg_instr(IMM_I8);
+        return Ir::make_label_instr();
     }
 }
 
@@ -163,7 +164,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     case Ast::NODE_BLOCK:
     default:
         my_assert(false, "Error: not calculatable");
-        return Ir::make_arg_instr(IMM_I8);
+        return Ir::make_label_instr();
     }
 }
 

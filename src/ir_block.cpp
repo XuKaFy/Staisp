@@ -38,9 +38,11 @@ pInstr Block::add_instr(pInstr instr)
     return instr;
 }
 
-pInstr Block::finish_block_with_jump(pBlock b)
+void Block::finish_block_with_jump(pBlock b)
 {
-    return add_instr(make_br_instr(b->label()));
+    if(!instrs.back()->is_end_of_block()) {
+        add_instr(make_br_instr(b->label()));
+    }
 }
 
 pBlock make_block()

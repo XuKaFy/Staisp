@@ -20,6 +20,8 @@ struct Instr : public Val {
     virtual Symbol instr_print_impl() const;
     virtual Symbol print_impl() const override;
 
+    virtual bool is_end_of_block() const = 0;
+
     InstrType instrType;
     ImmType tr;
     Symbol instr_str_form { nullptr };
@@ -27,7 +29,5 @@ struct Instr : public Val {
 };
 
 typedef Pointer<Instr> pInstr;
-
-pInstr make_arg_instr(ImmType tr);
 
 } // namespace Ir

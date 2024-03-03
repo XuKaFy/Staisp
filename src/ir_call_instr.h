@@ -10,6 +10,7 @@ struct CallInstr : public Instr {
         : Instr(INSTR_TYPE_NEED_REG, func->var.tr), func(func), args(args) { }
     
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
 
     pFunc func;
     Vector<pInstr> args;
@@ -19,6 +20,8 @@ struct RetInstr : public Instr {
     RetInstr(ImmType tr, pInstr oprd)
         : Instr(INSTR_TYPE_NO_REG, tr), ret(oprd) { }
     
+    virtual bool is_end_of_block() const { return true; }
+
     virtual Symbol instr_print_impl() const override;
     pInstr ret;
 };

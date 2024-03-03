@@ -22,7 +22,7 @@ struct Block : public Val {
 
     pInstr label() const;
     pInstr add_instr(pInstr instr);
-    pInstr finish_block_with_jump(pBlock b);
+    void finish_block_with_jump(pBlock b);
     Vector<pInstr> instrs;
 };
 

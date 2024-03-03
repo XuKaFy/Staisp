@@ -36,6 +36,7 @@ struct CmpInstr : public Instr
         : Instr(INSTR_TYPE_NEED_REG, IMM_I1), cmp_type(cmp_type), ch { a1, a2 } { }
     
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
 
     CmpType cmp_type;
     pInstr ch[2];

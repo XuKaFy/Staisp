@@ -11,6 +11,7 @@ struct AllocInstr : public Instr {
         : Instr(INSTR_TYPE_NEED_REG, tr) { }
     
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
 };
 
 struct LoadInstr : public Instr {
@@ -18,6 +19,7 @@ struct LoadInstr : public Instr {
         : Instr(INSTR_TYPE_NEED_REG, tr), from(from) { }
     
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
     pInstr from;
 };
 
@@ -26,6 +28,7 @@ struct StoreInstr : public Instr {
         : Instr(INSTR_TYPE_NO_REG, tr), to(to), val(val) { }
     
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
 
     pInstr to;
     pVal val;
@@ -41,6 +44,7 @@ struct SymInstr : public Instr {
         : Instr(INSTR_TYPE_NO_REG, val.tr), sym(val.sym), from(from) { }
 
     virtual Symbol print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
     Symbol sym;
     SymFrom from;
 };

@@ -32,6 +32,7 @@ Ast::AstProg test()
     }
 
     int main() {
+        n = 10;
         int ans = fib(n);
         return ans;
     }
@@ -45,7 +46,7 @@ Ast::AstProg test()
     })));
     prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, newBlockNode({
         DEF_I32VAR(ans, 0),
-        ASSIGN(n, I32NUM(100)),
+        ASSIGN(n, I32NUM(10)),
         ASSIGN(ans, newOprNode(OPR_CALL, { SYM(fib), SYM(n) } )),
         RET(SYM(ans))
     })));
@@ -88,7 +89,7 @@ Ast::AstProg smalltest()
 
 int main()
 {
-    Ir::pModule mod = AstToIr::Convertor().generate(smalltest());
+    Ir::pModule mod = AstToIr::Convertor().generate(test());
     printf("%s\n", mod->print_module());
     return 0;
 }

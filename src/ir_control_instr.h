@@ -8,8 +8,9 @@ struct LabelInstr : public Instr
 {
     LabelInstr()
         : Instr(INSTR_TYPE_LABEL, IMM_I1) { }
-    
+
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
 };
 
 struct BrInstr : public Instr {
@@ -17,6 +18,7 @@ struct BrInstr : public Instr {
         : Instr(INSTR_TYPE_NO_REG, IMM_I1), to(to) {}
 
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return true; }
 
     pInstr to;
 };
@@ -26,6 +28,7 @@ struct BrCondInstr : public Instr {
         : Instr(INSTR_TYPE_NO_REG, cond->tr), cond(cond), trueTo(trueTo), falseTo(falseTo) {}
 
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return true; }
 
     pInstr cond;
     pInstr trueTo;

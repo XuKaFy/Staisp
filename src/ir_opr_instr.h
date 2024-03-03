@@ -51,6 +51,7 @@ struct UnaryInstr : public Instr {
         : Instr(INSTR_TYPE_NEED_REG, tr), unaryType(unaryType), oprd(oprd) { }
 
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
     UnaryInstrType unaryType;
     pVal oprd;
 };
@@ -60,6 +61,7 @@ struct BinInstr : public Instr {
         : Instr(INSTR_TYPE_NEED_REG, tr), binType(binType), oprd{oprd1, oprd2} { }
 
     virtual Symbol instr_print_impl() const override;
+    virtual bool is_end_of_block() const { return false; }
     BinInstrType binType;
     pVal oprd[2];
 };
