@@ -31,7 +31,7 @@ typedef std::string String;
 Symbol to_symbol(String s);
 
 #define IMM_TYPE_TABLE \
-    ENTRY(0, VOID, void) \
+    ENTRY(0, I1, i1) \
     ENTRY(1, I8, i8) \
     ENTRY(2, I16, i16) \
     ENTRY(3, I32, i32) \

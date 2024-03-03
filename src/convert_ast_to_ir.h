@@ -23,7 +23,8 @@ private:
     void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr find_value(Symbol sym, Ir::pModule mod);
+    Ir::pInstr find_value(Symbol sym, Ir::pFuncDefined func, Ir::pModule mod);
+    Ir::pInstr find_left_value(Symbol sym, Ir::pFuncDefined func, Ir::pModule mod);
 
     Map<String, Ir::pInstr> var_map;
     Map<String, Ir::pFunc> func_map;

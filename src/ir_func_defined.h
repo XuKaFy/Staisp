@@ -12,10 +12,8 @@ struct FuncDefined : public Func {
         : Func(var, arg_types) {
         pBlock first_block = make_block();
         
-        size_t line_count = 1;
         for(auto i : arg_types) {
             pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
-            tmp->line = line_count++;
             first_block->add_instr(make_store_instr(i.tr, tmp, make_sym_instr(i)));
         }
         
@@ -27,7 +25,7 @@ struct FuncDefined : public Func {
 
     pBlock current_block() const;
     void add_block(pBlock block);
-    void add_instr(pInstr ir);
+    pInstr add_instr(pInstr ir);
 
     Vector<pBlock> body;
 };

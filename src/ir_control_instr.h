@@ -7,14 +7,14 @@ namespace Ir {
 struct LabelInstr : public Instr
 {
     LabelInstr()
-        : Instr(INSTR_TYPE_LABEL, IMM_VOID) { }
+        : Instr(INSTR_TYPE_LABEL, IMM_I1) { }
     
     virtual Symbol instr_print_impl() const override;
 };
 
 struct BrInstr : public Instr {
     BrInstr(pInstr to)
-        : Instr(INSTR_TYPE_NO_REG, IMM_VOID), to(to) {}
+        : Instr(INSTR_TYPE_NO_REG, IMM_I1), to(to) {}
 
     virtual Symbol instr_print_impl() const override;
 

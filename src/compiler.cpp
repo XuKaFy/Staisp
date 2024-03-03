@@ -7,6 +7,7 @@
 #define EQ(x, y) newOprNode(OPR_EQ, {x, y} )
 #define ADD(x, y) newOprNode(OPR_ADD, {x, y} )
 #define SUB(x, y) newOprNode(OPR_SUB, {x, y} )
+#define MORE(x, y) newOprNode(OPR_UGT, {x, y} )
 #define SYM(x) newSymNode(#x)
 #define RET(x) newOprNode(OPR_RET, { x } )
 #define I32NUM(x) newImmNode(x, IMM_I32)
@@ -50,9 +51,33 @@ Ast::AstProg test()
     return prog;
 }
 
+Ast::AstProg smalltest()
+{
+    using namespace Ast;
+    AstProg prog;
+
+    /*
+    int main()
+    {
+        int a = 1;
+        int b = 2;
+        if(a > 0) b = 3;
+        return b;
+    }
+    */
+
+    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, {
+        DEF_I32VAR(a, 1),
+        DEF_I32VAR(b, 2),
+        IF(MORE(SYM(a), I32NUM(0)), ASSIGN(b, I32NUM(3))),
+        RET(SYM(b))
+    }));
+    return prog;
+}
+
 int main()
 {
-    Ir::pModule mod = AstToIr::Convertor().generate(test());
+    Ir::pModule mod = AstToIr::Convertor().generate(smalltest());
     printf("%s\n", mod->print_module());
     return 0;
 }

@@ -7,7 +7,7 @@ Symbol CallInstr::instr_print_impl() const
     String res = String(print_impl())
         + " = call "
         + gImmName[tr]
-        + " "
+        + " @"
         + func->print()
         + "("; // %1 = call @fun(i32 1, i64 2)
     

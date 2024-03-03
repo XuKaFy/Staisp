@@ -9,7 +9,7 @@ Symbol CmpInstr::instr_print_impl() const
         + " = icmp "
         + gCmpInstrName[cmp_type]
         + " " 
-        + gImmName[tr]
+        + gImmName[ch[0]->tr]
         + " "
         + ch[0]->print()
         + ", "

@@ -4,7 +4,9 @@ namespace Ir {
 
 Symbol LabelInstr::instr_print_impl() const
 {
-    return to_symbol(String(print_impl()) + ":");
+    static char buf[128];
+    sprintf(buf, "%d:", line);
+    return to_symbol(String(buf));
 }
 
 Symbol BrInstr::instr_print_impl() const

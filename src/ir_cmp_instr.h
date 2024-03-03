@@ -33,7 +33,7 @@ const Symbol gCmpInstrName[] = {
 struct CmpInstr : public Instr
 {
     CmpInstr(CmpType cmp_type, ImmType tr, pInstr a1, pInstr a2)
-        : Instr(INSTR_TYPE_NEED_REG, tr), cmp_type(cmp_type), ch { a1, a2 } { }
+        : Instr(INSTR_TYPE_NEED_REG, IMM_I1), cmp_type(cmp_type), ch { a1, a2 } { }
     
     virtual Symbol instr_print_impl() const override;
 

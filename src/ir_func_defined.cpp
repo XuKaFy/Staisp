@@ -53,9 +53,9 @@ void FuncDefined::add_block(pBlock block)
     body.push_back(block);
 }
 
-void FuncDefined::add_instr(pInstr ir)
+pInstr FuncDefined::add_instr(pInstr ir)
 {
-    body.back()->add_instr(ir);
+    return body.back()->add_instr(ir);
 }
 
 Symbol FuncDefined::print_impl() const

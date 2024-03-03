@@ -2,12 +2,26 @@
 
 namespace AstToIr {
 
-Ir::pInstr Convertor::find_value(Symbol sym, Ir::pModule mod)
+Ir::pInstr Convertor::find_left_value(Symbol sym, Ir::pFuncDefined func, Ir::pModule mod)
 {
     if(var_map.count(sym)) { // local
-        return var_map[sym];
+        return var_map[sym]->tr, var_map[sym];
     } else { // global
-        // TODO: no instr can modify global vars
+        for(auto i : mod->globs) {
+            if(strcmp(i->val.sym, sym) == 0) {
+                return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
+            }
+        }
+    }
+    my_assert(false, "Error: left symbol cannot be found");
+    return Ir::make_arg_instr(IMM_I8);
+}
+
+Ir::pInstr Convertor::find_value(Symbol sym, Ir::pFuncDefined func, Ir::pModule mod)
+{
+    if(var_map.count(sym)) { // local
+        return func->add_instr(Ir::make_load_instr(var_map[sym]->tr, var_map[sym]));
+    } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, sym) == 0) {
                 return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
@@ -15,7 +29,7 @@ Ir::pInstr Convertor::find_value(Symbol sym, Ir::pModule mod)
         }
     }
     my_assert(false, "Error: symbol cannot be found");
-    return Ir::make_arg_instr(IMM_VOID);
+    return Ir::make_arg_instr(IMM_I8);
 }
 
 Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod)
@@ -68,17 +82,17 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         }
 
         func->add_block(trueBlock);
-        analyze_value(root->ch[1], func, mod);   
+        analyze_statement_node(root->ch[1], func, mod);   
         trueBlock->finish_block_with_jump(afterBlock);
         
         if(root->ch.size() == 3) {
             func->add_block(falseBlock);
-            analyze_value(root->ch[2], func, mod);
+            analyze_statement_node(root->ch[2], func, mod);
             falseBlock->finish_block_with_jump(afterBlock);
         }
         
         func->add_block(afterBlock);
-        return Ir::make_arg_instr(IMM_VOID);
+        return Ir::make_arg_instr(IMM_I8);
     }
     case Ast::OPR_WHILE: {
         auto compBlock = Ir::make_block();
@@ -94,17 +108,17 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         compBlock->finish_block_with_jump(trueBlock);
 
         func->add_block(trueBlock);
-        analyze_value(root->ch[1], func, mod);   
+        analyze_statement_node(root->ch[1], func, mod);   
         trueBlock->finish_block_with_jump(compBlock);
         
         func->add_block(afterBlock);
-        return Ir::make_arg_instr(IMM_VOID);
+        return Ir::make_arg_instr(IMM_I8);
     }
     case Ast::OPR_RET: {
         my_assert(root->ch.size() == 1, "Error: ret opr of ast has not 1 args");
         auto a = analyze_value(root->ch[0], func, mod);
         func->add_instr(Ir::make_ret_instr(a->tr, a));
-        return Ir::make_arg_instr(IMM_VOID);
+        return Ir::make_arg_instr(IMM_I8);
     }
     case Ast::OPR_CALL: {
         my_assert(root->ch.size() >= 1, "Error: call opr of ast has less than 1 args");
@@ -122,7 +136,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     default:
         printf("opr %d not implemented\n", root->type);
         my_assert(false, "Error: opr of ast is not implemented");
-        return Ir::make_arg_instr(IMM_VOID);
+        return Ir::make_arg_instr(IMM_I8);
     }
 }
 
@@ -141,7 +155,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     }
     case Ast::NODE_SYM: {
         auto r = std::static_pointer_cast<Ast::SymNode>(root);
-        auto to = find_value(r->sym, mod);
+        auto to = find_value(r->sym, func, mod);
         return to;
     }
     case Ast::NODE_ASSIGN:
@@ -149,7 +163,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     case Ast::NODE_DEF_FUNC:
     default:
         my_assert(false, "Error: not calculatable");
-        return Ir::make_arg_instr(IMM_VOID);
+        return Ir::make_arg_instr(IMM_I8);
     }
 }
 
@@ -158,7 +172,7 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
     switch(root->type) {
     case Ast::NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
-        auto to = find_value(r->sym, mod);
+        auto to = find_left_value(r->sym, func, mod);
         func->add_instr(Ir::make_store_instr(to->tr, to, analyze_value(r->val, func, mod)));
         break;
     }
@@ -189,7 +203,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
         func = Ir::make_func_defined(root->var, root->args);
         func_map[func->var.sym] = func;
         for(size_t i=0; i<root->args.size(); ++i) {
-            var_map[root->args[i].sym] = func->body[0]->instrs[i];
+            var_map[root->args[i].sym] = func->body[0]->instrs[i+1];
         }
     }
     for(auto i : root->body) {
