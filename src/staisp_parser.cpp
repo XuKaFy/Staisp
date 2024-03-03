@@ -25,7 +25,7 @@ bool Parser::has_token() const
 
 Ast::AstProg Parser::parser(String code)
 {
-    return parser(lexer(code));
+    return parser(Lexer().lexer(code));
 }
 
 bool Parser::is_buildin_sym(Symbol sym)

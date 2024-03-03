@@ -29,6 +29,19 @@ struct Token {
 
 typedef Vector<Token> TokenList;
 
-TokenList lexer(String code);
+struct Lexer {
+    String::value_type get_char();
+    String::value_type peek();
+    bool has_char() const;
+    void jump_empty();
+
+    TokenList lexer(String code);
+    Token lexer_one_token();
+    Token lexer_number(String::value_type head);
+    Token lexer_sym(String::value_type head);
+
+    String::iterator current;
+    String::iterator end;
+};
 
 } // namespace staisp
