@@ -8,9 +8,8 @@
 #define ADD(x, y) newOprNode(OPR_ADD, {x, y} )
 #define SUB(x, y) newOprNode(OPR_SUB, {x, y} )
 #define SYM(x) newSymNode(#x)
-#define RET(x) newOprNode(OPR_RET, {x} )
+#define RET(x) newOprNode(OPR_RET, { x } )
 #define I32NUM(x) newImmNode(x, IMM_I32)
-#define CALL(x, y) newOprNode(OPR_CALL, y)
 #define TYPE(x, y) (TypedSym { #y, x })
 #define DEF_I32VAR(x, y) newVarDefNode(TYPE(IMM_I32, x), y)
 #define ASSIGN(x, y) newAssignNode(#x, y)
@@ -39,14 +38,15 @@ Ast::AstProg test()
         IF(OR(EQ(SYM(n), I32NUM(1)), EQ(SYM(n), I32NUM(2))),
             RET(I32NUM(1))
         ),
-        RET(ADD(CALL(fib, { SUB(SYM(n), I32NUM(1)) }), CALL(fib, { SUB(SYM(n), I32NUM(2)) })))
+        RET(ADD(newOprNode(OPR_CALL, { SYM(fib), SUB(SYM(n), I32NUM(1)) }), newOprNode(OPR_CALL, { SYM(fib), SUB(SYM(n), I32NUM(2)) })))
     }));
     prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, {
         DEF_I32VAR(ans, 0),
         ASSIGN(n, I32NUM(100)),
-        ASSIGN(ans, CALL(fib, { SYM(n) } )),
+        ASSIGN(ans, newOprNode(OPR_CALL, { SYM(fib), SYM(n) } )),
         RET(SYM(ans))
     }));
+
     return prog;
 }
 

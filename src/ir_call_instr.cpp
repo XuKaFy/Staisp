@@ -40,12 +40,12 @@ Symbol RetInstr::instr_print_impl() const
         + ret->print());
 }
 
-pInstr make_call_instr(ImmType tr, pFunc func, Vector<pVal> args)
+pInstr make_call_instr(pFunc func, Vector<pInstr> args)
 {
-    return pInstr(new CallInstr(tr, func, args));
+    return pInstr(new CallInstr(func, args));
 }
 
-pInstr make_ret_instr(ImmType tr, pVal oprd)
+pInstr make_ret_instr(ImmType tr, pInstr oprd)
 {
     return pInstr(new RetInstr(tr, oprd));
 }

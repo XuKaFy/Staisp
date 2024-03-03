@@ -36,9 +36,7 @@ pInstr make_unary_instr(UnaryInstrType type, ImmType tr, pVal oprd)
 
 pInstr make_binary_instr(BinInstrType type, ImmType tr, pVal oprd1, pVal oprd2)
 {
-    static pVal tmp[2];
-    tmp[0] = oprd1, tmp[1] = oprd2;
-    return pInstr(new BinInstr(type, tr, tmp));
+    return pInstr(new BinInstr(type, tr, oprd1, oprd2));
 }
 
 } // namespace ir

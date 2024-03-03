@@ -2,8 +2,13 @@
 
 namespace Ir {
 
-Symbol FuncDefined::print_impl() const
+Symbol FuncDefined::print_func() const
 {
+    size_t line_count = 0;
+    for(size_t i=0; i<body.size(); ++i) {
+        body[i]->generate_line(line_count);
+    }
+
     String whole_function = String("define ") + gImmName[var.tr] + " @" + var.sym + "("; // functions are all global
 
     my_assert(!body.empty(), "Error: function has no block");
@@ -23,6 +28,13 @@ Symbol FuncDefined::print_impl() const
 
 PRINT_IMPL_END:
     whole_function += ")";
+
+    whole_function += " {\n";
+    for(size_t i=0; i<body.size(); ++i) {
+        whole_function += body[i]->print_block();
+    }
+    whole_function += "}\n";
+
     return to_symbol(whole_function);
 }
 
@@ -46,17 +58,9 @@ void FuncDefined::add_instr(pInstr ir)
     body.back()->add_instr(ir);
 }
 
-Symbol FuncDefined::print_func() const
+Symbol FuncDefined::print_impl() const
 {
-    String ans = print_impl();
-    ans += " {\n";
-    int line_count = 0;
-    for(size_t i=0; i<body.size(); ++i) {
-        ans += body[i]->print_block(line_count);
-        line_count = body[i]->instrs.back()->line + 1;
-    }
-    ans += "}\n";
-    return to_symbol(ans);
+    return var.sym;
 }
 
 }

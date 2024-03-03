@@ -32,8 +32,8 @@ const Symbol gCmpInstrName[] = {
 
 struct CmpInstr : public Instr
 {
-    CmpInstr(CmpType cmp_type, pInstr a1, pInstr a2)
-        : Instr(INSTR_TYPE_LABEL, IMM_I16), cmp_type(cmp_type), ch { a1, a2 } { }
+    CmpInstr(CmpType cmp_type, ImmType tr, pInstr a1, pInstr a2)
+        : Instr(INSTR_TYPE_NEED_REG, tr), cmp_type(cmp_type), ch { a1, a2 } { }
     
     virtual Symbol instr_print_impl() const override;
 
@@ -41,8 +41,8 @@ struct CmpInstr : public Instr
     pInstr ch[2];
 };
 
-typedef Pointer<CmpInstr> pLabel;
+typedef Pointer<CmpInstr> pCmpInstr;
 
-pInstr make_cmp_instr(CmpType cmp_type, pInstr a1, pInstr a2);
+pInstr make_cmp_instr(CmpType cmp_type, ImmType tr, pInstr a1, pInstr a2);
 
 } // namespace ir

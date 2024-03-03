@@ -16,9 +16,9 @@ Symbol CmpInstr::instr_print_impl() const
         + ch[1]->print());
 }
 
-pInstr make_cmp_instr(CmpType cmp_type, pInstr a1, pInstr a2)
+pInstr make_cmp_instr(CmpType cmp_type, ImmType tr, pInstr a1, pInstr a2)
 {
-    return pInstr(new CmpInstr(cmp_type, a1, a2 ));
+    return pInstr(new CmpInstr(cmp_type, tr, a1, a2 ));
 }
 
 } // namespace ir

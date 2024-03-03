@@ -5,6 +5,8 @@
 #include "ast_node.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
+#include "ir_cmp_instr.h"
+#include "ir_call_instr.h"
 
 namespace AstToIr {
 
@@ -12,6 +14,7 @@ class Convertor {
 public:
     Ir::pModule generate(Ast::AstProg asts);
     static Ir::BinInstrType fromBinaryOpr(Ast::OprType o);
+    static Ir::CmpType fromCmpOpr(Ast::OprType o);
 
 private:
     void generate_single(Ast::pNode root, Ir::pModule mod);
@@ -23,6 +26,7 @@ private:
     Ir::pInstr find_value(Symbol sym, Ir::pModule mod);
 
     Map<String, Ir::pInstr> var_map;
+    Map<String, Ir::pFunc> func_map;
 };
 
 

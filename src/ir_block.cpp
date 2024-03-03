@@ -2,13 +2,19 @@
 
 namespace Ir {
 
-Symbol Block::print_block(size_t line) const
+void Block::generate_line(size_t &line) const
 {
     String s;
-    int lineCount = line;
     for(auto i : instrs) {
         if(i->instrType != INSTR_TYPE_NO_REG)
-            i->line = lineCount++;
+            i->line = line++;
+    }
+}
+
+Symbol Block::print_block() const
+{
+    String s;
+    for(auto i : instrs) {
         if(i->instrType != INSTR_TYPE_LABEL)
             s += "  ";
         s += String(i->instr_print()) + "\n";
@@ -34,7 +40,7 @@ pInstr Block::add_instr(pInstr instr)
 
 pInstr Block::finish_block_with_jump(pBlock b)
 {
-    return add_instr(b->label());
+    return add_instr(make_br_instr(b->label()));
 }
 
 pBlock make_block()

@@ -17,7 +17,8 @@ struct Block : public Val {
 
     virtual Symbol print_impl() const override;
     
-    Symbol print_block(size_t line = 0) const;
+    Symbol print_block() const;
+    void generate_line(size_t &line) const;
 
     pInstr label() const;
     pInstr add_instr(pInstr instr);

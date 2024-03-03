@@ -23,7 +23,7 @@ struct BrInstr : public Instr {
 
 struct BrCondInstr : public Instr {
     BrCondInstr(pInstr cond, pInstr trueTo, pInstr falseTo)
-        : Instr(INSTR_TYPE_NO_REG, IMM_VOID), cond(cond), trueTo(trueTo), falseTo(falseTo) {}
+        : Instr(INSTR_TYPE_NO_REG, cond->tr), cond(cond), trueTo(trueTo), falseTo(falseTo) {}
 
     virtual Symbol instr_print_impl() const override;
 

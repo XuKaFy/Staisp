@@ -17,7 +17,7 @@ Symbol BrInstr::instr_print_impl() const
 Symbol BrCondInstr::instr_print_impl() const
 {
     String ans = "br ";
-    ans += gImmName[cond->instrType];
+    ans += gImmName[cond->tr];
     ans += " ";
     ans += cond->print();
     ans += ", label ";

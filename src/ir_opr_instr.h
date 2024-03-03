@@ -56,8 +56,8 @@ struct UnaryInstr : public Instr {
 };
 
 struct BinInstr : public Instr {
-    BinInstr(BinInstrType binType, ImmType tr, pVal oprd[2])
-        : Instr(INSTR_TYPE_NEED_REG, tr), binType(binType), oprd{oprd[0], oprd[1]} { }
+    BinInstr(BinInstrType binType, ImmType tr, pVal oprd1, pVal oprd2)
+        : Instr(INSTR_TYPE_NEED_REG, tr), binType(binType), oprd{oprd1, oprd2} { }
 
     virtual Symbol instr_print_impl() const override;
     BinInstrType binType;
