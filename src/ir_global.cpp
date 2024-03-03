@@ -4,7 +4,7 @@ namespace Ir {
 
 Symbol Global::print_global() const
 {
-    String ans = val.sym;
+    String ans = print_impl();
     ans += " = global ";
     ans += gImmName[val.tr];
     ans += " ";
