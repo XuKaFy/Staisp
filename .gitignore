@@ -33,3 +33,6 @@
 
 .vscode/*.*
 .vscode/
+.VSCodeCounter
+.VSCodeCounter/*.*
+*.ll

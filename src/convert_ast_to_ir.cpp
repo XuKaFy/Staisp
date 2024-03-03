@@ -188,7 +188,7 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
         func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
-        func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r, func, mod)));
+        func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r->val, func, mod)));
         var_map[r->var.sym] = tmp;
         break;
     }

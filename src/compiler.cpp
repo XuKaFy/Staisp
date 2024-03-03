@@ -21,6 +21,9 @@ int main(int argc, char *argv[])
                  std::istreambuf_iterator<char>()); 
     Ast::AstProg root = Staisp::Parser().parser(code);
     Ir::pModule mod = AstToIr::Convertor().generate(root);
-    printf("%s\n", mod->print_module());
+    std::ofstream out;
+    out.open(String(argv[1]) + ".ll", std::fstream::out);
+    out << mod->print_module();
+    out.close();
     return 0;
 }

@@ -5,7 +5,7 @@
 Staisp（STAtic lISP），即静态语法表，用于用一种相比于 IR 更高级的语言直接编写语法树。
 
 ```
-DEFVAR i32:n 50
+DEFVAR i32:n 1
 
 DEFFUNC i32:fib ( i32:n ) BLOCK {
     IF OR EQ n 1
@@ -16,10 +16,10 @@ DEFFUNC i32:fib ( i32:n ) BLOCK {
 }
 
 DEFFUNC i32:main ( ) BLOCK {
+    DEFVAR i32:ans 0
     ASSIGN n 10
-    DEFVAR i32:ans 10
-    WHILE ULE n 20
-    ASSIGN n ADD n 1
+    WHILE ULE n 10
+        ASSIGN n ADD n 1
     BLOCK {
         ASSIGN ans fib ( n )
     }
