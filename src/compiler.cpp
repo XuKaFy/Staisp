@@ -3,11 +3,13 @@
 #include "convert_ast_to_ir.h"
 
 #define IF(x, y) newOprNode(OPR_IF, { x, y } )
+#define WHILE(x, y) newOprNode(OPR_WHILE, { x, y } )
 #define OR(x, y) newOprNode(OPR_OR, {x, y} )
 #define EQ(x, y) newOprNode(OPR_EQ, {x, y} )
 #define ADD(x, y) newOprNode(OPR_ADD, {x, y} )
 #define SUB(x, y) newOprNode(OPR_SUB, {x, y} )
 #define MORE(x, y) newOprNode(OPR_UGT, {x, y} )
+#define ULE(x, y) newOprNode(OPR_ULE, {x, y} )
 #define SYM(x) newSymNode(#x)
 #define RET(x) newOprNode(OPR_RET, { x } )
 #define I32NUM(x) newImmNode(x, IMM_I32)
@@ -35,18 +37,18 @@ Ast::AstProg test()
     }
 */
     prog.push_back(DEF_I32VAR(n, 50));
-    prog.push_back(newFuncDefNode(TYPE(IMM_I32, fib), { TYPE(IMM_I32, n) }, {
+    prog.push_back(newFuncDefNode(TYPE(IMM_I32, fib), { TYPE(IMM_I32, n) }, newBlockNode({
         IF(OR(EQ(SYM(n), I32NUM(1)), EQ(SYM(n), I32NUM(2))),
             RET(I32NUM(1))
         ),
         RET(ADD(newOprNode(OPR_CALL, { SYM(fib), SUB(SYM(n), I32NUM(1)) }), newOprNode(OPR_CALL, { SYM(fib), SUB(SYM(n), I32NUM(2)) })))
-    }));
-    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, {
+    })));
+    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, newBlockNode({
         DEF_I32VAR(ans, 0),
         ASSIGN(n, I32NUM(100)),
         ASSIGN(ans, newOprNode(OPR_CALL, { SYM(fib), SYM(n) } )),
         RET(SYM(ans))
-    }));
+    })));
 
     return prog;
 }
@@ -59,19 +61,28 @@ Ast::AstProg smalltest()
     /*
     int main()
     {
-        int a = 1;
-        int b = 2;
-        if(a > 0) b = 3;
-        return b;
+        int n = 10;
+        int b = 1;
+        int ans = 0;
+        while(b <= 10) {
+            ans += b;
+            b += 1;
+        }
+        return ans;
     }
     */
 
-    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, {
-        DEF_I32VAR(a, 1),
-        DEF_I32VAR(b, 2),
-        IF(MORE(SYM(a), I32NUM(0)), ASSIGN(b, I32NUM(3))),
-        RET(SYM(b))
-    }));
+    prog.push_back(newFuncDefNode(TYPE(IMM_I32, main), { }, newBlockNode({
+        DEF_I32VAR(n, 10),
+        DEF_I32VAR(b, 1),
+        DEF_I32VAR(ans, 0),
+        WHILE(ULE(SYM(b), SYM(n)), newBlockNode({
+            ASSIGN(ans, ADD(SYM(ans), SYM(b))),
+            ASSIGN(b, ADD(SYM(b), I32NUM(1))),   
+        })),
+        RET(SYM(ans))
+    })));
+
     return prog;
 }
 

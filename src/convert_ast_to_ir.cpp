@@ -105,7 +105,6 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         func->add_block(compBlock);
         auto cond = analyze_value(root->ch[0], func, mod);
         compBlock->add_instr(Ir::make_br_cond_instr(cond, trueBlock->label(), afterBlock->label()));
-        compBlock->finish_block_with_jump(trueBlock);
 
         func->add_block(trueBlock);
         analyze_statement_node(root->ch[1], func, mod);   
@@ -161,6 +160,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     case Ast::NODE_ASSIGN:
     case Ast::NODE_DEF_VAR:
     case Ast::NODE_DEF_FUNC:
+    case Ast::NODE_BLOCK:
     default:
         my_assert(false, "Error: not calculatable");
         return Ir::make_arg_instr(IMM_I8);
@@ -187,6 +187,13 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
     case Ast::NODE_OPR:
         analyze_value(root, func, mod);
         break;
+    case Ast::NODE_BLOCK: {
+        auto r = std::static_pointer_cast<Ast::BlockNode>(root);
+        for(auto i : r->body) {
+            analyze_statement_node(i, func, mod);
+        }
+        break;
+    }
     case Ast::NODE_IMM: // meaningless
     case Ast::NODE_SYM: // meaningless
         break;
@@ -206,9 +213,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
             var_map[root->args[i].sym] = func->body[0]->instrs[i+1];
         }
     }
-    for(auto i : root->body) {
-        analyze_statement_node(i, func, mod);
-    }
+    analyze_statement_node(root->body, func, mod);
     mod->add_func(func);
 }
 

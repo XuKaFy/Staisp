@@ -12,6 +12,7 @@ enum NodeType
     NODE_ASSIGN,
     NODE_DEF_VAR,
     NODE_DEF_FUNC,
+    NODE_BLOCK,
 };
 
 enum OprType
@@ -89,10 +90,17 @@ struct VarDefNode : public Node
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(TypedSym var, Vector<TypedSym> args, Vector<pNode> body)
+    FuncDefNode(TypedSym var, Vector<TypedSym> args, pNode body)
         : Node(NODE_DEF_FUNC), var(var), args(args), body(body) { }
     TypedSym var;
     Vector<TypedSym> args;
+    pNode body;
+};
+
+struct BlockNode : public Node
+{
+    BlockNode(Vector<pNode> body)
+        : Node(NODE_BLOCK), body(body) { }
     Vector<pNode> body;
 };
 
@@ -101,6 +109,7 @@ pNode newSymNode(Symbol symbol);
 pNode newOprNode(OprType type, Vector<pNode> ch);
 pNode newAssignNode(Symbol sym, pNode val);
 pNode newVarDefNode(TypedSym var, Immediate val);
-pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, Vector<pNode> body);
+pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, pNode body);
+pNode newBlockNode(Vector<pNode> body);
 
 } // namespace ast

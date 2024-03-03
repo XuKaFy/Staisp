@@ -27,9 +27,14 @@ pNode newVarDefNode(TypedSym var, Immediate val)
     return pNode(new VarDefNode(var, val));
 }
 
-pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, Vector<pNode> body)
+pNode newFuncDefNode(TypedSym var, Vector<TypedSym> args, pNode body)
 {
     return pNode(new FuncDefNode(var, args, body));
+}
+
+pNode newBlockNode(Vector<pNode> body)
+{
+    return pNode(new BlockNode(body));
 }
 
 }  // namespace ast
