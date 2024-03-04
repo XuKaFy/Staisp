@@ -8,6 +8,7 @@
 #include <cstring>
 #include <cassert>
 #include <list>
+#include <utility>
 
 #include <variant>
 
@@ -31,6 +32,7 @@ using Map = std::map<T, U>;
 typedef long long Immediate;
 typedef const char* Symbol;
 typedef std::string String;
+typedef Pointer<String> pString;
 
 Symbol to_symbol(String s);
 
@@ -68,3 +70,6 @@ struct TypedSym
     Symbol sym;
     ImmType tr;
 };
+
+template<typename T, typename U>
+using Pair = std::pair<T, U>;

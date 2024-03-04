@@ -19,12 +19,23 @@ enum TokenType
     TOKEN_2DOT, // :
 };
 
+struct Code {
+    pString p_code;
+    String file_name;
+};
+
+typedef Pointer<Code> pCode;
+
 struct Token {
     TokenType t;
     union {
         Immediate val;
         Symbol sym;
     };
+    pCode p_code;
+    int line;
+    String::iterator token_begin;
+    String::iterator token_end;
 
     void print() {
         if(t == TOKEN_SYM) {
@@ -37,6 +48,8 @@ struct Token {
     }
 };
 
+void error_at_token(Token t, Symbol error_code);
+
 typedef Vector<Token> TokenList;
 
 struct Lexer {
@@ -45,13 +58,16 @@ struct Lexer {
     bool has_char() const;
     void jump_empty();
 
-    TokenList lexer(String code);
+    TokenList lexer(pCode code);
     Token lexer_one_token();
     Token lexer_number(String::value_type head);
     Token lexer_sym(String::value_type head);
 
+    String::iterator begin;
     String::iterator current;
     String::iterator end;
+    pCode p_code;
+    int line_count;
 };
 
 } // namespace staisp

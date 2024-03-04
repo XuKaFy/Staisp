@@ -31,7 +31,7 @@ bool Parser::has_token() const
     return current != end;
 }
 
-Ast::AstProg Parser::parser(String code)
+Ast::AstProg Parser::parser(pCode code)
 {
     TokenList list = Lexer().lexer(code);
     return parser(list);

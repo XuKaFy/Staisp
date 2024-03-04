@@ -93,7 +93,7 @@ struct Parser {
     Vector<TypedSym> parse_typed_sym_list(Env &env);
     Ast::AstProg parse_value_list(Env &env);
 
-    Ast::AstProg parser(String code);
+    Ast::AstProg parser(pCode code);
     Ast::AstProg parser(TokenList list, Env env = {});
 
     TokenList::iterator current;

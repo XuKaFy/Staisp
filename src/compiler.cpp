@@ -19,7 +19,8 @@ int main(int argc, char *argv[])
     }
     String code((std::istreambuf_iterator<char>(in)),  
                  std::istreambuf_iterator<char>()); 
-    Ast::AstProg root = Staisp::Parser().parser(code);
+    Staisp::pCode p_code = Staisp::pCode(new Staisp::Code { pString(new String(code)), argv[1] });
+    Ast::AstProg root = Staisp::Parser().parser(p_code);
     Ir::pModule mod = AstToIr::Convertor().generate(root);
     std::ofstream out;
     out.open(String(argv[1]) + ".ll", std::fstream::out);
