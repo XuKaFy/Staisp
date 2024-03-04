@@ -27,18 +27,61 @@ DEFFUNC i32:main ( ) BLOCK {
 }
 ```
 
+### 关键字
+
+#### A 组：基本的数据操作与数据类型
+
+* `DEFVAR`
+* `ASSIGN`
+* `i1|i8|i16|i32|i64`
+
+#### B 组：控制流
+
+* `IF`
+* `IFE`
+* `WHILE`
+* `RETURN`
+
+#### C 组：函数与语句块
+
+* `CALL`（因为可以省略，因此暂未加入 Parser）
+* `DEFFUNC`
+* `BLOCK`
+
+#### D 组：常量表达式
+
+* `CONSTEXPR`
+* `DEFCONSTFUNC`
+
+#### E 组：指针与数组
+
+* `DEFPTR`
+* `REF`
+* `DEREF`
+* `DEFARRAY`
+* `ITEM`
+
+### 语法规则
+
 每一个句子的开头都是一个谓词，表示本句的动作。除自定义函数，句子后面直接跟上相等数量的参数，无需括号。自定义函数需要跟上不定长列表。
 
 ```
 program -> *statement
-statement -> "DEFVAR"    typed_sym   vaimage.pnglue
-           | "DEFFUNC"   typed_sym   typed_sym_list  statement
-           | "ASSIGN"    sym         value
+statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
+           | "DEFCONSTFUNC"     typed_sym   typed_sym_list  statement
            | "BLOCK"     stat_list
+           | "DEFVAR"    typed_sym   vaimage.pnglue
+           | "ASSIGN"    sym         value
            | "IF"        value       statement
            | "IFE"       value       statement       statement
            | "WHILE"     value       statement
            | "RETURN"    value
+           | "DEFPTR"    typed_sym
+           | "DEFARRAY"  typed_sym   value
+           | "REF"       sym
+           | "DEREF"     value
+           | "ITEM"      value       number
+           | "CALL"      function
            | function
 function -> basic_function
           | defined_function    value_list
