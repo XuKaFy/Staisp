@@ -149,6 +149,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         }
         auto name_node = std::static_pointer_cast<Ast::SymNode>(root->ch.front());
         auto func_instr = func_map[name_node->sym];
+        node_assert(func_instr->args.size() == root->ch.size() - 1, root, "[Convertor] error 8: wrong count of arguments");
         auto func_ir = Ir::make_call_instr(func_instr, args);
         func->add_instr(func_ir);
         return func_ir;

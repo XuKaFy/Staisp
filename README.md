@@ -108,3 +108,4 @@ compiler [file_name]
 5. `[Convertor] error 5: global operation has type that not implemented`：全局中不可以使用该操作
 6. `[Convertor] error 6: binary operation conversion from ast to ir not implemented`：该二元算数操作未被 IR 实现
 7. `[Convertor] error 7: comparasion operation conversion from ast to ir not implemented`：该比较操作未被 IR 实现
+8. `[Convertor] error 8: wrong count of arguments`：函数参数列表长度不同
