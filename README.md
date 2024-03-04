@@ -41,6 +41,8 @@ DEFFUNC i32:main ( ) BLOCK {
 * `IFE`
 * `WHILE`
 * `RETURN`
+* `CONTINUE`
+* `BREAK`
 
 #### C 组：函数与语句块
 
@@ -82,6 +84,8 @@ statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
            | "DEREF"     value
            | "ITEM"      value       number
            | "CALL"      function
+           | "BREAK"
+           | "CONTINUE"
            | function
 function -> basic_function
           | defined_function    value_list
@@ -121,6 +125,10 @@ make
 ```
 compiler [file_name]
 ```
+
+## 特性
+
+* Variable Shadowing
 
 ## 报错
 

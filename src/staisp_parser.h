@@ -71,14 +71,48 @@ enum SymType {
     SYM_FUNC,
 };
 
-typedef Map<String, SymType> Env;
+typedef Map<String, SymType> SymTable;
+
+struct Env;
+typedef Pointer<Env> pEnv;
+
+class Env {
+public:
+    Env(pEnv parent = pEnv())
+        : parent(parent) { }
+
+    bool count(Symbol sym) {
+        if(table.count(sym)) return true;
+        if(parent) return parent->count(sym);
+        return false;
+    }
+
+    bool count_current(Symbol sym) {
+        return table.count(sym);
+    }
+
+    void set(Symbol sym, SymType t) {
+        table[sym] = t;
+    }
+
+    SymType operator [] (Symbol sym) {
+        if(table.count(sym)) return table[sym];
+        if(parent) return (*parent)[sym];
+        my_assert(false, "Error: get no symbol");
+        return SYM_VAL;
+    }
+
+private:
+    pEnv parent {};
+    SymTable table {};
+};
 
 class Parser {
 public:
     static bool is_buildin_sym(Symbol sym);
 
     Ast::AstProg parser(pCode code);
-    Ast::AstProg parser(TokenList list, Env env = {});
+    Ast::AstProg parser(TokenList list, pEnv env = pEnv(new Env {} ));
 
 private:
     Token get_token();
@@ -87,17 +121,17 @@ private:
     void consume_token(TokenType t);
     bool has_token() const;
     
-    Ast::pNode parse_buildin_sym(Symbol sym, Env &env, bool in_global = false);
-    Ast::pNode parse_function_call(Symbol sym, Env &env);
-    Ast::pNode parse_block(Env &env);
-    Ast::pNode parse_statement(Env &env);
-    Ast::pNode parse_value(Env &env);
-    TypedSym parse_typed_sym(Env &env);
-    Symbol parse_sym(Env &env);
-    ImmType parse_type(Env &env);
+    Ast::pNode parse_buildin_sym(Symbol sym, pEnv env, bool in_global = false);
+    Ast::pNode parse_function_call(Symbol sym, pEnv env);
+    Ast::pNode parse_block(pEnv env);
+    Ast::pNode parse_statement(pEnv env);
+    Ast::pNode parse_value(pEnv env);
+    TypedSym parse_typed_sym(pEnv env);
+    Symbol parse_sym(pEnv env);
+    ImmType parse_type(pEnv env);
     
-    Vector<TypedSym> parse_typed_sym_list(Env &env);
-    Ast::AstProg parse_value_list(Env &env);
+    Vector<TypedSym> parse_typed_sym_list(pEnv env);
+    Ast::AstProg parse_value_list(pEnv env);
 
     TokenList::iterator _begin;
     TokenList::iterator _current;

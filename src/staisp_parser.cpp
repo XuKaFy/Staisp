@@ -49,7 +49,7 @@ bool Parser::is_buildin_sym(Symbol sym)
     return gBuildinBinaryOprType.count(sym) || gBuildinSymType.count(sym);
 }
 
-Symbol Parser::parse_sym(Env &env)
+Symbol Parser::parse_sym(pEnv env)
 {
     get_token();
     if(current_token().t != TOKEN_SYM) {
@@ -58,7 +58,7 @@ Symbol Parser::parse_sym(Env &env)
     return current_token().sym;
 }
 
-ImmType Parser::parse_type(Env &env) {
+ImmType Parser::parse_type(pEnv env) {
     get_token();
     if(current_token().t != TOKEN_SYM) {
         error_at_token(current_token(), "[Parser] error 3: not a type");
@@ -69,7 +69,7 @@ ImmType Parser::parse_type(Env &env) {
     return gSymToImmType.find(current_token().sym)->second;
 }
 
-TypedSym Parser::parse_typed_sym(Env &env)
+TypedSym Parser::parse_typed_sym(pEnv env)
 {
     TypedSym ts;
     ts.tr = parse_type(env);
@@ -78,7 +78,7 @@ TypedSym Parser::parse_typed_sym(Env &env)
     return ts;
 }
 
-Ast::pNode Parser::parse_value(Env &env)
+Ast::pNode Parser::parse_value(pEnv env)
 {
     get_token();
     if(current_token().t == TOKEN_INT) {
@@ -87,13 +87,13 @@ Ast::pNode Parser::parse_value(Env &env)
     if(is_buildin_sym(current_token().sym)) {
         return parse_buildin_sym(current_token().sym, env);
     }
-    if(!env.count(current_token().sym)) {
+    if(!env->count(current_token().sym)) {
         if(peek().t == TOKEN_LB_S) {
             error_at_token(current_token(), "[Parser] error 4: function not found");
         }
         error_at_token(current_token(), "[Parser] error 5: variable not found");
     }
-    if(env[current_token().sym] == SYM_FUNC) {
+    if((*env)[current_token().sym] == SYM_FUNC) {
         return parse_function_call(current_token().sym, env);
     }
     if(peek().t == TOKEN_LB_S) {
@@ -102,7 +102,7 @@ Ast::pNode Parser::parse_value(Env &env)
     return Ast::new_sym_node(current_token(), current_token().sym);
 }
 
-Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
+Ast::pNode Parser::parse_buildin_sym(Symbol sym, pEnv env, bool in_global)
 {
     auto token = current_token();
     if(gBuildinBinaryOprType.count(sym)) {
@@ -139,10 +139,10 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
     case BUILDIN_DEFVAR: {
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_value(env);
-        if(env.count(a1.sym)) {
+        if(env->count_current(a1.sym)) {
             error_at_token(current_token(), "[Parser] error 7: definition existed");
         }
-        env[a1.sym] = SYM_VAL;
+        env->set(a1.sym, SYM_VAL);
         return Ast::new_var_def_node(token, a1, a2);
     }
     case BUILDIN_DEFFUNC: {
@@ -151,13 +151,14 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
         }
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_typed_sym_list(env);
-        if(env.count(a1.sym)) {
-            error_at_token(current_token(), "[Parser] error 7: definition existed");
+        if(env->count_current(a1.sym)) {
+            // should be rejected at error 8
+            error_at_token(current_token(), "[Parser] error 7: definition existed - impossible");
         }
-        env[a1.sym] = SYM_FUNC;
-        Env newEnv = env;
+        env->set(a1.sym, SYM_FUNC);
+        pEnv newEnv = pEnv(new Env(env));
         for(auto i : a2) {
-            newEnv[i.sym] = SYM_VAL;
+            newEnv->set(i.sym, SYM_VAL);
         }
         auto a3 = parse_statement(newEnv);
         return Ast::new_func_def_node(token, a1, a2, a3);
@@ -171,7 +172,7 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
     return nullptr;
 }
 
-Ast::pNode Parser::parse_statement(Env &env)
+Ast::pNode Parser::parse_statement(pEnv env)
 {
     get_token();
     if(current_token().t != TOKEN_SYM) {
@@ -184,7 +185,7 @@ Ast::pNode Parser::parse_statement(Env &env)
     return parse_function_call(current_token().sym, env);
 }
 
-Vector<TypedSym> Parser::parse_typed_sym_list(Env &env)
+Vector<TypedSym> Parser::parse_typed_sym_list(pEnv env)
 {
     consume_token(TOKEN_LB_S);
     Vector<TypedSym> ts;
@@ -195,7 +196,7 @@ Vector<TypedSym> Parser::parse_typed_sym_list(Env &env)
     return ts;
 }
 
-Ast::AstProg Parser::parse_value_list(Env &env)
+Ast::AstProg Parser::parse_value_list(pEnv env)
 {
     consume_token(TOKEN_LB_S);
     Ast::AstProg list;
@@ -206,13 +207,13 @@ Ast::AstProg Parser::parse_value_list(Env &env)
     return list;
 }
 
-Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
+Ast::pNode Parser::parse_function_call(Symbol sym, pEnv env)
 {
-    if(!env.count(sym)) {
+    if(!env->count(sym)) {
         error_at_token(current_token(), "[Parser] error 4: function not found");
     }
     auto token = current_token();
-    switch(env[sym]) {
+    switch((*env)[sym]) {
     case SYM_VAL:
         my_assert(false, "Error: cannot reach this point");
         // error_at_token(current_token(), "[Parser] calling a value");
@@ -228,11 +229,11 @@ Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
     return Ast::new_imm_node(current_token(), -1);
 }
 
-Ast::pNode Parser::parse_block(Env &env)
+Ast::pNode Parser::parse_block(pEnv env)
 {
     consume_token(TOKEN_LB_L);
     Ast::AstProg body;
-    Env newEnv = env;
+    pEnv newEnv = pEnv(new Env(env));
     auto token = current_token();
     while(peek().t != TOKEN_RB_L) {
         body.push_back(parse_statement(newEnv));
@@ -241,7 +242,7 @@ Ast::pNode Parser::parse_block(Env &env)
     return Ast::new_block_node(token, body);
 }
 
-Ast::AstProg Parser::parser(TokenList list, Env env)
+Ast::AstProg Parser::parser(TokenList list, pEnv env)
 {
     using namespace Ast;
 
