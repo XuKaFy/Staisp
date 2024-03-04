@@ -20,7 +20,7 @@ Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDe
             }
         }
     }
-    node_assert(false, root, "[Convertor] left symbol cannot be found");
+    node_assert(false, root, "[Convertor] error 1: left value cannot be found");
     return Ir::make_label_instr();
 }
 
@@ -143,7 +143,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         node_assert(root->ch.size() >= 1, root, "[Convertor] \"CALL\" opr has less than 1 args - impossible");
         Vector<Ir::pInstr> args;
         // impossible
-        node_assert(root->ch.front()->type == Ast::NODE_SYM, root, "[Convertor] \"CALL\" opr gets a name that not sym");
+        node_assert(root->ch.front()->type == Ast::NODE_SYM, root, "[Convertor] \"CALL\" opr gets a name that not sym - impossible");
         for(auto i=++root->ch.begin(); i!=root->ch.end(); ++i) {
             args.push_back(analyze_value(*i, func, mod));
         }
@@ -154,7 +154,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         return func_ir;
     }
     default:
-        node_assert(false, root, "[Convertor] opr not implemented");
+        node_assert(false, root, "[Convertor] error 2: operation not implemented");
         return Ir::make_label_instr();
     }
 }
@@ -182,7 +182,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     case Ast::NODE_DEF_FUNC:
     case Ast::NODE_BLOCK:
     default:
-        node_assert(false, root, "[Convertor] node not calculatable");
+        node_assert(false, root, "[Convertor] error 3: node not calculatable");
         return Ir::make_label_instr();
     }
 }
@@ -242,7 +242,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
     if(root->val->type != Ast::NODE_IMM) {
-        node_assert(false, root, "[Convertor] expression outside a function");
+        node_assert(false, root, "[Convertor] error 4: expression outside a function");
     }
     mod->add_global(Ir::make_global(root->var, std::static_pointer_cast<Ast::ImmNode>(root->val)->imm));
 }
@@ -257,7 +257,7 @@ void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
         generate_global_var(std::static_pointer_cast<Ast::VarDefNode>(root), mod);
         break;
     default:
-        node_assert(false, root, "[Convertor] global node has type that not implemented");
+        node_assert(false, root, "[Convertor] error 5: global operation has type that not implemented");
     }
 }
 
@@ -283,7 +283,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
     SELECT(AND)
     SELECT(OR)
     default:
-        node_assert(false, root, "[Convertor] binary opr conversion from ast to ir not implemented");
+        node_assert(false, root, "[Convertor] error 6: binary operation conversion from ast to ir not implemented");
     }
 #undef SELECT
     return Ir::INSTR_ADD;
@@ -304,7 +304,7 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root)
     SELECT(SLT)
     SELECT(SLE)
     default:
-        node_assert(false, std::static_pointer_cast<Ast::Node>(root), "[Convertor] binary opr conversion from ast to ir not implemented");
+        node_assert(false, std::static_pointer_cast<Ast::Node>(root), "[Convertor] error 7: comparasion operation conversion from ast to ir not implemented");
     }
 #undef SELECT
     return Ir::CMP_EQ;

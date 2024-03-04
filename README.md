@@ -66,9 +66,45 @@ interger    -> 0 | (1|2|3|4|5|6|7|8|9)*(0|1|2|3|4|5|6|7|8|9)
 sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
 ```
 
-## 运行
+## 编译
 
 ```
 cd src
 make
 ```
+
+## 使用
+
+```
+compiler [file_name]
+```
+
+## 报错
+
+### Lexer 词法错误
+
+1. `[Lexer] error 1: not a number`：解析到一个以数字开头但是混杂数字的元素
+
+### Parser 语法错误
+
+1. `[Parser] error 1: token out of expectation`：读取到非预期的 token
+2. `[Parser] error 2: not a symbol`：预期为变量名，但最终输入不是变量名
+3. `[Parser] error 3: not a type`：预期为类型名，但最终输入不是类型名。常见于 `[type]:[name]` 有类型变量名输入有误
+4. `[Parser] error 4: function not found`：要执行的函数未定义
+5. `[Parser] error 5: variable not found`：要使用的变量未定义
+6. `[Parser] error 6: calling a variable`：尝试调用变量
+7. `[Parser] error 7: definition existed`：尝试重定义变量或函数
+8. `[Parser] error 8: function nested`：尝试在函数内定义函数
+9. `[Parser] error 9: beginning of a statement must be a symbol`：不能以非名称作为语句开头，例如使用数字
+
+### Convertor 语义错误
+
+以 `- impossible` 结尾的报错为未经 Parser 直接生成 AST 才可能出现的错误，非正式错误，无标号
+
+1. `[Convertor] error 1: left value cannot be found`：找不到左值
+2. `[Convertor] error 2: operation not implemented`：该操作未被 IR 实现
+3. `[Convertor] error 3: node not calculatable`：尝试对无值的内容求值
+4. `[Convertor] error 4: expression outside a function`：尝试在全局环境中执行其他内容
+5. `[Convertor] error 5: global operation has type that not implemented`：全局中不可以使用该操作
+6. `[Convertor] error 6: binary operation conversion from ast to ir not implemented`：该二元算数操作未被 IR 实现
+7. `[Convertor] error 7: comparasion operation conversion from ast to ir not implemented`：该比较操作未被 IR 实现

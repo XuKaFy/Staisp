@@ -11,8 +11,7 @@ void error_at_token(Token t, Symbol error_code)
     while(*line_begin != '\n' && line_begin != code->p_code->begin()) --line_begin;
     while(*line_end != '\n' && line_end != code->p_code->end()) ++line_end;
     if(*line_begin == '\n') ++line_begin;
-    printf("%s:%d:%lld: ", code->file_name.c_str(), t.line, t.token_begin - line_begin + 1);
-    printf("error: %s\n", error_code);
+    printf("%s:%d:%lld: %s\n", code->file_name.c_str(), t.line, t.token_begin - line_begin + 1, error_code);
     printf("%5d | %s\n        ", t.line, String(line_begin, line_end).c_str());
     for(String::difference_type i=0; i<t.token_begin-line_begin; ++i)
         putchar(' ');
@@ -74,7 +73,7 @@ Token Lexer::lexer_number(String::value_type head)
     while(has_char() && !isspace(peek())) {
         if(!isdigit(peek())) {
             t.token_end = _current + 1;
-            error_at_token(t, "[Lexer] not a number");
+            error_at_token(t, "[Lexer] error 1: not a number");
         }
         var = var * 10 + get_char() - '0';
     }

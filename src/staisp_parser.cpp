@@ -29,7 +29,7 @@ Token Parser::current_token() const
 void Parser::consume_token(TokenType t)
 {
     if(get_token().t != t) {
-        error_at_token(current_token(), "[Parser] token out of expectation");
+        error_at_token(current_token(), "[Parser] error 1: token out of expectation");
     }
 }
 
@@ -53,7 +53,7 @@ Symbol Parser::parse_sym(Env &env)
 {
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        error_at_token(current_token(), "[Parser] not a symbol");
+        error_at_token(current_token(), "[Parser] error 2: not a symbol");
     }
     return current_token().sym;
 }
@@ -61,10 +61,10 @@ Symbol Parser::parse_sym(Env &env)
 ImmType Parser::parse_type(Env &env) {
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        error_at_token(current_token(), "[Parser] not a type");
+        error_at_token(current_token(), "[Parser] error 3: not a type");
     }
     if(gSymToImmType.count(current_token().sym) == 0) {
-        error_at_token(current_token(), "[Parser] not a type");
+        error_at_token(current_token(), "[Parser] error 3: not a type");
     }
     return gSymToImmType.find(current_token().sym)->second;
 }
@@ -89,15 +89,15 @@ Ast::pNode Parser::parse_value(Env &env)
     }
     if(!env.count(current_token().sym)) {
         if(peek().t == TOKEN_LB_S) {
-            error_at_token(current_token(), "[Parser] function not found");
+            error_at_token(current_token(), "[Parser] error 4: function not found");
         }
-        error_at_token(current_token(), "[Parser] value not found");
+        error_at_token(current_token(), "[Parser] error 5: variable not found");
     }
     if(env[current_token().sym] == SYM_FUNC) {
         return parse_function_call(current_token().sym, env);
     }
     if(peek().t == TOKEN_LB_S) {
-        error_at_token(current_token(), "[Parser] calling a value");
+        error_at_token(current_token(), "[Parser] error 6: calling a variable");
     }
     return Ast::new_sym_node(current_token(), current_token().sym);
 }
@@ -140,17 +140,20 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_value(env);
         if(env.count(a1.sym)) {
-            error_at_token(current_token(), "[Parser] definition existed");
+            error_at_token(current_token(), "[Parser] error 7: definition existed");
         }
         env[a1.sym] = SYM_VAL;
         return Ast::new_var_def_node(token, a1, a2);
     }
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
-            error_at_token(current_token(), "[Parser] function nested");
+            error_at_token(current_token(), "[Parser] error 8: function nested");
         }
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_typed_sym_list(env);
+        if(env.count(a1.sym)) {
+            error_at_token(current_token(), "[Parser] error 7: definition existed");
+        }
         env[a1.sym] = SYM_FUNC;
         Env newEnv = env;
         for(auto i : a2) {
@@ -172,7 +175,7 @@ Ast::pNode Parser::parse_statement(Env &env)
 {
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        error_at_token(current_token(), "[Parser] beginning of a statement must be a symbol");
+        error_at_token(current_token(), "[Parser] error 9: beginning of a statement must be a symbol");
         return { };
     }
     if(is_buildin_sym(current_token().sym)) {
@@ -206,7 +209,7 @@ Ast::AstProg Parser::parse_value_list(Env &env)
 Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
 {
     if(!env.count(sym)) {
-        error_at_token(current_token(), "[Parser] function not found");
+        error_at_token(current_token(), "[Parser] error 4: function not found");
     }
     auto token = current_token();
     switch(env[sym]) {
