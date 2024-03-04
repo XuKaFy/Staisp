@@ -5,7 +5,6 @@ namespace AstToIr {
 void Convertor::node_assert(bool judge, Ast::pNode root, Symbol message)
 {
     if(!judge) {
-        printf("DETECTED %s\n", String(root->token.token_begin, root->token.token_end).c_str());
         Staisp::error_at_token(root->token, message);
     }
 }
