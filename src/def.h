@@ -73,3 +73,102 @@ struct TypedSym
 
 template<typename T, typename U>
 using Pair = std::pair<T, U>;
+
+namespace Staisp {
+
+enum TokenType
+{
+    TOKEN_SYM,
+    TOKEN_INT,
+    TOKEN_LB_S, // (
+    TOKEN_RB_S, // )
+    TOKEN_LB_M, // [
+    TOKEN_RB_M, // ]
+    TOKEN_LB_L, // {
+    TOKEN_RB_L, // }
+    TOKEN_2DOT, // :
+};
+
+struct Code {
+    pString p_code;
+    String file_name;
+};
+
+typedef Pointer<Code> pCode;
+
+struct Token {
+    TokenType t;
+    union {
+        Immediate val;
+        Symbol sym;
+    };
+
+    void print() {
+        if(t == TOKEN_SYM) {
+            printf("[%s]", sym);
+        } else if(t == TOKEN_INT) {
+            printf("[%lld]", val);
+        } else {
+            printf("%c", (char) val);
+        }
+    }
+
+    pCode p_code;
+    String::iterator token_begin;
+    String::iterator token_end;
+    int line;
+};
+
+} // namespace staisp
+
+namespace Ast {
+
+enum NodeType
+{
+    NODE_IMM,
+    NODE_OPR,
+    NODE_SYM,
+    NODE_ASSIGN,
+    NODE_DEF_VAR,
+    NODE_DEF_FUNC,
+    NODE_BLOCK,
+};
+
+enum OprType
+{
+    OPR_ADD,
+    OPR_SUB,
+    OPR_MUL,
+    OPR_SDIV,
+    OPR_REM,
+    OPR_AND,
+    OPR_OR,
+    OPR_EQ,
+    OPR_NE,
+    OPR_UGT,
+    OPR_UGE,
+    OPR_ULT,
+    OPR_ULE,
+    OPR_SGT,
+    OPR_SGE,
+    OPR_SLT,
+    OPR_SLE,
+    OPR_IF,
+    OPR_RET,
+    OPR_CALL,
+    OPR_WHILE,
+};
+
+struct Node
+{
+    Node(Staisp::Token t, NodeType type)
+        : token(t), type(type) { }
+
+    Staisp::Token token;
+    NodeType type;
+};
+
+typedef Pointer<Node> pNode;
+typedef List<pNode> AstProg;
+
+} // namespace ast;

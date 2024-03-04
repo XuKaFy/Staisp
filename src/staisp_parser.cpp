@@ -82,7 +82,7 @@ Ast::pNode Parser::parse_value(Env &env)
 {
     get_token();
     if(current_token().t == TOKEN_INT) {
-        return Ast::newImmNode(current_token().val);
+        return Ast::new_imm_node(current_token(), current_token().val);
     }
     if(is_buildin_sym(current_token().sym)) {
         return parse_buildin_sym(current_token().sym, env);
@@ -99,41 +99,42 @@ Ast::pNode Parser::parse_value(Env &env)
     if(peek().t == TOKEN_LB_S) {
         error_at_token(current_token(), "[Parser] calling a value");
     }
-    return Ast::newSymNode(current_token().sym);
+    return Ast::new_sym_node(current_token(), current_token().sym);
 }
 
 Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
 {
+    auto token = current_token();
     if(gBuildinBinaryOprType.count(sym)) {
         auto a1 = parse_value(env);
         auto a2 = parse_value(env);
-        return Ast::newOprNode(gBuildinBinaryOprType.find(sym)->second, { a1, a2 } );
+        return Ast::new_opr_node(token, gBuildinBinaryOprType.find(sym)->second, { a1, a2 } );
     }
     switch(gBuildinSymType.find(sym)->second) {
     case BUILDIN_IF: {
         auto a1 = parse_value(env);
         auto a2 = parse_value(env);
-        return Ast::newOprNode(Ast::OPR_IF, { a1, a2 } );
+        return Ast::new_opr_node(token, Ast::OPR_IF, { a1, a2 } );
     }
     case BUILDIN_IFE: {
         auto a1 = parse_value(env);
         auto a2 = parse_value(env);
         auto a3 = parse_value(env);
-        return Ast::newOprNode(Ast::OPR_IF, { a1, a2, a3 } );
+        return Ast::new_opr_node(token, Ast::OPR_IF, { a1, a2, a3 } );
     }
     case BUILDIN_ASSIGN: {
         auto a1 = parse_sym(env);
         auto a2 = parse_value(env);
-        return Ast::newAssignNode(a1, a2);
+        return Ast::new_assign_node(token, a1, a2);
     }
     case BUILDIN_RETURN: {
         auto a1 = parse_value(env);
-        return Ast::newOprNode(Ast::OPR_RET, { a1 });
+        return Ast::new_opr_node(token, Ast::OPR_RET, { a1 });
     }
     case BUILDIN_WHILE: {
         auto a1 = parse_value(env);
         auto a2 = parse_value(env);
-        return Ast::newOprNode(Ast::OPR_WHILE, { a1, a2 } );
+        return Ast::new_opr_node(token, Ast::OPR_WHILE, { a1, a2 } );
     }
     case BUILDIN_DEFVAR: {
         auto a1 = parse_typed_sym(env);
@@ -142,7 +143,7 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
             error_at_token(current_token(), "[Parser] definition existed");
         }
         env[a1.sym] = SYM_VAL;
-        return Ast::newVarDefNode(a1, a2);
+        return Ast::new_var_def_node(token, a1, a2);
     }
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
@@ -156,7 +157,7 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
             newEnv[i.sym] = SYM_VAL;
         }
         auto a3 = parse_statement(newEnv);
-        return Ast::newFuncDefNode(a1, a2, a3);
+        return Ast::new_func_def_node(token, a1, a2, a3);
     }
     case BUILDIN_BLOCK: {
         return parse_block(env);
@@ -207,6 +208,7 @@ Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
     if(!env.count(sym)) {
         error_at_token(current_token(), "[Parser] function not found");
     }
+    auto token = current_token();
     switch(env[sym]) {
     case SYM_VAL:
         my_assert(false, "Error: cannot reach this point");
@@ -214,13 +216,13 @@ Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
         break;
     case SYM_FUNC: {
         Ast::AstProg args = parse_value_list(env);
-        args.push_front(Ast::newSymNode(sym));
-        return Ast::newOprNode(Ast::OPR_CALL, args);
+        args.push_front(Ast::new_sym_node(token, sym));
+        return Ast::new_opr_node(token, Ast::OPR_CALL, args);
     }
     }
     // cannot reach
     my_assert(false, "Error: cannot reach.");
-    return Ast::newImmNode(-1);
+    return Ast::new_imm_node(current_token(), -1);
 }
 
 Ast::pNode Parser::parse_block(Env &env)
@@ -228,11 +230,12 @@ Ast::pNode Parser::parse_block(Env &env)
     consume_token(TOKEN_LB_L);
     Ast::AstProg body;
     Env newEnv = env;
+    auto token = current_token();
     while(peek().t != TOKEN_RB_L) {
         body.push_back(parse_statement(newEnv));
     }
     consume_token(TOKEN_RB_L);
-    return Ast::newBlockNode(body);
+    return Ast::new_block_node(token, body);
 }
 
 Ast::AstProg Parser::parser(TokenList list, Env env)
