@@ -11,13 +11,12 @@ void error_at_token(Token t, Symbol error_code)
     while(*line_begin != '\n' && line_begin != code->p_code->begin()) --line_begin;
     while(*line_end != '\n' && line_end != code->p_code->end()) ++line_end;
     if(*line_begin == '\n') ++line_begin;
-    printf("%s:%d:%d: ", code->file_name.c_str(), t.line, t.token_begin - line_begin + 1);
+    printf("%s:%d:%lld: ", code->file_name.c_str(), t.line, t.token_begin - line_begin + 1);
     printf("error: %s\n", error_code);
-    printf("%05d| %s\n", t.line, String(line_begin, line_end).c_str());
-    printf("     | ");
-    for(size_t i=0; i<t.token_begin-line_begin; ++i)
+    printf("%5d | %s\n        ", t.line, String(line_begin, line_end).c_str());
+    for(String::difference_type i=0; i<t.token_begin-line_begin; ++i)
         putchar(' ');
-    for(size_t i=0; i<t.token_end-t.token_begin; ++i)
+    for(String::difference_type i=0; i<t.token_end-t.token_begin; ++i)
         putchar('^');
     puts("");
     exit(1);
