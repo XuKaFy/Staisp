@@ -1,4 +1,6 @@
-DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK {
+# test [Lexer] error 1
+
+DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK { # a comment
     IF EQ b a 
         RETURN a
     IF UGT a b
@@ -11,3 +13,5 @@ DEFFUNC i32:main() BLOCK {
     DEFVAR i32:b 20
     RETURN gcd ( a b )
 }
+
+#end comment

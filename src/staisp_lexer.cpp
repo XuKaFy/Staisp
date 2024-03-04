@@ -42,7 +42,13 @@ bool Lexer::has_char() const
 
 void Lexer::jump_empty()
 {
-    while(has_char() && isspace(*_current)) get_char(); 
+    while(has_char() && isspace(peek())) get_char(); 
+}
+
+void Lexer::jump_comment()
+{
+    if(has_char() && peek() == '#') 
+        while(has_char() && peek() != '\n') get_char();
 }
 
 TokenList Lexer::lexer(pCode code)
@@ -52,11 +58,15 @@ TokenList Lexer::lexer(pCode code)
     _end = code->p_code->end();
     _line_count = 1;
     _p_code = code;
-    jump_empty();
-    while(has_char()) {
+    while(true) {
+        while(has_char() && (isspace(peek()) || peek() == '#')) {
+            jump_empty();
+            jump_comment();
+        }
+        if(!has_char()) break;
         _begin = _current;
         list.push_back(lexer_one_token());
-        jump_empty();
+        // list.back().print();
     }
     _p_code = pCode();
     return list;
@@ -71,10 +81,12 @@ Token Lexer::lexer_number(String::value_type head)
     t.token_begin = _begin;
     t.line = _line_count;
     while(has_char() && !isspace(peek())) {
-        if(!isdigit(peek())) {
+        if(isalpha(peek())) {
             t.token_end = _current + 1;
             error_at_token(t, "[Lexer] error 1: not a number");
         }
+        if(!isdigit(peek()))
+            break;
         var = var * 10 + get_char() - '0';
     }
     t.token_end = _current;

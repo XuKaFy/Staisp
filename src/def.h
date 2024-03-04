@@ -87,6 +87,7 @@ enum TokenType
     TOKEN_LB_L, // {
     TOKEN_RB_L, // }
     TOKEN_2DOT, // :
+    TOKEN_SHRP, // #
 };
 
 struct Code {

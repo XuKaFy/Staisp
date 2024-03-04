@@ -19,6 +19,7 @@ private:
     String::value_type peek();
     bool has_char() const;
     void jump_empty();
+    void jump_comment();
 
     Token lexer_one_token();
     Token lexer_number(String::value_type head);
