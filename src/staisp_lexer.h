@@ -32,10 +32,6 @@ struct Token {
         Immediate val;
         Symbol sym;
     };
-    pCode p_code;
-    int line;
-    String::iterator token_begin;
-    String::iterator token_end;
 
     void print() {
         if(t == TOKEN_SYM) {
@@ -46,28 +42,36 @@ struct Token {
             printf("%c", (char) val);
         }
     }
+
+    pCode p_code;
+    String::iterator token_begin;
+    String::iterator token_end;
+    int line;
 };
 
 void error_at_token(Token t, Symbol error_code);
 
 typedef Vector<Token> TokenList;
 
-struct Lexer {
+class Lexer {
+public:
+    TokenList lexer(pCode code);
+
+private:
     String::value_type get_char();
     String::value_type peek();
     bool has_char() const;
     void jump_empty();
 
-    TokenList lexer(pCode code);
     Token lexer_one_token();
     Token lexer_number(String::value_type head);
     Token lexer_sym(String::value_type head);
 
-    String::iterator begin;
-    String::iterator current;
-    String::iterator end;
-    pCode p_code;
-    int line_count;
+    String::iterator _begin;
+    String::iterator _current;
+    String::iterator _end;
+    pCode _p_code;
+    int _line_count;
 };
 
 } // namespace staisp

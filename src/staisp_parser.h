@@ -73,14 +73,20 @@ enum SymType {
 
 typedef Map<String, SymType> Env;
 
-struct Parser {
-    Token get_token();
-    Token peek();
-    void consume_token(TokenType t);
-    bool has_token() const;
-
+class Parser {
+public:
     static bool is_buildin_sym(Symbol sym);
 
+    Ast::AstProg parser(pCode code);
+    Ast::AstProg parser(TokenList list, Env env = {});
+
+private:
+    Token get_token();
+    Token current_token() const;
+    Token peek() const;
+    void consume_token(TokenType t);
+    bool has_token() const;
+    
     Ast::pNode parse_buildin_sym(Symbol sym, Env &env, bool in_global = false);
     Ast::pNode parse_function_call(Symbol sym, Env &env);
     Ast::pNode parse_block(Env &env);
@@ -93,11 +99,10 @@ struct Parser {
     Vector<TypedSym> parse_typed_sym_list(Env &env);
     Ast::AstProg parse_value_list(Env &env);
 
-    Ast::AstProg parser(pCode code);
-    Ast::AstProg parser(TokenList list, Env env = {});
-
-    TokenList::iterator current;
-    TokenList::iterator end;
+    TokenList::iterator _begin;
+    TokenList::iterator _current;
+    TokenList::iterator _end;
+    Token _current_token;
 };
 
 

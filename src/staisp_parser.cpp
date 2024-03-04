@@ -5,30 +5,37 @@ namespace Staisp
 
 Token Parser::get_token()
 {
-    if(current == end) {
+    if(_current == _end) {
         my_assert(false, "Error: reaches the end of code.");
     }
     // printf("READ TOKEN ");
-    // current->print(); printf("\n");
-    return *(current++);
+    // _current->print(); printf("\n");
+    return _current_token = *(_current++);
 }
 
-Token Parser::peek()
+Token Parser::peek() const
 {
-    return *(current);
+    return *(_current);
+}
+
+Token Parser::current_token() const
+{
+    if(_current == _begin) {
+        my_assert(false, "Error: no current token.");
+    }
+    return _current_token;
 }
 
 void Parser::consume_token(TokenType t)
 {
     if(get_token().t != t) {
-        // printf("consume %d, but found %d\n", (current-1)->t, t);
-        my_assert(false, "Error: token out of expectation.");
+        error_at_token(current_token(), "[Parser] token out of expectation");
     }
 }
 
 bool Parser::has_token() const
 {
-    return current != end;
+    return _current != _end;
 }
 
 Ast::AstProg Parser::parser(pCode code)
@@ -44,19 +51,22 @@ bool Parser::is_buildin_sym(Symbol sym)
 
 Symbol Parser::parse_sym(Env &env)
 {
-    Token cur = get_token();
-    if(cur.t != TOKEN_SYM) {
-        my_assert(false, "Error: not a sym");
+    get_token();
+    if(current_token().t != TOKEN_SYM) {
+        error_at_token(current_token(), "[Parser] not a symbol");
     }
-    return cur.sym;
+    return current_token().sym;
 }
 
 ImmType Parser::parse_type(Env &env) {
-    Token cur = get_token();
-    if(cur.t != TOKEN_SYM) {
-        my_assert(false, "Error: not a type");
+    get_token();
+    if(current_token().t != TOKEN_SYM) {
+        error_at_token(current_token(), "[Parser] not a type");
     }
-    return gSymToImmType.find(cur.sym)->second;
+    if(gSymToImmType.count(current_token().sym) == 0) {
+        error_at_token(current_token(), "[Parser] not a type");
+    }
+    return gSymToImmType.find(current_token().sym)->second;
 }
 
 TypedSym Parser::parse_typed_sym(Env &env)
@@ -70,29 +80,26 @@ TypedSym Parser::parse_typed_sym(Env &env)
 
 Ast::pNode Parser::parse_value(Env &env)
 {
-    Token cur = get_token();
-    if(cur.t == TOKEN_INT) {
-        return Ast::newImmNode(cur.val);
+    get_token();
+    if(current_token().t == TOKEN_INT) {
+        return Ast::newImmNode(current_token().val);
     }
-    if(is_buildin_sym(cur.sym)) {
-        return parse_buildin_sym(cur.sym, env);
+    if(is_buildin_sym(current_token().sym)) {
+        return parse_buildin_sym(current_token().sym, env);
     }
-    if(!env.count(cur.sym)) {
-        printf("Value symbol \"%s\" not found.\n", cur.sym);
-        printf("  at token %d\n", end - current);
-        my_assert(false, "Error: value cannot be found.");
+    if(!env.count(current_token().sym)) {
+        if(peek().t == TOKEN_LB_S) {
+            error_at_token(current_token(), "[Parser] function not found");
+        }
+        error_at_token(current_token(), "[Parser] value not found");
     }
-    switch(env[cur.sym]) {
-    case SYM_FUNC: {
-        return parse_function_call(cur.sym, env);
+    if(env[current_token().sym] == SYM_FUNC) {
+        return parse_function_call(current_token().sym, env);
     }
-    case SYM_VAL: {
-        return Ast::newSymNode(cur.sym);
+    if(peek().t == TOKEN_LB_S) {
+        error_at_token(current_token(), "[Parser] calling a value");
     }
-    }
-    // cannot reach
-    my_assert(false, "Error: cannot reach.");
-    return nullptr;
+    return Ast::newSymNode(current_token().sym);
 }
 
 Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
@@ -132,14 +139,15 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_value(env);
         if(env.count(a1.sym)) {
-            my_assert(false, "Error: redefined variant.");
+            error_at_token(current_token(), "[Parser] definition existed");
         }
         env[a1.sym] = SYM_VAL;
         return Ast::newVarDefNode(a1, a2);
     }
     case BUILDIN_DEFFUNC: {
-        if(!in_global)
-            my_assert(false, "Error: function in function.");
+        if(!in_global) {
+            error_at_token(current_token(), "[Parser] function nested");
+        }
         auto a1 = parse_typed_sym(env);
         auto a2 = parse_typed_sym_list(env);
         env[a1.sym] = SYM_FUNC;
@@ -161,15 +169,15 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, Env &env, bool in_global)
 
 Ast::pNode Parser::parse_statement(Env &env)
 {
-    Token cur = get_token();
-    if(cur.t != TOKEN_SYM) {
-        my_assert(false, "Error: synatx error.");
+    get_token();
+    if(current_token().t != TOKEN_SYM) {
+        error_at_token(current_token(), "[Parser] beginning of a statement must be a symbol");
         return { };
     }
-    if(is_buildin_sym(cur.sym)) {
-        return parse_buildin_sym(cur.sym, env, true);
+    if(is_buildin_sym(current_token().sym)) {
+        return parse_buildin_sym(current_token().sym, env, true);
     }
-    return parse_function_call(cur.sym, env);
+    return parse_function_call(current_token().sym, env);
 }
 
 Vector<TypedSym> Parser::parse_typed_sym_list(Env &env)
@@ -197,11 +205,12 @@ Ast::AstProg Parser::parse_value_list(Env &env)
 Ast::pNode Parser::parse_function_call(Symbol sym, Env &env)
 {
     if(!env.count(sym)) {
-        my_assert(false, "Error: symbol not found.");
+        error_at_token(current_token(), "[Parser] function not found");
     }
     switch(env[sym]) {
     case SYM_VAL:
-        my_assert(false, "Error: try to call a variant.");    
+        my_assert(false, "Error: cannot reach this point");
+        // error_at_token(current_token(), "[Parser] calling a value");
         break;
     case SYM_FUNC: {
         Ast::AstProg args = parse_value_list(env);
@@ -232,12 +241,9 @@ Ast::AstProg Parser::parser(TokenList list, Env env)
 
     AstProg prog;
 
-    /*for(auto i : list)
-        i.print();
-    puts("");*/
-
-    current = list.begin();
-    end = list.end();
+    _begin = list.begin();
+    _current = list.begin();
+    _end = list.end();
     while(has_token()) {
         prog.push_back(parse_statement(env));
     }

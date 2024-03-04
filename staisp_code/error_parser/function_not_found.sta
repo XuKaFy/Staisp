@@ -1,8 +1,8 @@
 DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK {
-    IF EQ b a 
+    IF EQ b a
         RETURN a
     IF UGT a b
-        RETURN gcd ( SUB a b b )
+        RETURN abc ( SUB a b b )
     RETURN gcd ( SUB b a a )
 }
 

@@ -1,5 +1,5 @@
 DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK {
-    IF EQ b a 
+    IF EQ b c
         RETURN a
     IF UGT a b
         RETURN gcd ( SUB a b b )

@@ -1,4 +1,4 @@
-DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK {
+DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK [
     IF EQ b a 
         RETURN a
     IF UGT a b

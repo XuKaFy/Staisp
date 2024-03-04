@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
 {
     if(argc != 2) {
         puts("Usage: staisp [in_file]");
-        return 1;
+        return 0;
     }
     std::ifstream in;
     in.open(argv[1], std::fstream::in);
