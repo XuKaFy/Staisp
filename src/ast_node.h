@@ -60,6 +60,13 @@ struct BlockNode : public Node
     AstProg body;
 };
 
+struct ArrayDefNode : public Node
+{
+    ArrayDefNode(pToken t, Immediates nums)
+        : Node(t, NODE_BLOCK), nums(nums) { }
+    Immediates nums;
+};
+
 pNode new_imm_node(pToken t, Immediate imm, ImmType tr = IMM_I64);
 pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
@@ -67,5 +74,6 @@ pNode new_assign_node(pToken t, Symbol sym, pNode val);
 pNode new_var_def_node(pToken t, TypedSym var, pNode val);
 pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body);
 pNode new_block_node(pToken t, AstProg body);
+pNode new_array_def_node(pToken t, Immediates nums);
 
 } // namespace ast

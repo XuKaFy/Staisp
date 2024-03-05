@@ -37,4 +37,9 @@ pNode new_block_node(pToken t, AstProg body)
     return pNode(new BlockNode(t, body));
 }
 
+pNode new_array_def_node(pToken t, Immediates nums)
+{
+    return pNode(new ArrayDefNode(t, nums));
+}
+
 }  // namespace ast

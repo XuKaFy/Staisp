@@ -4,6 +4,7 @@
 
 #include "staisp_lexer.h"
 #include "ast_node.h"
+#include "ast_exec.h"
 
 namespace Staisp {
 
@@ -17,6 +18,7 @@ namespace Staisp {
     ENTRY(DEFFUNC) \
     ENTRY(BREAK) \
     ENTRY(CONTINUE) \
+    ENTRY(CONSTEXPR) \
     ENTRY(BLOCK)
 
 enum BuildinSym
@@ -112,6 +114,8 @@ private:
     pNode parse_buildin_sym(Symbol sym, bool in_global = false);
     pNode parse_function_call(Symbol sym);
     pNode parse_block();
+    pNode parse_array_def(); // [2 2]
+    // pNode parse_array_val(); // { {1 2} {3 4} }
     pNode parse_statement();
     pNode parse_value();
     TypedSym parse_typed_sym();

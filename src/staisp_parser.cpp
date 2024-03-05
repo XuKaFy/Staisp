@@ -199,6 +199,8 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_opr_node(token, OPR_BREAK, { });
     case BUILDIN_CONTINUE:
         return Ast::new_opr_node(token, OPR_CONTINUE, { });
+    case BUILDIN_CONSTEXPR:
+        return Ast::new_imm_node(token, Ast::execute(parse_value()));
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
             current_token().print_error("[Parser] error 8: function nested");
@@ -299,6 +301,18 @@ pNode Parser::parse_block()
     consume_token(TOKEN_RB_L);
     end_env();
     return Ast::new_block_node(token, body);
+}
+
+pNode Parser::parse_array_def()
+{
+    consume_token(TOKEN_LB_M);
+    auto token = _current_token;
+    Immediates nums;
+    while(peek().t != TOKEN_RB_M) {
+        nums.push_back(Ast::execute(parse_value()));
+    }
+    consume_token(TOKEN_RB_M);
+    return Ast::new_array_def_node(token, nums);
 }
 
 AstProg Parser::parser(TokenList list)

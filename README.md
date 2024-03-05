@@ -80,7 +80,7 @@ statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
            | "WHILE"     value       statement
            | "RETURN"    value
            | "DEFPTR"    typed_sym
-           | "DEFARRAY"  typed_sym   value
+           | "DEFARRAY"  typed_sym   array_def
            | "REF"       sym
            | "DEREF"     value
            | "ITEM"      value       number
@@ -93,6 +93,9 @@ function -> basic_function
 basic_function -> unary_func    value
                -> binary_func   value   value
                -> triple        value   value   value
+basic_function_const -> unary_func    const_val
+                     -> binary_func   const_val   const_val
+                     -> triple        const_val   const_val   const_val
 typed_sym   -> num_type:sym
 num_type    -> i64|i32|i16|i8|i1|void
 value_list  -> ( )
@@ -102,8 +105,12 @@ typed_sym_list -> ( )
 stat_list -> { }
            | { statement, stat_list }
 value -> function
-       | interger
+       | const_val
        | variant
+const_val -> basic_function_const
+           | integer
+array_def -> [ const_val ]
+           | [ const_val, array_def ]
 variant -> sym
 unary_func  -> ......
 binary_func -> ......

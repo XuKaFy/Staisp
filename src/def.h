@@ -30,6 +30,7 @@ template<typename T, typename U>
 using Map = std::map<T, U>;
 
 typedef long long Immediate;
+typedef Vector<Immediate> Immediates;
 typedef const char* Symbol;
 typedef std::string String;
 typedef Pointer<String> pString;

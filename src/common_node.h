@@ -14,31 +14,42 @@ enum NodeType
     NODE_BLOCK,
 };
 
+#define OPR_TABLE_CALCULATABLE \
+    ENTRY(ADD, +) \
+    ENTRY(SUB, -) \
+    ENTRY(MUL, *) \
+    ENTRY(SDIV, /) \
+    ENTRY(REM, %) \
+    ENTRY(AND, &&) \
+    ENTRY(OR, ||) \
+    ENTRY(EQ, ==) \
+    ENTRY(NE, !=) \
+    ENTRY(UGT, >) \
+    ENTRY(UGE, >=) \
+    ENTRY(ULT, <) \
+    ENTRY(ULE, <=) \
+    ENTRY(SGT, >) \
+    ENTRY(SGE, >=) \
+    ENTRY(SLT, <) \
+    ENTRY(SLE, <=)
+
+#define OPR_TABLE_UNCALCULATABLE \
+    ENTRY(IF) \
+    ENTRY(RET) \
+    ENTRY(CALL) \
+    ENTRY(WHILE) \
+    ENTRY(BREAK) \
+    ENTRY(CONTINUE)
+
+
 enum OprType
 {
-    OPR_ADD,
-    OPR_SUB,
-    OPR_MUL,
-    OPR_SDIV,
-    OPR_REM,
-    OPR_AND,
-    OPR_OR,
-    OPR_EQ,
-    OPR_NE,
-    OPR_UGT,
-    OPR_UGE,
-    OPR_ULT,
-    OPR_ULE,
-    OPR_SGT,
-    OPR_SGE,
-    OPR_SLT,
-    OPR_SLE,
-    OPR_IF,
-    OPR_RET,
-    OPR_CALL,
-    OPR_WHILE,
-    OPR_BREAK,
-    OPR_CONTINUE,
+#define ENTRY(x, y) OPR_##x,
+    OPR_TABLE_CALCULATABLE
+#undef ENTRY
+#define ENTRY(x) OPR_##x,
+    OPR_TABLE_UNCALCULATABLE
+#undef ENTRY
 };
 
 struct Node
