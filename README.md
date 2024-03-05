@@ -15,7 +15,7 @@ DEFFUNC i32:fib ( i32:n ) BLOCK {
                fib ( SUB n 2 )
 }
 
-DEFFUNC i32:main ( ) BLOCK {
+DEFFUNC i32:main ( ) {
     DEFVAR i32:ans 0
     ASSIGN n 10
     WHILE ULE n 10
@@ -71,6 +71,7 @@ DEFFUNC i32:main ( ) BLOCK {
 program -> *statement
 statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
            | "DEFCONSTFUNC"     typed_sym   typed_sym_list  statement
+           | stat_list
            | "BLOCK"     stat_list
            | "DEFVAR"    typed_sym   vaimage.pnglue
            | "ASSIGN"    sym         value

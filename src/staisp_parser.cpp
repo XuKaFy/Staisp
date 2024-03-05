@@ -229,6 +229,9 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
 
 pNode Parser::parse_statement()
 {
+    if(peek().t == TOKEN_LB_L) { // if is start of BLOCK, then process BLOCK without key word
+        return parse_block();
+    }
     get_token();
     if(current_token().t != TOKEN_SYM) {
         current_token().print_error("[Parser] error 9: beginning of a statement must be a symbol");
