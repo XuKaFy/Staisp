@@ -11,8 +11,8 @@ void Convertor::node_assert(bool judge, Ast::pNode root, Symbol message)
 
 Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
-    if(var_map.count(root->sym)) { // local
-        return var_map[root->sym]->tr, var_map[root->sym];
+    if(env()->var_count(root->sym)) { // local
+        return env()->find_var(root->sym);
     } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, root->sym) == 0) {
@@ -26,8 +26,8 @@ Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDe
 
 Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
-    if(var_map.count(root->sym)) { // local
-        return func->add_instr(Ir::make_load_instr(var_map[root->sym]->tr, var_map[root->sym]));
+    if(env()->var_count(root->sym)) { // local
+        return func->add_instr(Ir::make_load_instr(env()->find_var(root->sym)->tr, env()->find_var(root->sym)));
     } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, root->sym) == 0) {
@@ -148,7 +148,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
             args.push_back(analyze_value(*i, func, mod));
         }
         auto name_node = std::static_pointer_cast<Ast::SymNode>(root->ch.front());
-        auto func_instr = func_map[name_node->sym];
+        auto func_instr = find_func(name_node->sym);
         node_assert(func_instr->args.size() == root->ch.size() - 1, root, "[Convertor] error 8: wrong count of arguments");
         auto func_ir = Ir::make_call_instr(func_instr, args);
         func->add_instr(func_ir);
@@ -202,7 +202,7 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         Ir::pInstr tmp;
         func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
         func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r->val, func, mod)));
-        var_map[r->var.sym] = tmp;
+        env()->set_var(r->var.sym, tmp);
         break;
     }
     case Ast::NODE_OPR:
@@ -210,9 +210,11 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         break;
     case Ast::NODE_BLOCK: {
         auto r = std::static_pointer_cast<Ast::BlockNode>(root);
+        push_env();
         for(auto i : r->body) {
             analyze_statement_node(i, func, mod);
         }
+        end_env();
         break;
     }
     case Ast::NODE_IMM: // meaningless
@@ -226,26 +228,29 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
 
 void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod)
 {
-    var_map.clear();
+    push_env();
     Ir::pFuncDefined func;
     {
         func = Ir::make_func_defined(root->var, root->args);
-        func_map[func->var.sym] = func;
+        set_func(func->var.sym, func);
         for(size_t i=0; i<root->args.size(); ++i) {
             // 2*i+1 is related to how first function block is initialized
-            var_map[root->args[i].sym] = func->body[0]->instrs[2*i+1];
+            env()->set_var(root->args[i].sym, func->body[0]->instrs[2*i+1]);
         }
     }
     analyze_statement_node(root->body, func, mod);
     mod->add_func(func);
+    end_env();
 }
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
+    push_env();
     if(root->val->type != Ast::NODE_IMM) {
         node_assert(false, root, "[Convertor] error 4: expression outside a function");
     }
     mod->add_global(Ir::make_global(root->var, std::static_pointer_cast<Ast::ImmNode>(root->val)->imm));
+    end_env();
 }
 
 void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
@@ -264,7 +269,7 @@ void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
 
 Ir::pModule Convertor::generate(Ast::AstProg asts)
 {
-    func_map.clear();
+    clear_env();
     Ir::pModule mod = Ir::pModule(new Ir::Module());
     for(auto i : asts) {
         generate_single(i, mod);

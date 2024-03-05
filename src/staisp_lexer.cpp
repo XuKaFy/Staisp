@@ -76,7 +76,6 @@ Token Lexer::lexer_number(String::value_type head)
 {
     Immediate var = head - '0';
     Token t = { TOKEN_INT };
-    t.val = var;
     t.p_code = _p_code;
     t.token_begin = _begin;
     t.line = _line_count;
@@ -89,6 +88,7 @@ Token Lexer::lexer_number(String::value_type head)
             break;
         var = var * 10 + get_char() - '0';
     }
+    t.val = var;
     t.token_end = _current;
     return t;
 }
