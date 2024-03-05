@@ -3,6 +3,27 @@
 namespace Staisp
 {
 
+bool Env::count(Symbol sym) {
+    if(table.count(sym)) return true;
+    if(parent) return parent->count(sym);
+    return false;
+}
+
+bool Env::count_current(Symbol sym) {
+    return table.count(sym);
+}
+
+void Env::set(Symbol sym, SymType t) {
+    table[sym] = t;
+}
+
+SymType Env::operator [] (Symbol sym) {
+    if(table.count(sym)) return table[sym];
+    if(parent) return (*parent)[sym];
+    my_assert(false, "Error: get no symbol");
+    return SYM_VAL;
+}
+
 Token Parser::get_token()
 {
     if(_current == _end) {
@@ -145,6 +166,10 @@ Ast::pNode Parser::parse_buildin_sym(Symbol sym, pEnv env, bool in_global)
         env->set(a1.sym, SYM_VAL);
         return Ast::new_var_def_node(token, a1, a2);
     }
+    case BUILDIN_BREAK:
+        return Ast::new_opr_node(token, Ast::OPR_BREAK, { });
+    case BUILDIN_CONTINUE:
+        return Ast::new_opr_node(token, Ast::OPR_CONTINUE, { });
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
             error_at_token(current_token(), "[Parser] error 8: function nested");

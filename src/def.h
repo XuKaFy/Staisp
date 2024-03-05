@@ -158,6 +158,8 @@ enum OprType
     OPR_RET,
     OPR_CALL,
     OPR_WHILE,
+    OPR_BREAK,
+    OPR_CONTINUE,
 };
 
 struct Node

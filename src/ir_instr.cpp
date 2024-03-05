@@ -22,5 +22,11 @@ Symbol Instr::instr_print_impl() const
     return print_impl();
 }
 
+pInstr make_empty_instr()
+{
+    static pInstr empty = pInstr();
+    return empty;
+}
+
 }  // namespace ir
 

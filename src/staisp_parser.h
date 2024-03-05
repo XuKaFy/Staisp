@@ -15,6 +15,8 @@ namespace Staisp {
     ENTRY(WHILE) \
     ENTRY(DEFVAR) \
     ENTRY(DEFFUNC) \
+    ENTRY(BREAK) \
+    ENTRY(CONTINUE) \
     ENTRY(BLOCK)
 
 enum BuildinSym
@@ -81,26 +83,10 @@ public:
     Env(pEnv parent = pEnv())
         : parent(parent) { }
 
-    bool count(Symbol sym) {
-        if(table.count(sym)) return true;
-        if(parent) return parent->count(sym);
-        return false;
-    }
-
-    bool count_current(Symbol sym) {
-        return table.count(sym);
-    }
-
-    void set(Symbol sym, SymType t) {
-        table[sym] = t;
-    }
-
-    SymType operator [] (Symbol sym) {
-        if(table.count(sym)) return table[sym];
-        if(parent) return (*parent)[sym];
-        my_assert(false, "Error: get no symbol");
-        return SYM_VAL;
-    }
+    bool count(Symbol sym);
+    bool count_current(Symbol sym);
+    void set(Symbol sym, SymType t);
+    SymType operator [] (Symbol sym);
 
 private:
     pEnv parent {};

@@ -2,6 +2,22 @@
 
 namespace AstToIr {
 
+bool Env::var_count(Symbol sym) {
+    if(_var_map.count(sym)) return true;
+    if(_parent) return _parent->var_count(sym);
+    return false;
+}
+
+Ir::pInstr Env::find_var(Symbol sym) {
+    if(_var_map.count(sym))
+        return _var_map[sym];
+    return _parent->find_var(sym);
+}
+
+void Env::set_var(Symbol sym, Ir::pInstr i) {
+    _var_map[sym] = i;
+}
+
 void Convertor::node_assert(bool judge, Ast::pNode root, Symbol message)
 {
     if(!judge) {
@@ -21,7 +37,7 @@ Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDe
         }
     }
     node_assert(false, root, "[Convertor] error 1: left value cannot be found");
-    return Ir::make_label_instr();
+    return Ir::make_empty_instr();
 }
 
 Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod)
@@ -38,7 +54,7 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
     }
     // impossible
     node_assert(false, root, "[Convertor] symbol cannot be found - impossible");
-    return Ir::make_label_instr();
+    return Ir::make_empty_instr();
 }
 
 Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod)
@@ -107,14 +123,17 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         }
         
         func->add_block(afterBlock);
-        return Ir::make_label_instr();
+        return Ir::make_empty_instr();
     }
     case Ast::OPR_WHILE: {
         auto compBlock = Ir::make_block();
         auto trueBlock = Ir::make_block();
         auto afterBlock = Ir::make_block();
+
         // impossible
         node_assert(root->ch.size() == 3 || root->ch.size() == 2, root, "[Convertor] \"WHILE\" opr has not 2 args - impossible");
+
+        push_loop_env(pLoopEnv(new LoopEnv { compBlock, afterBlock } ));
 
         auto a = root->ch.begin();
 
@@ -126,17 +145,20 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
 
         func->add_block(trueBlock);
         analyze_statement_node(*(a++), func, mod);   
-        trueBlock->finish_block_with_jump(compBlock);
+        func->current_block()->finish_block_with_jump(compBlock); // may have other block caused by break or continue
         
         func->add_block(afterBlock);
-        return Ir::make_label_instr();
+
+        end_loop_env();
+
+        return Ir::make_empty_instr();
     }
     case Ast::OPR_RET: {
         // impossible
         node_assert(root->ch.size() == 1, root, "[Convertor] \"RET\" opr has not 1 args - impossible");
         auto a = analyze_value(root->ch.front(), func, mod);
         func->add_instr(Ir::make_ret_instr(a->tr, a));
-        return Ir::make_label_instr();
+        return Ir::make_empty_instr();
     }
     case Ast::OPR_CALL: {
         // impossible
@@ -154,9 +176,31 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         func->add_instr(func_ir);
         return func_ir;
     }
+    case Ast::OPR_BREAK: {
+        // impossible
+        node_assert(root->ch.size() == 0, root, "[Convertor] \"BREAK\" opr has less than 1 args - impossible");
+        node_assert(has_loop_env(), root, "[Convertor] error 9: no outer loops");
+        
+        auto r = Ir::make_br_instr(loop_env()->loop_end->label());
+        func->add_instr(r);
+        // auto nextBlock = Ir::make_block();
+        // func->add_block(nextBlock);
+        return Ir::make_empty_instr();
+    }
+    case Ast::OPR_CONTINUE: {
+        // impossible
+        node_assert(root->ch.size() == 0, root, "[Convertor] \"CONTINUE\" opr has less than 1 args - impossible");
+        node_assert(has_loop_env(), root, "[Convertor] error 9: no outer loops");
+        
+        auto r = Ir::make_br_instr(loop_env()->loop_begin->label());
+        func->add_instr(r);
+        // auto nextBlock = Ir::make_block();
+        // func->add_block(nextBlock);
+        return Ir::make_empty_instr();
+    }
     default:
         node_assert(false, root, "[Convertor] error 2: operation not implemented");
-        return Ir::make_label_instr();
+        return Ir::make_empty_instr();
     }
 }
 
@@ -184,7 +228,7 @@ Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::
     case Ast::NODE_BLOCK:
     default:
         node_assert(false, root, "[Convertor] error 3: node not calculatable");
-        return Ir::make_label_instr();
+        return Ir::make_empty_instr();
     }
 }
 
@@ -270,6 +314,7 @@ void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
 Ir::pModule Convertor::generate(Ast::AstProg asts)
 {
     clear_env();
+    clear_loop_env();
     Ir::pModule mod = Ir::pModule(new Ir::Module());
     for(auto i : asts) {
         generate_single(i, mod);
@@ -314,6 +359,60 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root)
     }
 #undef SELECT
     return Ir::CMP_EQ;
+}
+
+pEnv Convertor::env() {
+    if(_env_stack.empty())
+        return pEnv();
+    return _env_stack.top();
+}
+
+void Convertor::push_env() {
+    _env_stack.push(pEnv(new Env(env())));
+}
+    
+void Convertor::end_env() {
+    _env_stack.pop();
+}
+    
+void Convertor::clear_env() {
+    while(!_env_stack.empty())
+        _env_stack.pop();
+}
+
+pLoopEnv Convertor::loop_env() {
+    if(_env_stack.empty())
+        return pLoopEnv();
+    return _loop_env_stack.top();
+}
+
+void Convertor::push_loop_env(pLoopEnv env) {
+    _loop_env_stack.push(env);
+}
+
+bool Convertor::has_loop_env() const {
+    return !_loop_env_stack.empty();
+}
+    
+void Convertor::end_loop_env() {
+    _loop_env_stack.pop();
+}
+    
+void Convertor::clear_loop_env() {
+    while(!_loop_env_stack.empty())
+        _loop_env_stack.pop();
+}
+
+void Convertor::set_func(Symbol sym, Ir::pFunc fun) {
+    _func_map[sym] = fun;
+}
+
+bool Convertor::func_count(Symbol sym) {
+    return _func_map.count(sym);
+}
+
+Ir::pFunc Convertor::find_func(Symbol sym) {
+    return _func_map[sym];
 }
 
 } // namespace ast_to_ir

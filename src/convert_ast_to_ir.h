@@ -18,28 +18,25 @@ public:
     Env(pEnv parent = {})
         : _parent(parent) { }
 
-    bool var_count(Symbol sym) {
-        if(_var_map.count(sym)) return true;
-        if(_parent) return _parent->var_count(sym);
-        return false;
-    }
-
-    Ir::pInstr find_var(Symbol sym) {
-        if(_var_map.count(sym))
-            return _var_map[sym];
-        return _parent->find_var(sym);
-    }
-
-    void set_var(Symbol sym, Ir::pInstr i) {
-        _var_map[sym] = i;
-    }
+    bool var_count(Symbol sym);
+    Ir::pInstr find_var(Symbol sym);
+    void set_var(Symbol sym, Ir::pInstr i);
 
 private:
     pEnv _parent;
     Map<String, Ir::pInstr> _var_map;
 };
 
+struct LoopEnv;
+typedef Pointer<LoopEnv> pLoopEnv;
+
+struct LoopEnv {
+    Ir::pBlock loop_begin;
+    Ir::pBlock loop_end;
+};
+
 typedef Stack<pEnv> EnvStack;
+typedef Stack<pLoopEnv> LoopEnvStack;
 
 class Convertor {
 public:
@@ -59,39 +56,26 @@ private:
 
     static void node_assert(bool judge, Ast::pNode root, Symbol message);
 
-    pEnv env() {
-        if(_env_stack.empty())
-            return pEnv();
-        return _env_stack.top();
-    }
-
-    void push_env() {
-        _env_stack.push(pEnv(new Env(env())));
-    }
+    pEnv env();
+    void push_env();
+    void end_env();
+    void clear_env();
     
-    void end_env() {
-        _env_stack.pop();
-    }
-    
-    void clear_env() {
-        while(!_env_stack.empty())
-            _env_stack.pop();
-    }
-
-    void set_func(Symbol sym, Ir::pFunc fun) {
-        _func_map[sym] = fun;
-    }
-
-    bool func_count(Symbol sym) {
-        return _func_map.count(sym);
-    }
-
-    Ir::pFunc find_func(Symbol sym) {
-        return _func_map[sym];
-    }
-
     EnvStack _env_stack;
+    
+    void set_func(Symbol sym, Ir::pFunc fun);
+    bool func_count(Symbol sym);
+    Ir::pFunc find_func(Symbol sym);
+
     Map<String, Ir::pFunc> _func_map;
+
+    pLoopEnv loop_env();
+    void push_loop_env(pLoopEnv env);
+    bool has_loop_env() const;
+    void end_loop_env();
+    void clear_loop_env();
+
+    LoopEnvStack _loop_env_stack;
 };
 
 

@@ -30,4 +30,6 @@ struct Instr : public Val {
 
 typedef Pointer<Instr> pInstr;
 
+pInstr make_empty_instr();
+
 } // namespace Ir
