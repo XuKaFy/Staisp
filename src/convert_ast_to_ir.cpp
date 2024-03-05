@@ -18,10 +18,10 @@ void Env::set_var(Symbol sym, Ir::pInstr i) {
     _var_map[sym] = i;
 }
 
-void Convertor::node_assert(bool judge, Ast::pNode root, Symbol message)
+void Convertor::node_assert(bool judge, pNode root, Symbol message)
 {
     if(!judge) {
-        Staisp::error_at_token(root->token, message);
+        root->token->print_error(message);
     }
 }
 
@@ -60,13 +60,13 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
 Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
     switch(root->type) {
-    case Ast::OPR_ADD:
-    case Ast::OPR_SUB:
-    case Ast::OPR_MUL:
-    case Ast::OPR_SDIV:
-    case Ast::OPR_AND:
-    case Ast::OPR_OR:
-    case Ast::OPR_REM: {
+    case OPR_ADD:
+    case OPR_SUB:
+    case OPR_MUL:
+    case OPR_SDIV:
+    case OPR_AND:
+    case OPR_OR:
+    case OPR_REM: {
         // impossible
         node_assert(root->ch.size() == 2, root, "[Convertor] binary opr has not 2 args - impossible");
         auto a = root->ch.begin();
@@ -77,16 +77,16 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         func->add_instr(ir);
         return ir;
     }
-    case Ast::OPR_EQ:
-    case Ast::OPR_NE:
-    case Ast::OPR_UGT:
-    case Ast::OPR_UGE:
-    case Ast::OPR_ULT:
-    case Ast::OPR_ULE:
-    case Ast::OPR_SGT:
-    case Ast::OPR_SGE:
-    case Ast::OPR_SLT:
-    case Ast::OPR_SLE: {
+    case OPR_EQ:
+    case OPR_NE:
+    case OPR_UGT:
+    case OPR_UGE:
+    case OPR_ULT:
+    case OPR_ULE:
+    case OPR_SGT:
+    case OPR_SGE:
+    case OPR_SLT:
+    case OPR_SLE: {
         // impossible
         node_assert(root->ch.size() == 2, root, "[Convertor] binary opr has not 2 args - impossible");
         auto a = root->ch.begin();
@@ -96,7 +96,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         func->add_instr(ir);
         return ir;
     }
-    case Ast::OPR_IF: {
+    case OPR_IF: {
         auto trueBlock = Ir::make_block();
         auto falseBlock = Ir::make_block();
         auto afterBlock = Ir::make_block();
@@ -125,7 +125,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         func->add_block(afterBlock);
         return Ir::make_empty_instr();
     }
-    case Ast::OPR_WHILE: {
+    case OPR_WHILE: {
         auto compBlock = Ir::make_block();
         auto trueBlock = Ir::make_block();
         auto afterBlock = Ir::make_block();
@@ -153,19 +153,19 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
 
         return Ir::make_empty_instr();
     }
-    case Ast::OPR_RET: {
+    case OPR_RET: {
         // impossible
         node_assert(root->ch.size() == 1, root, "[Convertor] \"RET\" opr has not 1 args - impossible");
         auto a = analyze_value(root->ch.front(), func, mod);
         func->add_instr(Ir::make_ret_instr(a->tr, a));
         return Ir::make_empty_instr();
     }
-    case Ast::OPR_CALL: {
+    case OPR_CALL: {
         // impossible
         node_assert(root->ch.size() >= 1, root, "[Convertor] \"CALL\" opr has less than 1 args - impossible");
         Vector<Ir::pInstr> args;
         // impossible
-        node_assert(root->ch.front()->type == Ast::NODE_SYM, root, "[Convertor] \"CALL\" opr gets a name that not sym - impossible");
+        node_assert(root->ch.front()->type == NODE_SYM, root, "[Convertor] \"CALL\" opr gets a name that not sym - impossible");
         for(auto i=++root->ch.begin(); i!=root->ch.end(); ++i) {
             args.push_back(analyze_value(*i, func, mod));
         }
@@ -176,7 +176,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         func->add_instr(func_ir);
         return func_ir;
     }
-    case Ast::OPR_BREAK: {
+    case OPR_BREAK: {
         // impossible
         node_assert(root->ch.size() == 0, root, "[Convertor] \"BREAK\" opr has less than 1 args - impossible");
         node_assert(has_loop_env(), root, "[Convertor] error 9: no outer loops");
@@ -187,7 +187,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         // func->add_block(nextBlock);
         return Ir::make_empty_instr();
     }
-    case Ast::OPR_CONTINUE: {
+    case OPR_CONTINUE: {
         // impossible
         node_assert(root->ch.size() == 0, root, "[Convertor] \"CONTINUE\" opr has less than 1 args - impossible");
         node_assert(has_loop_env(), root, "[Convertor] error 9: no outer loops");
@@ -204,44 +204,44 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     }
 }
 
-Ir::pInstr Convertor::analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod)
+Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func, Ir::pModule mod)
 {
     switch(root->type) {
-    case Ast::NODE_OPR: {
+    case NODE_OPR: {
         auto ir = analyze_opr(std::static_pointer_cast<Ast::OprNode>(root), func, mod);
         return ir;
     }
-    case Ast::NODE_IMM: {
+    case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
         auto res = Ir::make_binary_instr(Ir::INSTR_ADD, IMM_I32, Ir::make_constant(0), Ir::make_constant(r->imm));
         func->add_instr(res);
         return res;
     }
-    case Ast::NODE_SYM: {
+    case NODE_SYM: {
         auto r = std::static_pointer_cast<Ast::SymNode>(root);
         auto to = find_value(r, func, mod);
         return to;
     }
-    case Ast::NODE_ASSIGN:
-    case Ast::NODE_DEF_VAR:
-    case Ast::NODE_DEF_FUNC:
-    case Ast::NODE_BLOCK:
+    case NODE_ASSIGN:
+    case NODE_DEF_VAR:
+    case NODE_DEF_FUNC:
+    case NODE_BLOCK:
     default:
         node_assert(false, root, "[Convertor] error 3: node not calculatable");
         return Ir::make_empty_instr();
     }
 }
 
-void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod)
+void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pModule mod)
 {
     switch(root->type) {
-    case Ast::NODE_ASSIGN: {
+    case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
         auto to = find_left_value(r, func, mod);
         func->add_instr(Ir::make_store_instr(to->tr, to, analyze_value(r->val, func, mod)));
         break;
     }
-    case Ast::NODE_DEF_VAR: {
+    case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
         func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
@@ -249,10 +249,10 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         env()->set_var(r->var.sym, tmp);
         break;
     }
-    case Ast::NODE_OPR:
+    case NODE_OPR:
         analyze_value(root, func, mod);
         break;
-    case Ast::NODE_BLOCK: {
+    case NODE_BLOCK: {
         auto r = std::static_pointer_cast<Ast::BlockNode>(root);
         push_env();
         for(auto i : r->body) {
@@ -261,10 +261,10 @@ void Convertor::analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, I
         end_env();
         break;
     }
-    case Ast::NODE_IMM: // meaningless
-    case Ast::NODE_SYM: // meaningless
+    case NODE_IMM: // meaningless
+    case NODE_SYM: // meaningless
         break;
-    case Ast::NODE_DEF_FUNC:
+    case NODE_DEF_FUNC:
         // impossible
         node_assert(false, root, "[Convertor] function nested - impossible");
     }
@@ -290,20 +290,20 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
     push_env();
-    if(root->val->type != Ast::NODE_IMM) {
+    if(root->val->type != NODE_IMM) {
         node_assert(false, root, "[Convertor] error 4: expression outside a function");
     }
     mod->add_global(Ir::make_global(root->var, std::static_pointer_cast<Ast::ImmNode>(root->val)->imm));
     end_env();
 }
 
-void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
+void Convertor::generate_single(pNode root, Ir::pModule mod)
 {
     switch(root->type) {
-    case Ast::NODE_DEF_FUNC:
+    case NODE_DEF_FUNC:
         generate_function(std::static_pointer_cast<Ast::FuncDefNode>(root), mod);
         break;
-    case Ast::NODE_DEF_VAR:
+    case NODE_DEF_VAR:
         generate_global_var(std::static_pointer_cast<Ast::VarDefNode>(root), mod);
         break;
     default:
@@ -311,7 +311,7 @@ void Convertor::generate_single(Ast::pNode root, Ir::pModule mod)
     }
 }
 
-Ir::pModule Convertor::generate(Ast::AstProg asts)
+Ir::pModule Convertor::generate(AstProg asts)
 {
     clear_env();
     clear_loop_env();
@@ -324,7 +324,7 @@ Ir::pModule Convertor::generate(Ast::AstProg asts)
 
 Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
 {
-#define SELECT(x) case Ast::OPR_##x: return Ir::INSTR_##x;
+#define SELECT(x) case OPR_##x: return Ir::INSTR_##x;
     switch(root->type) {
     SELECT(ADD)
     SELECT(SUB)
@@ -342,7 +342,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
 
 Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root)
 {
-#define SELECT(x) case Ast::OPR_##x: return Ir::CMP_##x;
+#define SELECT(x) case OPR_##x: return Ir::CMP_##x;
     switch(root->type) {
     SELECT(EQ)
     SELECT(NE)
@@ -355,7 +355,7 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root)
     SELECT(SLT)
     SELECT(SLE)
     default:
-        node_assert(false, std::static_pointer_cast<Ast::Node>(root), "[Convertor] error 7: comparasion operation conversion from ast to ir not implemented");
+        node_assert(false, std::static_pointer_cast<Node>(root), "[Convertor] error 7: comparasion operation conversion from ast to ir not implemented");
     }
 #undef SELECT
     return Ir::CMP_EQ;

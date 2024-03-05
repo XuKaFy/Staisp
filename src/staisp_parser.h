@@ -60,8 +60,8 @@ enum BuildinBinaryOprType
 #undef ENTRY
 };
 
-const Map<String, Ast::OprType> gBuildinBinaryOprType {
-#define ENTRY(x, y) { #x, Ast::OPR_##x },
+const Map<String, OprType> gBuildinBinaryOprType {
+#define ENTRY(x, y) { #x, OPR_##x },
     BUILDIN_BINARY_OPR_LIST
 #undef ENTRY
 };
@@ -77,6 +77,7 @@ typedef Map<String, SymType> SymTable;
 
 struct Env;
 typedef Pointer<Env> pEnv;
+typedef Stack<pEnv> EnvStack;
 
 class Env {
 public:
@@ -97,32 +98,40 @@ class Parser {
 public:
     static bool is_buildin_sym(Symbol sym);
 
-    Ast::AstProg parser(pCode code);
-    Ast::AstProg parser(TokenList list, pEnv env = pEnv(new Env {} ));
+    AstProg parser(pCode code);
+    AstProg parser(TokenList list);
 
 private:
-    Token get_token();
-    Token current_token() const;
-    Token peek() const;
+    StaispToken get_token();
+    StaispToken current_token() const;
+    pToken current_p_token() const;
+    StaispToken peek() const;
     void consume_token(TokenType t);
     bool has_token() const;
     
-    Ast::pNode parse_buildin_sym(Symbol sym, pEnv env, bool in_global = false);
-    Ast::pNode parse_function_call(Symbol sym, pEnv env);
-    Ast::pNode parse_block(pEnv env);
-    Ast::pNode parse_statement(pEnv env);
-    Ast::pNode parse_value(pEnv env);
-    TypedSym parse_typed_sym(pEnv env);
-    Symbol parse_sym(pEnv env);
-    ImmType parse_type(pEnv env);
+    pNode parse_buildin_sym(Symbol sym, bool in_global = false);
+    pNode parse_function_call(Symbol sym);
+    pNode parse_block();
+    pNode parse_statement();
+    pNode parse_value();
+    TypedSym parse_typed_sym();
+    Symbol parse_sym();
+    ImmType parse_type();
     
-    Vector<TypedSym> parse_typed_sym_list(pEnv env);
-    Ast::AstProg parse_value_list(pEnv env);
+    Vector<TypedSym> parse_typed_sym_list();
+    AstProg parse_value_list();
+
+    pEnv env();
+    void push_env();
+    void end_env();
+    void clear_env();
+
+    EnvStack _env_stack;
 
     TokenList::iterator _begin;
     TokenList::iterator _current;
     TokenList::iterator _end;
-    Token _current_token;
+    pToken _current_token;
 };
 
 

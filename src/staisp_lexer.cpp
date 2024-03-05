@@ -3,23 +3,18 @@
 namespace Staisp
 {
 
-void error_at_token(Token t, Symbol error_code)
-{
-    pCode code = t.p_code;
-    String::iterator line_begin = t.token_begin;
-    String::iterator line_end = t.token_end;
-    while(*line_begin != '\n' && line_begin != code->p_code->begin()) --line_begin;
-    while(*line_end != '\n' && line_end != code->p_code->end()) ++line_end;
-    if(*line_begin == '\n') ++line_begin;
-    printf("%s:%d:%lld: %s\n", code->file_name.c_str(), t.line, t.token_begin - line_begin + 1, error_code);
-    printf("%5d | %s\n        ", t.line, String(line_begin, line_end).c_str());
-    for(String::difference_type i=0; i<t.token_begin-line_begin; ++i)
-        putchar(' ');
-    for(String::difference_type i=0; i<t.token_end-t.token_begin; ++i)
-        putchar('^');
-    puts("");
-    exit(1);
-}
+StaispToken::StaispToken(Immediate val, pCode code, String::iterator token_begin, 
+                         String::iterator token_end, int line)
+    : Token(code, token_begin, token_end, line), t(TOKEN_INT), val(val) { }
+
+StaispToken::StaispToken(Symbol sym, pCode code, String::iterator token_begin, 
+                         String::iterator token_end, int line)
+    : Token(code, token_begin, token_end, line), t(TOKEN_SYM), sym(sym) { }  
+
+StaispToken::StaispToken(TokenType t, String::value_type c, pCode code, String::iterator token_begin, 
+                         String::iterator token_end, int line)
+    : Token(code, token_begin, token_end, line), t(t), val(c) { }  
+
 
 String::value_type Lexer::get_char()
 {
@@ -72,28 +67,22 @@ TokenList Lexer::lexer(pCode code)
     return list;
 }
 
-Token Lexer::lexer_number(String::value_type head)
+pToken Lexer::lexer_number(String::value_type head)
 {
     Immediate var = head - '0';
-    Token t = { TOKEN_INT };
-    t.p_code = _p_code;
-    t.token_begin = _begin;
-    t.line = _line_count;
     while(has_char() && !isspace(peek())) {
         if(isalpha(peek())) {
-            t.token_end = _current + 1;
-            error_at_token(t, "[Lexer] error 1: not a number");
+            StaispToken(var, _p_code, _begin, _current, _line_count)
+                .print_error("[Lexer] error 1: not a number");
         }
         if(!isdigit(peek()))
             break;
         var = var * 10 + get_char() - '0';
     }
-    t.val = var;
-    t.token_end = _current;
-    return t;
+    return pToken(new StaispToken(var, _p_code, _begin, _current, _line_count));
 }
 
-Token Lexer::lexer_sym(String::value_type head)
+pToken Lexer::lexer_sym(String::value_type head)
 {
     String sym = "";
     sym += head;
@@ -101,26 +90,20 @@ Token Lexer::lexer_sym(String::value_type head)
         if(!isalnum(peek())) break;
         sym += get_char();
     }
-    Token t = { TOKEN_SYM };
-    t.sym = to_symbol(sym);
-    t.p_code = _p_code;
-    t.line = _line_count;
-    t.token_begin = _begin;
-    t.token_end = _current;
-    return t;
+    return pToken(new StaispToken(to_symbol(sym), _p_code, _begin, _current, _line_count));
 }
 
-Token Lexer::lexer_one_token()
+pToken Lexer::lexer_one_token()
 {
     String::value_type ch = get_char();
     switch(ch) {
-    case '(': return Token { TOKEN_LB_S, '(', _p_code, _begin, _current, _line_count };
-    case ')': return Token { TOKEN_RB_S, ')', _p_code, _begin, _current, _line_count };
-    case '[': return Token { TOKEN_LB_M, '[', _p_code, _begin, _current, _line_count };
-    case ']': return Token { TOKEN_LB_M, ']', _p_code, _begin, _current, _line_count };
-    case '{': return Token { TOKEN_LB_L, '{', _p_code, _begin, _current, _line_count };
-    case '}': return Token { TOKEN_RB_L, '}', _p_code, _begin, _current, _line_count };
-    case ':': return Token { TOKEN_2DOT, ':', _p_code, _begin, _current, _line_count };
+    case '(': return pToken(new StaispToken(TOKEN_LB_S, '(', _p_code, _begin, _current, _line_count));
+    case ')': return pToken(new StaispToken(TOKEN_RB_S, ')', _p_code, _begin, _current, _line_count));
+    case '[': return pToken(new StaispToken(TOKEN_LB_M, '[', _p_code, _begin, _current, _line_count));
+    case ']': return pToken(new StaispToken(TOKEN_LB_M, ']', _p_code, _begin, _current, _line_count));
+    case '{': return pToken(new StaispToken(TOKEN_LB_L, '{', _p_code, _begin, _current, _line_count));
+    case '}': return pToken(new StaispToken(TOKEN_RB_L, '}', _p_code, _begin, _current, _line_count));
+    case ':': return pToken(new StaispToken(TOKEN_2DOT, ':', _p_code, _begin, _current, _line_count));
     }
     if(isdigit(ch)) {
         return lexer_number(ch);

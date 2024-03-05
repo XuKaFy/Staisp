@@ -40,21 +40,21 @@ typedef Stack<pLoopEnv> LoopEnvStack;
 
 class Convertor {
 public:
-    Ir::pModule generate(Ast::AstProg asts);
+    Ir::pModule generate(AstProg asts);
     static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::OprNode> root);
     static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root);
 
 private:
-    void generate_single(Ast::pNode root, Ir::pModule mod);
+    void generate_single(pNode root, Ir::pModule mod);
     void generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod);
     void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod);
-    void analyze_statement_node(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr analyze_value(Ast::pNode root, Ir::pFuncDefined func, Ir::pModule mod);
+    void analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pModule mod);
+    Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func, Ir::pModule mod);
 
-    static void node_assert(bool judge, Ast::pNode root, Symbol message);
+    static void node_assert(bool judge, pNode root, Symbol message);
 
     pEnv env();
     void push_env();

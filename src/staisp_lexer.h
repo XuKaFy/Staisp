@@ -1,14 +1,40 @@
 #pragma once
 
 #include "def.h"
+#include "common_token.h"
 
 #include <cctype>
 
 namespace Staisp {
 
-void error_at_token(Token t, Symbol error_code);
+enum TokenType
+{
+    TOKEN_SYM,
+    TOKEN_INT,
+    TOKEN_LB_S, // (
+    TOKEN_RB_S, // )
+    TOKEN_LB_M, // [
+    TOKEN_RB_M, // ]
+    TOKEN_LB_L, // {
+    TOKEN_RB_L, // }
+    TOKEN_2DOT, // :
+    TOKEN_SHRP, // #
+};
 
-typedef Vector<Token> TokenList;
+struct StaispToken : public Token {
+    StaispToken(Immediate val, pCode code, 
+                String::iterator token_begin, String::iterator token_end, int line);
+    StaispToken(Symbol sym, pCode code, 
+                String::iterator token_begin, String::iterator token_end, int line);
+    StaispToken(TokenType t, String::value_type c, pCode code, 
+                String::iterator token_begin, String::iterator token_end, int line);
+    
+    TokenType t;
+    union {
+        Immediate val;
+        Symbol sym;
+    };
+};
 
 class Lexer {
 public:
@@ -21,9 +47,9 @@ private:
     void jump_empty();
     void jump_comment();
 
-    Token lexer_one_token();
-    Token lexer_number(String::value_type head);
-    Token lexer_sym(String::value_type head);
+    pToken lexer_one_token();
+    pToken lexer_number(String::value_type head);
+    pToken lexer_sym(String::value_type head);
 
     String::iterator _begin;
     String::iterator _current;

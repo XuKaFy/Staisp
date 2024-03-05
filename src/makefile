@@ -3,8 +3,8 @@ CFLAGS = -Wall -g
 
 EXECUTABLE = compiler
 
-GLOBAL_DEPS = def.h
-GLOBAL_OBJ = def.o
+GLOBAL_DEPS = def.h common_node.h common_token.h
+GLOBAL_OBJ =  def.o common_node.o common_token.o
 
 AST_DEPS = ast_node.h
 AST_OBJ =  ast_node.o

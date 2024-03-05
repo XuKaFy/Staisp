@@ -1,13 +1,14 @@
 #pragma once
 
 #include "def.h"
-#include "staisp_parser.h"
+#include "common_node.h"
+#include "common_token.h"
 
 namespace Ast {
 
 struct ImmNode : public Node
 {
-    ImmNode(Staisp::Token t, Immediate imm, ImmType tr) 
+    ImmNode(pToken t, Immediate imm, ImmType tr) 
         : Node(t, NODE_IMM), imm(imm), tr(tr) { }
     Immediate imm;
     ImmType tr;
@@ -15,21 +16,21 @@ struct ImmNode : public Node
 
 struct SymNode : public Node
 {
-    SymNode(Staisp::Token t,Symbol sym) : Node(t, NODE_SYM), sym(sym) { }
+    SymNode(pToken t,Symbol sym) : Node(t, NODE_SYM), sym(sym) { }
     Symbol sym;
 };
 
 struct OprNode : public Node
 {
-    OprNode(Staisp::Token t,OprType type, const Ast::AstProg &ch)
+    OprNode(pToken t,OprType type, const AstProg &ch)
         : Node(t, NODE_OPR), type(type), ch(ch) { }
     OprType type;
-    Ast::AstProg ch;
+    AstProg ch;
 };
 
 struct AssignNode : public Node
 {
-    AssignNode(Staisp::Token t,Symbol sym, pNode val)
+    AssignNode(pToken t,Symbol sym, pNode val)
         : Node(t, NODE_ASSIGN), sym(sym), val(val) { }
     Symbol sym;
     pNode val;
@@ -37,7 +38,7 @@ struct AssignNode : public Node
 
 struct VarDefNode : public Node
 {
-    VarDefNode(Staisp::Token t,TypedSym var, pNode val)
+    VarDefNode(pToken t,TypedSym var, pNode val)
         : Node(t, NODE_DEF_VAR), var(var), val(val) { }
     TypedSym var;
     pNode val;
@@ -45,7 +46,7 @@ struct VarDefNode : public Node
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(Staisp::Token t,TypedSym var, Vector<TypedSym> args, pNode body)
+    FuncDefNode(pToken t,TypedSym var, Vector<TypedSym> args, pNode body)
         : Node(t, NODE_DEF_FUNC), var(var), args(args), body(body) { }
     TypedSym var;
     Vector<TypedSym> args;
@@ -54,17 +55,17 @@ struct FuncDefNode : public Node
 
 struct BlockNode : public Node
 {
-    BlockNode(Staisp::Token t, Ast::AstProg body)
+    BlockNode(pToken t, AstProg body)
         : Node(t, NODE_BLOCK), body(body) { }
-    Ast::AstProg body;
+    AstProg body;
 };
 
-pNode new_imm_node(Staisp::Token t, Immediate imm, ImmType tr = IMM_I64);
-pNode new_sym_node(Staisp::Token t, Symbol symbol);
-pNode new_opr_node(Staisp::Token t, OprType type, Ast::AstProg ch);
-pNode new_assign_node(Staisp::Token t, Symbol sym, pNode val);
-pNode new_var_def_node(Staisp::Token t, TypedSym var, pNode val);
-pNode new_func_def_node(Staisp::Token t, TypedSym var, Vector<TypedSym> args, pNode body);
-pNode new_block_node(Staisp::Token t, Ast::AstProg body);
+pNode new_imm_node(pToken t, Immediate imm, ImmType tr = IMM_I64);
+pNode new_sym_node(pToken t, Symbol symbol);
+pNode new_opr_node(pToken t, OprType type, AstProg ch);
+pNode new_assign_node(pToken t, Symbol sym, pNode val);
+pNode new_var_def_node(pToken t, TypedSym var, pNode val);
+pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body);
+pNode new_block_node(pToken t, AstProg body);
 
 } // namespace ast
