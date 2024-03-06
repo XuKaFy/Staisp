@@ -28,12 +28,17 @@ void Convertor::node_assert(bool judge, pNode root, Symbol message)
 Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
     if(env()->var_count(root->sym)) { // local
-        return env()->find_var(root->sym);
+        Ir::pInstr found = env()->find_var(root->sym);
+        // const value is error
+        if(found->instrType != Ir::INSTR_TYPE_ALLOC) 
+            node_assert(false, root, "[Convertor] error 10: assignment to a local const value");
+        // no-const value should be loaded
+        return func->add_instr(Ir::make_load_instr(found->tr, found));
     } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, root->sym) == 0) {
                 if(i->val.is_const) {
-                    root->token->print_error("[Convertor] error 11: assignment to a global const value");
+                    node_assert(false, root, "[Convertor] error 11: assignment to a global const value");
                 }
                 return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
             }
@@ -246,10 +251,6 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pM
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
         auto to = find_left_value(r, func, mod);
-        if(to->instrType == Ir::INSTR_TYPE_HIDE) {
-            // assign to a const value
-            node_assert(false, root, "[Convertor] error 10: assignment to a local const value");
-        }
         func->add_instr(Ir::make_store_instr(to->tr, to, analyze_value(r->val, func, mod)));
         break;
     }
