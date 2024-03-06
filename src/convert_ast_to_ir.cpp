@@ -277,9 +277,9 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
     {
         func = Ir::make_func_defined(root->var, root->args);
         set_func(func->var.sym, func);
+        my_assert(root->args.size() == func->args_value.size(), "Error: inner error.");
         for(size_t i=0; i<root->args.size(); ++i) {
-            // 2*i+1 is related to how first function block is initialized
-            env()->set_var(root->args[i].sym, func->body[0]->instrs[2*i+1]);
+            env()->set_var(root->args[i].sym, func->args_value[i]);
         }
     }
     analyze_statement_node(root->body, func, mod);

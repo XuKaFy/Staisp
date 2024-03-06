@@ -15,6 +15,7 @@ struct FuncDefined : public Func {
         for(auto i : arg_types) {
             pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
             first_block->add_instr(make_store_instr(i.tr, tmp, make_sym_instr(i)));
+            args_value.push_back(tmp);
         }
         
         body.push_back(first_block);
@@ -28,6 +29,7 @@ struct FuncDefined : public Func {
     pInstr add_instr(pInstr ir);
 
     Vector<pBlock> body;
+    Vector<pInstr> args_value;
 };
 
 typedef Pointer<FuncDefined> pFuncDefined;
