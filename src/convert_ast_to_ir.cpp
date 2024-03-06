@@ -2,38 +2,15 @@
 
 namespace AstToIr {
 
-bool Env::var_count(Symbol sym) {
-    if(_var_map.count(sym)) return true;
-    if(_parent) return _parent->var_count(sym);
-    return false;
-}
-
-Ir::pInstr Env::find_var(Symbol sym) {
-    if(_var_map.count(sym))
-        return _var_map[sym];
-    return _parent->find_var(sym);
-}
-
-void Env::set_var(Symbol sym, Ir::pInstr i) {
-    _var_map[sym] = i;
-}
-
-void Convertor::node_assert(bool judge, pNode root, Symbol message)
-{
-    if(!judge) {
-        root->token->print_error(message);
-    }
-}
-
 Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
-    if(env()->var_count(root->sym)) { // local
-        Ir::pInstr found = env()->find_var(root->sym);
+    if(_env.env()->count(root->sym)) { // local
+        Ir::pInstr found = _env.env()->find(root->sym);
         // const value is error
         if(found->instrType != Ir::INSTR_TYPE_ALLOC) 
             node_assert(false, root, "[Convertor] error 10: assignment to a local const value");
         // no-const value should be loaded
-        return func->add_instr(Ir::make_load_instr(found->tr, found));
+        return found;
     } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, root->sym) == 0) {
@@ -50,8 +27,8 @@ Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDe
 
 Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
-    if(env()->var_count(root->sym)) { // local
-        Ir::pInstr found = env()->find_var(root->sym);
+    if(_env.env()->count(root->sym)) { // local
+        Ir::pInstr found = _env.env()->find(root->sym);
         // no-const value should be loaded
         if(found->instrType == Ir::INSTR_TYPE_ALLOC) 
             return func->add_instr(Ir::make_load_instr(found->tr, found));
@@ -259,13 +236,12 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pM
         Ir::pInstr tmp;
         if(r->var.is_const) {
             func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
-                Ir::make_constant(0), 
-                analyze_value(r->val, func, mod)));
-            env()->set_var(r->var.sym, tmp);
+                Ir::make_constant(0), analyze_value(r->val, func, mod)));
+            _env.env()->set(r->var.sym, tmp);
         } else {
             func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
             func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r->val, func, mod)));
-            env()->set_var(r->var.sym, tmp);
+            _env.env()->set(r->var.sym, tmp);
         }
         break;
     }
@@ -274,16 +250,17 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pM
         break;
     case NODE_BLOCK: {
         auto r = std::static_pointer_cast<Ast::BlockNode>(root);
-        push_env();
+        _env.push_env();
         for(auto i : r->body) {
             analyze_statement_node(i, func, mod);
         }
-        end_env();
+        _env.end_env();
         break;
     }
     case NODE_IMM: // meaningless
     case NODE_SYM: // meaningless
         break;
+    case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
         // impossible
         node_assert(false, root, "[Convertor] function nested - impossible");
@@ -292,34 +269,32 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pM
 
 void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod)
 {
-    push_env();
+    _env.push_env();
     Ir::pFuncDefined func;
     {
         func = Ir::make_func_defined(root->var, root->args);
         set_func(func->var.sym, func);
         my_assert(root->args.size() == func->args_value.size(), "Error: inner error.");
         for(size_t i=0; i<root->args.size(); ++i) {
-            env()->set_var(root->args[i].sym, func->args_value[i]);
+            _env.env()->set(root->args[i].sym, func->args_value[i]);
         }
     }
     analyze_statement_node(root->body, func, mod);
     mod->add_func(func);
-    end_env();
+    _env.end_env();
 }
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
-    push_env();
-    if(root->val->type != NODE_IMM) {
-        node_assert(false, root, "[Convertor] error 4: expression outside a function");
-    }
-    mod->add_global(Ir::make_global(root->var, std::static_pointer_cast<Ast::ImmNode>(root->val)->imm));
-    end_env();
+    _env.push_env();
+    mod->add_global(Ir::make_global(root->var, Ast::Executer(_prog).must_have_value_execute(root->val)));
+    _env.end_env();
 }
 
 void Convertor::generate_single(pNode root, Ir::pModule mod)
 {
     switch(root->type) {
+    case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
         generate_function(std::static_pointer_cast<Ast::FuncDefNode>(root), mod);
         break;
@@ -333,8 +308,9 @@ void Convertor::generate_single(pNode root, Ir::pModule mod)
 
 Ir::pModule Convertor::generate(AstProg asts)
 {
-    clear_env();
+    _env.clear_env();
     clear_loop_env();
+    _prog = asts;
     Ir::pModule mod = Ir::pModule(new Ir::Module());
     for(auto i : asts) {
         generate_single(i, mod);
@@ -381,28 +357,9 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root)
     return Ir::CMP_EQ;
 }
 
-pEnv Convertor::env() {
-    if(_env_stack.empty())
-        return pEnv();
-    return _env_stack.top();
-}
-
-void Convertor::push_env() {
-    _env_stack.push(pEnv(new Env(env())));
-}
-    
-void Convertor::end_env() {
-    _env_stack.pop();
-}
-    
-void Convertor::clear_env() {
-    while(!_env_stack.empty())
-        _env_stack.pop();
-}
-
 pLoopEnv Convertor::loop_env() {
-    if(_env_stack.empty())
-        return pLoopEnv();
+    if(_loop_env_stack.empty())
+        return _loop_env_stack.top();
     return _loop_env_stack.top();
 }
 

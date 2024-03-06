@@ -27,9 +27,9 @@ pNode new_var_def_node(pToken t, TypedSym var, pNode val)
     return pNode(new VarDefNode(t, var, val));
 }
 
-pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body)
+pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const)
 {
-    return pNode(new FuncDefNode(t, var, args, body));
+    return pNode(new FuncDefNode(t, var, args, body, is_const));
 }
 
 pNode new_block_node(pToken t, AstProg body)

@@ -3,47 +3,6 @@
 namespace Staisp
 {
 
-pEnv Parser::env() {
-    if(_env_stack.empty())
-        return pEnv();
-    return _env_stack.top();
-}
-
-void Parser::push_env() {
-    _env_stack.push(pEnv(new Env(env())));
-}
-    
-void Parser::end_env() {
-    _env_stack.pop();
-}
-    
-void Parser::clear_env() {
-    while(!_env_stack.empty())
-        _env_stack.pop();
-}
-
-
-bool Env::count(Symbol sym) {
-    if(table.count(sym)) return true;
-    if(parent) return parent->count(sym);
-    return false;
-}
-
-bool Env::count_current(Symbol sym) {
-    return table.count(sym);
-}
-
-void Env::set(Symbol sym, SymType t) {
-    table[sym] = t;
-}
-
-SymType Env::operator [] (Symbol sym) {
-    if(table.count(sym)) return table[sym];
-    if(parent) return (*parent)[sym];
-    my_assert(false, "Error: get no symbol");
-    return SYM_VAL;
-}
-
 StaispToken Parser::get_token()
 {
     if(_current == _end) {
@@ -143,13 +102,13 @@ pNode Parser::parse_value()
     if(is_buildin_sym(current_token().sym)) {
         return parse_buildin_sym(current_token().sym);
     }
-    if(!env()->count(current_token().sym)) {
+    if(!_env.env()->count(current_token().sym)) {
         if(peek().t == TOKEN_LB_S) {
             current_token().print_error("[Parser] error 4: function not found");
         }
         current_token().print_error("[Parser] error 5: variable not found");
     }
-    if((*env())[current_token().sym] == SYM_FUNC) {
+    if((*_env.env())[current_token().sym] == SYM_FUNC) {
         return parse_function_call(current_token().sym);
     }
     if(peek().t == TOKEN_LB_S) {
@@ -195,10 +154,10 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_DEFVAR: {
         auto a1 = parse_typed_sym();
         auto a2 = parse_value();
-        if(env()->count_current(a1.sym)) {
+        if(_env.env()->count_current(a1.sym)) {
             current_token().print_error("[Parser] error 7: definition existed");
         }
-        env()->set(a1.sym, SYM_VAL);
+        _env.env()->set(a1.sym, SYM_VAL);
         return Ast::new_var_def_node(token, a1, a2);
     }
     case BUILDIN_BREAK:
@@ -206,25 +165,26 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_CONTINUE:
         return Ast::new_opr_node(token, OPR_CONTINUE, { });
     case BUILDIN_CONSTEXPR:
-        return Ast::new_imm_node(token, Ast::execute(parse_value()));
+        return Ast::new_imm_node(token, Ast::Executer(_result).must_have_value_execute(parse_value()));
+    case BUILDIN_DEFCONSTFUNC:
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
             current_token().print_error("[Parser] error 8: function nested");
         }
         auto a1 = parse_typed_sym();
         auto a2 = parse_typed_sym_list();
-        if(env()->count_current(a1.sym)) {
+        if(_env.env()->count_current(a1.sym)) {
             // should be rejected at error 8
             current_token().print_error("[Parser] error 7: definition existed - impossible");
         }
-        env()->set(a1.sym, SYM_FUNC);
-        push_env();
+        _env.env()->set(a1.sym, SYM_FUNC);
+        _env.push_env();
         for(auto i : a2) {
-            env()->set(i.sym, SYM_VAL);
+            _env.env()->set(i.sym, SYM_VAL);
         }
         auto a3 = parse_statement();
-        end_env();
-        return Ast::new_func_def_node(token, a1, a2, a3);
+        _env.end_env();
+        return Ast::new_func_def_node(token, a1, a2, a3, gBuildinSymType.find(sym)->second == BUILDIN_DEFCONSTFUNC);
     }
     case BUILDIN_BLOCK: {
         return parse_block();
@@ -278,11 +238,11 @@ AstProg Parser::parse_value_list()
 
 pNode Parser::parse_function_call(Symbol sym)
 {
-    if(!env()->count(sym)) {
+    if(!_env.env()->count(sym)) {
         current_token().print_error("[Parser] error 4: function not found");
     }
     auto token = current_p_token();
-    switch((*env())[sym]) {
+    switch((*_env.env())[sym]) {
     case SYM_VAL:
         my_assert(false, "Error: cannot reach this point");
         // current_token().print_error("[Parser] calling a value");
@@ -303,12 +263,12 @@ pNode Parser::parse_block()
     consume_token(TOKEN_LB_L);
     AstProg body;
     auto token = _current_token;
-    push_env();
+    _env.push_env();
     while(peek().t != TOKEN_RB_L) {
         body.push_back(parse_statement());
     }
     consume_token(TOKEN_RB_L);
-    end_env();
+    _env.end_env();
     return Ast::new_block_node(token, body);
 }
 
@@ -318,7 +278,7 @@ pNode Parser::parse_array_def()
     auto token = _current_token;
     Immediates nums;
     while(peek().t != TOKEN_RB_M) {
-        nums.push_back(Ast::execute(parse_value()));
+        nums.push_back(Ast::Executer(_result).must_have_value_execute(parse_value()));
     }
     consume_token(TOKEN_RB_M);
     return Ast::new_array_def_node(token, nums);
@@ -326,18 +286,17 @@ pNode Parser::parse_array_def()
 
 AstProg Parser::parser(TokenList list)
 {
-    AstProg prog;
-
+    _result.clear();
     _begin = list.begin();
     _current = list.begin();
     _end = list.end();
-    clear_env();
-    push_env();
+    _env.clear_env();
+    _env.push_env();
     while(has_token()) {
-        prog.push_back(parse_statement());
+        _result.push_back(parse_statement());
     }
-    end_env();
-    return prog;
+    _env.end_env();
+    return _result;
 }
 
 } // namespace staisp

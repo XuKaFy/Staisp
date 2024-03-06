@@ -11,6 +11,7 @@ enum NodeType
     NODE_ASSIGN,
     NODE_DEF_VAR,
     NODE_DEF_FUNC,
+    NODE_DEF_CONST_FUNC,
     NODE_BLOCK,
 };
 
@@ -36,7 +37,6 @@ enum NodeType
 #define OPR_TABLE_UNCALCULATABLE \
     ENTRY(IF) \
     ENTRY(RET) \
-    ENTRY(CALL) \
     ENTRY(WHILE) \
     ENTRY(BREAK) \
     ENTRY(CONTINUE)
@@ -50,6 +50,7 @@ enum OprType
 #define ENTRY(x) OPR_##x,
     OPR_TABLE_UNCALCULATABLE
 #undef ENTRY
+    OPR_CALL,
 };
 
 struct Node
@@ -62,3 +63,5 @@ struct Node
 
 typedef Pointer<Node> pNode;
 typedef List<pNode> AstProg;
+
+void node_assert(bool judge, pNode root, Symbol message);

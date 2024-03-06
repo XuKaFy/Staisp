@@ -1,0 +1,10 @@
+DEFCONSTFUNC i32:hi ( ) {
+    RETURN ADD 100 100
+}
+
+DEFVAR i32:test1 CONSTEXPR hi ()
+DEFVAR i32:test2 hi ()
+
+DEFFUNC i32:main() {
+    RETURN ADD test1 test2
+}

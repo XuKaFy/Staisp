@@ -2,6 +2,7 @@
 
 #include "def.h"
 
+#include "ast_exec.h"
 #include "ast_node.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
@@ -9,23 +10,6 @@
 #include "ir_call_instr.h"
 
 namespace AstToIr {
-
-struct Env;
-typedef Pointer<Env> pEnv;
-
-struct Env {
-public:
-    Env(pEnv parent = {})
-        : _parent(parent) { }
-
-    bool var_count(Symbol sym);
-    Ir::pInstr find_var(Symbol sym);
-    void set_var(Symbol sym, Ir::pInstr i);
-
-private:
-    pEnv _parent;
-    Map<String, Ir::pInstr> _var_map;
-};
 
 struct LoopEnv;
 typedef Pointer<LoopEnv> pLoopEnv;
@@ -35,7 +19,6 @@ struct LoopEnv {
     Ir::pBlock loop_end;
 };
 
-typedef Stack<pEnv> EnvStack;
 typedef Stack<pLoopEnv> LoopEnvStack;
 
 class Convertor {
@@ -54,14 +37,7 @@ private:
     Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod);
     Ir::pInstr find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func, Ir::pModule mod);
 
-    static void node_assert(bool judge, pNode root, Symbol message);
-
-    pEnv env();
-    void push_env();
-    void end_env();
-    void clear_env();
-    
-    EnvStack _env_stack;
+    EnvWrapper<Ir::pInstr> _env;
     
     void set_func(Symbol sym, Ir::pFunc fun);
     bool func_count(Symbol sym);
@@ -76,6 +52,7 @@ private:
     void clear_loop_env();
 
     LoopEnvStack _loop_env_stack;
+    AstProg _prog;
 };
 
 

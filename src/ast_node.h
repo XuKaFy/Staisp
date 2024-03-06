@@ -46,8 +46,8 @@ struct VarDefNode : public Node
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(pToken t,TypedSym var, Vector<TypedSym> args, pNode body)
-        : Node(t, NODE_DEF_FUNC), var(var), args(args), body(body) { }
+    FuncDefNode(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const)
+        : Node(t, is_const ? NODE_DEF_CONST_FUNC : NODE_DEF_FUNC), var(var), args(args), body(body) { }
     TypedSym var;
     Vector<TypedSym> args;
     pNode body;
@@ -72,7 +72,7 @@ pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
 pNode new_assign_node(pToken t, Symbol sym, pNode val);
 pNode new_var_def_node(pToken t, TypedSym var, pNode val);
-pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body);
+pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const);
 pNode new_block_node(pToken t, AstProg body);
 pNode new_array_def_node(pToken t, Immediates nums);
 

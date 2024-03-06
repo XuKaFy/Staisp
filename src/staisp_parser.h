@@ -16,6 +16,7 @@ namespace Staisp {
     ENTRY(WHILE) \
     ENTRY(DEFVAR) \
     ENTRY(DEFFUNC) \
+    ENTRY(DEFCONSTFUNC) \
     ENTRY(BREAK) \
     ENTRY(CONTINUE) \
     ENTRY(CONSTEXPR) \
@@ -76,27 +77,6 @@ enum SymType {
     SYM_FUNC,
 };
 
-typedef Map<String, SymType> SymTable;
-
-struct Env;
-typedef Pointer<Env> pEnv;
-typedef Stack<pEnv> EnvStack;
-
-class Env {
-public:
-    Env(pEnv parent = pEnv())
-        : parent(parent) { }
-
-    bool count(Symbol sym);
-    bool count_current(Symbol sym);
-    void set(Symbol sym, SymType t);
-    SymType operator [] (Symbol sym);
-
-private:
-    pEnv parent {};
-    SymTable table {};
-};
-
 class Parser {
 public:
     static bool is_buildin_sym(Symbol sym);
@@ -126,17 +106,13 @@ private:
     Vector<TypedSym> parse_typed_sym_list();
     AstProg parse_value_list();
 
-    pEnv env();
-    void push_env();
-    void end_env();
-    void clear_env();
-
-    EnvStack _env_stack;
+    EnvWrapper<SymType> _env;
 
     TokenList::iterator _begin;
     TokenList::iterator _current;
     TokenList::iterator _end;
     pToken _current_token;
+    AstProg _result;
 };
 
 
