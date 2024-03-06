@@ -6,8 +6,10 @@ DEFFUNC i32:fib(CONST i32:n) BLOCK {
     IF OR EQ n 1
           EQ n 2
         RETURN 1
-    RETURN ADD fib (SUB n 1)
-               fib (SUB n 2)
+    DEFVAR CONST i32:s1 SUB n 1
+    DEFVAR CONST i32:s2 SUB n 2
+    RETURN ADD fib ( s1 )
+               fib ( s2 )
 }
 
 DEFFUNC i32:main() BLOCK {

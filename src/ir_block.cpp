@@ -6,7 +6,8 @@ void Block::generate_line(size_t &line) const
 {
     String s;
     for(auto i : instrs) {
-        if(i->instrType == INSTR_TYPE_NEED_REG || i->instrType == INSTR_TYPE_LABEL)
+        if(i->instrType == INSTR_TYPE_NEED_REG || i->instrType == INSTR_TYPE_LABEL
+            || i->instrType == INSTR_TYPE_ALLOC)
             i->line = line++;
     }
 }

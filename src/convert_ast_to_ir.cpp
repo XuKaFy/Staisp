@@ -46,13 +46,12 @@ Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDe
 Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod)
 {
     if(env()->var_count(root->sym)) { // local
-        // const value should be immediately used
-        Ir::pInstr found = env()->find_var(root->sym); 
-        if(found->instrType == Ir::INSTR_TYPE_HIDE) {
-            return found;
-        }
+        Ir::pInstr found = env()->find_var(root->sym);
         // no-const value should be loaded
-        return func->add_instr(Ir::make_load_instr(found->tr, found));
+        if(found->instrType == Ir::INSTR_TYPE_ALLOC) 
+            return func->add_instr(Ir::make_load_instr(found->tr, found));
+        // const value should be immediately used
+        return found;
     } else { // global
         for(auto i : mod->globs) {
             if(strcmp(i->val.sym, root->sym) == 0) {
@@ -257,9 +256,16 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pM
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
-        func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
-        func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r->val, func, mod)));
-        env()->set_var(r->var.sym, tmp);
+        if(r->var.is_const) {
+            func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
+                Ir::make_constant(0), 
+                analyze_value(r->val, func, mod)));
+            env()->set_var(r->var.sym, tmp);
+        } else {
+            func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
+            func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r->val, func, mod)));
+            env()->set_var(r->var.sym, tmp);
+        }
         break;
     }
     case NODE_OPR:

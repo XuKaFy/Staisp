@@ -11,6 +11,7 @@ enum InstrType {
     INSTR_TYPE_NO_REG,
     INSTR_TYPE_LABEL,
     INSTR_TYPE_HIDE,
+    INSTR_TYPE_ALLOC,
 };
 
 struct Instr : public Val {
@@ -25,6 +26,7 @@ struct Instr : public Val {
 
     InstrType instrType;
     ImmType tr;
+
     Symbol instr_str_form { nullptr };
     int line;
 };

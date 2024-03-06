@@ -8,7 +8,7 @@ namespace Ir {
 
 struct AllocInstr : public Instr {
     AllocInstr(ImmType tr)
-        : Instr(INSTR_TYPE_NEED_REG, tr) { }
+        : Instr(INSTR_TYPE_ALLOC, tr) { }
     
     virtual Symbol instr_print_impl() const override;
     virtual bool is_end_of_block() const { return false; }
