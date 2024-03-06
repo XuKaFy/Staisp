@@ -34,8 +34,13 @@ ImmOrVoid Executer::execute(pNode root)
         return std::static_pointer_cast<ImmNode>(root)->imm;
     case NODE_BLOCK: {
         _env.push_env();
-        for(auto i : std::static_pointer_cast<BlockNode>(root)->body)
-            execute(i);
+        try {
+            for(auto i : std::static_pointer_cast<BlockNode>(root)->body)
+                execute(i);
+        } catch (ReturnException e) { // [!!!!!!!!!!!!ATTENTION!!!!!!!!!!!!]
+            _env.end_env();
+            throw e;
+        }
         _env.end_env();
         root->token->print_error("[Executer] error 6: function has no return");
     }

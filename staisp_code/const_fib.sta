@@ -6,7 +6,7 @@ DEFCONSTFUNC i32:fib(CONST i32:n) BLOCK {
                fib ( SUB n 2 )
 }
 
-DEFVAR i32:ans fib(3)
+DEFVAR i32:ans fib(11)
 
 DEFFUNC i32:main() BLOCK {
     RETURN ans
