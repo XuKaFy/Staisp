@@ -165,7 +165,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_CONTINUE:
         return Ast::new_opr_node(token, OPR_CONTINUE, { });
     case BUILDIN_CONSTEXPR:
-        return Ast::new_imm_node(token, Ast::Executer(_result).must_have_value_execute(parse_value()));
+        return Ast::new_imm_node(token, Ast::Executor(_result).must_have_value_execute(parse_value()));
     case BUILDIN_DEFCONSTFUNC:
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
@@ -278,7 +278,7 @@ pNode Parser::parse_array_def()
     auto token = _current_token;
     Immediates nums;
     while(peek().t != TOKEN_RB_M) {
-        nums.push_back(Ast::Executer(_result).must_have_value_execute(parse_value()));
+        nums.push_back(Ast::Executor(_result).must_have_value_execute(parse_value()));
     }
     consume_token(TOKEN_RB_M);
     return Ast::new_array_def_node(token, nums);

@@ -287,7 +287,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mo
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod)
 {
     _env.push_env();
-    mod->add_global(Ir::make_global(root->var, Ast::Executer(_prog).must_have_value_execute(root->val)));
+    mod->add_global(Ir::make_global(root->var, Ast::Executor(_prog).must_have_value_execute(root->val)));
     _env.end_env();
 }
 

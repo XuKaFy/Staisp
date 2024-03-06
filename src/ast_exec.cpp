@@ -6,11 +6,11 @@ Immediate must_have_value(ImmOrVoid imm, pNode root)
 {
     if(imm.has_value())
         return imm.value();
-    root->token->print_error("[Executer] error 7: empty value");
+    root->token->print_error("[Executor] error 7: empty value");
     return -1;
 }
 
-Executer::Executer(AstProg cur_prog)
+Executor::Executor(AstProg cur_prog)
     : _prog(cur_prog)
 {
     _env.push_env();
@@ -22,12 +22,12 @@ Executer::Executer(AstProg cur_prog)
     }
 }
 
-Immediate Executer::must_have_value_execute(pNode root)
+Immediate Executor::must_have_value_execute(pNode root)
 {
     return must_have_value(execute(root), root);
 }
 
-ImmOrVoid Executer::execute(pNode root)
+ImmOrVoid Executor::execute(pNode root)
 {
     switch(root->type) {
     case NODE_IMM:
@@ -42,7 +42,7 @@ ImmOrVoid Executer::execute(pNode root)
             throw e;
         }
         _env.end_env();
-        root->token->print_error("[Executer] error 6: function has no return");
+        root->token->print_error("[Executor] error 6: function has no return");
     }
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<VarDefNode>(root);
@@ -53,7 +53,7 @@ ImmOrVoid Executer::execute(pNode root)
         auto sym = std::static_pointer_cast<SymNode>(root)->sym;
         if(_env.env()->count(sym))
             return _env.env()->find(sym);
-        root->token->print_error("[Executer] error 3: variant not found");
+        root->token->print_error("[Executor] error 3: variant not found");
     }
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<AssignNode>(root);
@@ -61,7 +61,7 @@ ImmOrVoid Executer::execute(pNode root)
     }
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
-        root->token->print_error("[Executer] error 5: function nested");
+        root->token->print_error("[Executor] error 5: function nested");
     default: break;
     }
     // NODE_OPR
@@ -120,7 +120,7 @@ ImmOrVoid Executer::execute(pNode root)
     return ImmOrVoid();
 }
 
-ImmOrVoid Executer::execute_call(Pointer<OprNode> root)
+ImmOrVoid Executor::execute_call(Pointer<OprNode> root)
 {
     Symbol name = nullptr;
     auto args = Immediates();
@@ -134,9 +134,9 @@ ImmOrVoid Executer::execute_call(Pointer<OprNode> root)
     return execute_func(find_const_function(name, root), args);
 }
 
-ImmOrVoid Executer::execute_func(Pointer<FuncDefNode> func, Immediates args)
+ImmOrVoid Executor::execute_func(Pointer<FuncDefNode> func, Immediates args)
 {
-    node_assert(func->args.size() == args.size(), func, "[Executer] error 4: wrong count of arguments");
+    node_assert(func->args.size() == args.size(), func, "[Executor] error 4: wrong count of arguments");
     _env.push_env();
     for(size_t i=0; i<args.size(); ++i) {
         _env.env()->set(func->args[i].sym, args[i]);
@@ -151,7 +151,7 @@ ImmOrVoid Executer::execute_func(Pointer<FuncDefNode> func, Immediates args)
     return ans;
 }
 
-Pointer<FuncDefNode> Executer::find_const_function(Symbol sym, pNode root)
+Pointer<FuncDefNode> Executor::find_const_function(Symbol sym, pNode root)
 {
     for(auto i : _prog) {
         if(i->type == NODE_DEF_CONST_FUNC) {
@@ -159,10 +159,10 @@ Pointer<FuncDefNode> Executer::find_const_function(Symbol sym, pNode root)
             if(String(sym) == String(cname)) {
                 return std::static_pointer_cast<FuncDefNode>(i);
             }
-            i->token->print_error("[Executer] error 1: function is not declared as DEFCONSTFUNC");
+            i->token->print_error("[Executor] error 1: function is not declared as DEFCONSTFUNC");
         }
     }
-    root->token->print_error("[Executer] error 2: function not found");
+    root->token->print_error("[Executor] error 2: function not found");
     return Pointer<FuncDefNode>();
 }
 

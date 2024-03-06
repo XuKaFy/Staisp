@@ -14,8 +14,8 @@ struct ReturnException {
 
 Immediate must_have_value(ImmOrVoid imm, pNode root);
 
-struct Executer {
-    Executer(AstProg cur_prog);
+struct Executor {
+    Executor(AstProg cur_prog);
 
     ImmOrVoid execute(pNode root);
     Immediate must_have_value_execute(pNode root);

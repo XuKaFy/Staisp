@@ -136,10 +136,6 @@ make
 compiler [file_name]
 ```
 
-## 特性
-
-* Variable Shadowing
-
 ## 报错
 
 ### Lexer 词法错误
@@ -175,13 +171,13 @@ compiler [file_name]
 10. `[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值
 11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值
 
-### Executer 报错
+### Executor 报错
 
-1. `[Executer] error 1: function is not declared as DEFCONSTFUNC`：尝试执行非常数函数的函数
-2. `[Executer] error 2: function not found`：找不到函数
-3. `[Executer] error 3: variant not found`：找不到变量
-4. `[Executer] error 4: wrong count of arguments`：函数参数列表长度不同
-5. `[Executer] error 5: function nested`：尝试执行函数内的函数
-6. `[Executer] error 6: function has no return`：函数没有返回值
-7. `[Executer] error 7: empty value`：计算时含有 VOID
+1. `[Executor] error 1: function is not declared as DEFCONSTFUNC`：尝试执行非常数函数的函数
+2. `[Executor] error 2: function not found`：找不到函数
+3. `[Executor] error 3: variant not found`：找不到变量
+4. `[Executor] error 4: wrong count of arguments`：函数参数列表长度不同
+5. `[Executor] error 5: function nested`：尝试执行函数内的函数
+6. `[Executor] error 6: function has no return`：函数没有返回值
+7. `[Executor] error 7: empty value`：计算时含有 VOID
 
