@@ -1,5 +1,10 @@
 #include "def.h"
 
+TypedSym::TypedSym(Symbol sym, ImmType tr, bool is_const)
+    : sym(sym), tr(tr), is_const(is_const)
+{
+}
+
 struct GlobalSymbols {
     ~GlobalSymbols() {
         for(auto i : s)

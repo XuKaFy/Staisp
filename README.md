@@ -7,7 +7,7 @@ Staisp（STAtic lISP），即静态语法表，用于用一种相比于 IR 更�
 ```
 DEFVAR i32:n 1
 
-DEFFUNC i32:fib ( i32:n ) BLOCK {
+DEFFUNC i32:fib ( CONST i32:n ) BLOCK {
     IF OR EQ n 1
           EQ n 2
         RETURN 1
@@ -52,6 +52,7 @@ DEFFUNC i32:main ( ) {
 
 #### D 组：常量表达式
 
+* `CONST`
 * `CONSTEXPR`
 * `DEFCONSTFUNC`
 
@@ -96,7 +97,8 @@ basic_function -> unary_func    value
 basic_function_const -> unary_func    const_val
                      -> binary_func   const_val   const_val
                      -> triple        const_val   const_val   const_val
-typed_sym   -> num_type:sym
+typed_sym   -> CONST num_type:sym
+            -> num_type:sym
 num_type    -> i64|i32|i16|i8|i1|void
 value_list  -> ( )
              | ( value, value_list )
@@ -155,6 +157,7 @@ compiler [file_name]
 7. `[Parser] error 7: definition existed`：尝试重定义变量或函数
 8. `[Parser] error 8: function nested`：尝试在函数内定义函数
 9. `[Parser] error 9: beginning of a statement must be a symbol`：不能以非名称作为语句开头，例如使用数字
+10. `[Parser] error 10: beginning of a statement cannot be a type`：不能以数据类型作为开头，例如 CONST
 
 ### Convertor 语义错误
 
@@ -169,3 +172,5 @@ compiler [file_name]
 7. `[Convertor] error 7: comparasion operation conversion from ast to ir not implemented`：该比较操作未被 IR 实现
 8. `[Convertor] error 8: wrong count of arguments`：函数参数列表长度不同
 9. `[Convertor] error 9: no outer loops`：BREAK 或 CONTINUE 外层无循环
+10. `[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值
+11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值

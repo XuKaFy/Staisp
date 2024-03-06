@@ -2,6 +2,23 @@
 
 namespace Ir {
 
+FuncDefined::FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
+    : Func(var, arg_types) {
+    pBlock first_block = make_block();
+    
+    for(auto i : arg_types) {
+        if(i.is_const) {
+            args_value.push_back(make_const_arg(i));
+        } else {
+            pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
+            first_block->add_instr(make_store_instr(i.tr, tmp, make_sym_instr(i)));
+            args_value.push_back(tmp);
+        }
+    }
+    
+    body.push_back(first_block);
+}
+
 Symbol FuncDefined::print_func() const
 {
     size_t line_count = 0;

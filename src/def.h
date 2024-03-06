@@ -68,8 +68,11 @@ const Symbol gImmName[] = {
 
 struct TypedSym
 {
+    TypedSym(Symbol sym, ImmType tr, bool is_const = false);
+
     Symbol sym;
     ImmType tr;
+    bool is_const;
 };
 
 template<typename T, typename U>

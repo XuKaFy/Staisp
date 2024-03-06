@@ -19,6 +19,7 @@ namespace Staisp {
     ENTRY(BREAK) \
     ENTRY(CONTINUE) \
     ENTRY(CONSTEXPR) \
+    ENTRY(CONST) \
     ENTRY(BLOCK)
 
 enum BuildinSym

@@ -6,7 +6,7 @@ void Block::generate_line(size_t &line) const
 {
     String s;
     for(auto i : instrs) {
-        if(i->instrType != INSTR_TYPE_NO_REG)
+        if(i->instrType == INSTR_TYPE_NEED_REG || i->instrType == INSTR_TYPE_LABEL)
             i->line = line++;
     }
 }
@@ -15,6 +15,8 @@ Symbol Block::print_block() const
 {
     String s;
     for(auto i : instrs) {
+        if(i->instrType == INSTR_TYPE_HIDE)
+            continue;
         if(i->instrType != INSTR_TYPE_LABEL)
             s += "  ";
         s += String(i->instr_print()) + "\n";

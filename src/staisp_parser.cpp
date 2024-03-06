@@ -121,11 +121,17 @@ ImmType Parser::parse_type() {
 
 TypedSym Parser::parse_typed_sym()
 {
-    TypedSym ts;
-    ts.tr = parse_type();
+    bool is_const = false;
+    if(peek().t == TOKEN_SYM
+        && gBuildinSymType.count(peek().sym) 
+        && gBuildinSymType.find(peek().sym)->second == BUILDIN_CONST) {
+        consume_token(TOKEN_SYM);
+        is_const = true;
+    }
+    auto type = parse_type();
     consume_token(TOKEN_2DOT);
-    ts.sym = parse_sym();
-    return ts;
+    auto sym = parse_sym();
+    return TypedSym(sym, type, is_const);
 }
 
 pNode Parser::parse_value()
@@ -222,6 +228,9 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     }
     case BUILDIN_BLOCK: {
         return parse_block();
+    }
+    case BUILDIN_CONST: {
+        current_token().print_error("[Parser] error 10: beginning of a statement cannot be a type");
     }
     }
     // cannot reach
