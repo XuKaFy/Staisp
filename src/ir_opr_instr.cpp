@@ -8,6 +8,7 @@ Symbol BinInstr::instr_print_impl() const
     return to_symbol(
         String(print_impl())
         + " = "
+        + (is_float(tr) ? "f" : "" ) 
         + gBinInstrName[binType] 
         + " " 
         + gImmName[tr]

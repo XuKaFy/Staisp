@@ -21,6 +21,36 @@ bool is_signed_imm_type(ImmType tr)
     }
 }
 
+bool is_float(ImmType tr)
+{
+    switch(tr) {
+    case IMM_F32:
+    case IMM_F64:
+        return true;
+    default:
+        return false;
+    }
+}
+
+int bits_of_type(ImmType tr)
+{
+    switch(tr) {
+    case IMM_I1:
+    case IMM_U1: return 1;
+    case IMM_I8:
+    case IMM_U8: return 8;
+    case IMM_I16:
+    case IMM_U16: return 16;
+    case IMM_I32:
+    case IMM_U32:
+    case IMM_F32: return 32;
+    case IMM_I64:
+    case IMM_U64: 
+    case IMM_F64: return 64;
+    }
+    return 0;
+}
+
 ImmValue::operator bool() const
 {
     switch(ty) {

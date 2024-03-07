@@ -54,7 +54,8 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
 
 Ir::pInstr Convertor::cast_to_type(Ir::pInstr val, ImmType tr, Ir::pFuncDefined func)
 {
-    if(val->tr == tr) return val;
+    // if(val->tr == tr) return val; (included in line below)
+    if(is_float(val->tr) == is_float(tr) && bits_of_type(val->tr) == bits_of_type(tr)) return val;
     auto r = Ir::make_cast_instr(tr, val);
     func->add_instr(r);
     return r;
@@ -91,7 +92,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto a = root->ch.begin();
         auto a1 = analyze_value(*(a++), func);
         auto a2 = analyze_value(*(a++), func);
-        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, join_imm_type(a1->tr, a2->tr)), join_imm_type(a1->tr, a2->tr), a1, a2);
+        auto ty = join_imm_type(a1->tr, a2->tr);
+        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), ty, cast_to_type(a1, ty, func), cast_to_type(a2, ty, func));
         func->add_instr(ir);
         return ir;
     }
@@ -218,7 +220,7 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     }
     case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
-        auto res = Ir::make_binary_instr(Ir::INSTR_ADD, r->imm.ty, Ir::make_constant(0), Ir::make_constant(r->imm));
+        auto res = Ir::make_binary_instr(Ir::INSTR_ADD, r->imm.ty, Ir::make_constant(r->imm.ty), Ir::make_constant(r->imm));
         func->add_instr(res);
         return res;
     }
@@ -243,7 +245,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
         auto to = find_left_value(r, func);
-        func->add_instr(Ir::make_store_instr(to->tr, to, analyze_value(r->val, func)));
+        func->add_instr(Ir::make_store_instr(to->tr, to, cast_to_type(analyze_value(r->val, func), to->tr, func)));
         break;
     }
     case NODE_DEF_VAR: {
@@ -251,11 +253,11 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
         Ir::pInstr tmp;
         if(r->var.is_const) {
             func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
-                Ir::make_constant(0), analyze_value(r->val, func)));
+                Ir::make_constant(r->var.tr), cast_to_type(analyze_value(r->val, func), r->var.tr, func)));
             _env.env()->set(r->var.sym, tmp);
         } else {
             func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
-            func->add_instr(Ir::make_store_instr(r->var.tr, tmp, analyze_value(r->val, func)));
+            func->add_instr(Ir::make_store_instr(r->var.tr, tmp, cast_to_type(analyze_value(r->val, func), r->var.tr, func)));
             _env.env()->set(r->var.sym, tmp);
         }
         break;

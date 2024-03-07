@@ -84,9 +84,9 @@ pToken Lexer::lexer_number(String::value_type head)
         var = var * 10 + get_char() - '0';
     }
     if(var >= INT_MAX) {
-        return pToken(new StaispToken(ImmValue(var, IMM_I32), _p_code, _begin, _current, _line_count));
+        return pToken(new StaispToken(ImmValue(var, IMM_I64), _p_code, _begin, _current, _line_count));
     }
-    return pToken(new StaispToken(ImmValue(var, IMM_I64), _p_code, _begin, _current, _line_count));
+    return pToken(new StaispToken(ImmValue(var, IMM_I32), _p_code, _begin, _current, _line_count));
 }
 
 pToken Lexer::lexer_float(Immediate head)

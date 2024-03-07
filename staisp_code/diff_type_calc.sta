@@ -1,0 +1,6 @@
+DEFFUNC i32:main() {
+    DEFVAR CONST u32:a 1
+    DEFVAR CONST i32:c 1
+    DEFVAR CONST f32:b 1
+    RETURN ADD ADD a c b
+}
