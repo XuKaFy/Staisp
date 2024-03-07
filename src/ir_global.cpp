@@ -17,7 +17,7 @@ Symbol Global::print_impl() const
     return to_symbol(String("@") + val.sym);
 }
 
-pGlobal make_global(TypedSym val, Const con)
+pGlobal make_global(ImmTypedSym val, Const con)
 {
     return pGlobal(new Global(val, con));
 }

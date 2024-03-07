@@ -1,7 +1,7 @@
 DEFFUNC i32:main() BLOCK {
     DEFVAR i32:i 0
     DEFVAR i32:ans 0
-    WHILE ULT i 10 BLOCK {
+    WHILE LT i 10 BLOCK {
         ASSIGN i ADD i 1
         IF EQ i 3 CONTINUE
         IF EQ i 6 BREAK

@@ -1,10 +1,5 @@
 #include "def.h"
 
-TypedSym::TypedSym(Symbol sym, ImmType tr, bool is_const)
-    : sym(sym), tr(tr), is_const(is_const)
-{
-}
-
 struct GlobalSymbols {
     ~GlobalSymbols() {
         for(auto i : s)
@@ -22,9 +17,4 @@ Symbol to_symbol(String s)
     strcpy(m, s.c_str());
     watcher.s.push_back(m);
     return Symbol(m);
-}
-
-ImmType join_type(ImmType a, ImmType b)
-{
-    return std::max(a, b);
 }

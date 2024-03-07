@@ -3,14 +3,14 @@ CFLAGS = -Wall -g
 
 EXECUTABLE = compiler
 
-GLOBAL_DEPS = def.h common_node.h common_token.h
-GLOBAL_OBJ =  def.o common_node.o common_token.o
+GLOBAL_DEPS = def.h common_node.h common_token.h type.h imm.h env.h
+GLOBAL_OBJ =  def.o common_node.o common_token.o type.o imm.o
 
 AST_DEPS = ast_node.h ast_exec.h
 AST_OBJ =  ast_node.o ast_exec.o
 
-IR_DEPS = ir_block.h ir_constant.h ir_instr.h ir_val.h ir_opr_instr.h ir_func.h ir_func_defined.h ir_call_instr.h ir_sym.h ir_global.h ir_module.h ir_mem_instr.h ir_control_instr.h ir_cmp_instr.h
-IR_OBJ =  ir_block.o ir_constant.o ir_instr.o ir_val.o ir_opr_instr.o ir_func.o ir_func_defined.o ir_call_instr.o ir_sym.o ir_global.o ir_module.o ir_mem_instr.o ir_control_instr.o ir_cmp_instr.o
+IR_DEPS = ir_block.h ir_constant.h ir_instr.h ir_val.h ir_opr_instr.h ir_func.h ir_func_defined.h ir_call_instr.h ir_sym.h ir_global.h ir_module.h ir_mem_instr.h ir_control_instr.h ir_cmp_instr.h ir_cast_instr.h
+IR_OBJ =  ir_block.o ir_constant.o ir_instr.o ir_val.o ir_opr_instr.o ir_func.o ir_func_defined.o ir_call_instr.o ir_sym.o ir_global.o ir_module.o ir_mem_instr.o ir_control_instr.o ir_cmp_instr.o ir_cast_instr.o
 
 ASM_DEPS = asm_instr.h asm_regs.h
 ASM_OBJ =  asm_instr.o asm_regs.o

@@ -13,6 +13,7 @@ enum NodeType
     NODE_DEF_FUNC,
     NODE_DEF_CONST_FUNC,
     NODE_BLOCK,
+    NODE_CAST,
 };
 
 #define OPR_TABLE_CALCULATABLE \
@@ -25,14 +26,10 @@ enum NodeType
     ENTRY(OR, ||) \
     ENTRY(EQ, ==) \
     ENTRY(NE, !=) \
-    ENTRY(UGT, >) \
-    ENTRY(UGE, >=) \
-    ENTRY(ULT, <) \
-    ENTRY(ULE, <=) \
-    ENTRY(SGT, >) \
-    ENTRY(SGE, >=) \
-    ENTRY(SLT, <) \
-    ENTRY(SLE, <=)
+    ENTRY(GT, >) \
+    ENTRY(GE, >=) \
+    ENTRY(LT, <) \
+    ENTRY(LE, <=)
 
 #define OPR_TABLE_UNCALCULATABLE \
     ENTRY(IF) \

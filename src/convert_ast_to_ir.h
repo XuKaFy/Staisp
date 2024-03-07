@@ -1,6 +1,8 @@
 #pragma once
 
 #include "def.h"
+#include "env.h"
+#include "imm.h"
 
 #include "ast_exec.h"
 #include "ast_node.h"
@@ -8,6 +10,7 @@
 #include "ir_opr_instr.h"
 #include "ir_cmp_instr.h"
 #include "ir_call_instr.h"
+#include "ir_cast_instr.h"
 
 namespace AstToIr {
 
@@ -25,17 +28,20 @@ class Convertor {
 public:
     Ir::pModule generate(AstProg asts);
     static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::OprNode> root);
-    static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root);
+    static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root, ImmType tr);
 
 private:
-    void generate_single(pNode root, Ir::pModule mod);
-    void generate_global_var(Pointer<Ast::VarDefNode> root, Ir::pModule mod);
-    void generate_function(Pointer<Ast::FuncDefNode> root, Ir::pModule mod);
-    void analyze_statement_node(pNode root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func, Ir::pModule mod);
-    Ir::pInstr find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func, Ir::pModule mod);
+    void generate_single(pNode root);
+    void generate_global_var(Pointer<Ast::VarDefNode> root);
+    void generate_function(Pointer<Ast::FuncDefNode> root);
+    void analyze_statement_node(pNode root, Ir::pFuncDefined func);
+    Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func);
+    Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func);
+    Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func);
+    Ir::pInstr find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func);
+    Ir::pInstr cast_to_type(Ir::pInstr val, ImmType tr, Ir::pFuncDefined func);
+
+    Ir::pModule module() const;
 
     EnvWrapper<Ir::pInstr> _env;
     
@@ -52,6 +58,7 @@ private:
     void clear_loop_env();
 
     LoopEnvStack _loop_env_stack;
+    Ir::pModule _mod;
     AstProg _prog;
 };
 

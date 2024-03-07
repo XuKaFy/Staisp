@@ -60,7 +60,7 @@ pInstr make_store_instr(ImmType tr, pInstr to, pVal val)
     return pInstr(new StoreInstr(tr, to, val));
 }
 
-pInstr make_sym_instr(TypedSym val, SymFrom from)
+pInstr make_sym_instr(ImmTypedSym val, SymFrom from)
 {
     return pInstr(new SymInstr(val, from));
 }

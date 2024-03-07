@@ -1,6 +1,7 @@
 #pragma once
 
 #include "def.h"
+#include "imm.h"
 
 #include "ir_val.h"
 
@@ -34,7 +35,7 @@ struct Instr : public Val {
 typedef Pointer<Instr> pInstr;
 
 struct ConstArgInstr : public Instr {
-    ConstArgInstr(TypedSym sym);
+    ConstArgInstr(ImmTypedSym sym);
     virtual Symbol instr_print_impl() const override;
     virtual Symbol print_impl() const override;
     virtual bool is_end_of_block() const override;
@@ -43,6 +44,6 @@ struct ConstArgInstr : public Instr {
 };
 
 pInstr make_empty_instr();
-pInstr make_const_arg(TypedSym sym);
+pInstr make_const_arg(ImmTypedSym sym);
 
 } // namespace Ir

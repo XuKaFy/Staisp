@@ -40,7 +40,7 @@ enum SymFrom {
 };
 
 struct SymInstr : public Instr {
-    SymInstr(TypedSym val, SymFrom from = SYM_LOCAL)
+    SymInstr(ImmTypedSym val, SymFrom from = SYM_LOCAL)
         : Instr(INSTR_TYPE_NO_REG, val.tr), sym(val.sym), from(from) { }
 
     virtual Symbol print_impl() const override;
@@ -52,6 +52,6 @@ struct SymInstr : public Instr {
 pInstr make_alloc_instr(ImmType tr);
 pInstr make_load_instr(ImmType tr, pInstr from);
 pInstr make_store_instr(ImmType tr, pInstr to, pVal val);
-pInstr make_sym_instr(TypedSym val, SymFrom from = SYM_LOCAL);
+pInstr make_sym_instr(ImmTypedSym val, SymFrom from = SYM_LOCAL);
 
 } // namespace ir

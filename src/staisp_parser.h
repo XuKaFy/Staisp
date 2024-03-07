@@ -1,6 +1,8 @@
 #pragma once
 
 #include "def.h"
+#include "env.h"
+#include "imm.h"
 
 #include "staisp_lexer.h"
 #include "ast_node.h"
@@ -21,6 +23,7 @@ namespace Staisp {
     ENTRY(CONTINUE) \
     ENTRY(CONSTEXPR) \
     ENTRY(CONST) \
+    ENTRY(CAST) \
     ENTRY(BLOCK)
 
 enum BuildinSym
@@ -48,14 +51,10 @@ const Map<String, BuildinSym> gBuildinSymType {
     ENTRY(OR, or) \
     ENTRY(EQ, eq) \
     ENTRY(NE, ne) \
-    ENTRY(UGT, ugt) \
-    ENTRY(UGE, uge) \
-    ENTRY(ULT, ult) \
-    ENTRY(ULE, ule) \
-    ENTRY(SGT, sgt) \
-    ENTRY(SGE, sge) \
-    ENTRY(SLT, slt) \
-    ENTRY(SLE, sle)
+    ENTRY(GT, gt) \
+    ENTRY(GE, ge) \
+    ENTRY(LT, lt) \
+    ENTRY(LE, le)
 
 enum BuildinBinaryOprType
 {
@@ -99,11 +98,11 @@ private:
     // pNode parse_array_val(); // { {1 2} {3 4} }
     pNode parse_statement();
     pNode parse_value();
-    TypedSym parse_typed_sym();
+    ImmTypedSym parse_typed_sym();
     Symbol parse_sym();
     ImmType parse_type();
     
-    Vector<TypedSym> parse_typed_sym_list();
+    Vector<ImmTypedSym> parse_typed_sym_list();
     AstProg parse_value_list();
 
     EnvWrapper<SymType> _env;

@@ -78,7 +78,7 @@ ImmType Parser::parse_type() {
     return gSymToImmType.find(current_token().sym)->second;
 }
 
-TypedSym Parser::parse_typed_sym()
+ImmTypedSym Parser::parse_typed_sym()
 {
     bool is_const = false;
     if(peek().t == TOKEN_SYM
@@ -90,14 +90,16 @@ TypedSym Parser::parse_typed_sym()
     auto type = parse_type();
     consume_token(TOKEN_2DOT);
     auto sym = parse_sym();
-    return TypedSym(sym, type, is_const);
+    return ImmTypedSym(sym, type, is_const);
 }
 
 pNode Parser::parse_value()
 {
     get_token();
     if(current_token().t == TOKEN_INT) {
-        return Ast::new_imm_node(current_p_token(), current_token().val);
+        if(current_token().val >= INT_MAX)
+            return Ast::new_imm_node(current_p_token(), ImmValue(current_token().val, IMM_I64));
+        return Ast::new_imm_node(current_p_token(), ImmValue(current_token().val, IMM_I32));
     }
     if(is_buildin_sym(current_token().sym)) {
         return parse_buildin_sym(current_token().sym);
@@ -189,6 +191,10 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_BLOCK: {
         return parse_block();
     }
+    case BUILDIN_CAST: {
+        auto type = parse_type();
+        return Ast::new_cast_node(token, type, parse_value());
+    }
     case BUILDIN_CONST: {
         current_token().print_error("[Parser] error 10: beginning of a statement cannot be a type");
     }
@@ -214,10 +220,10 @@ pNode Parser::parse_statement()
     return parse_function_call(current_token().sym);
 }
 
-Vector<TypedSym> Parser::parse_typed_sym_list()
+Vector<ImmTypedSym> Parser::parse_typed_sym_list()
 {
     consume_token(TOKEN_LB_S);
-    Vector<TypedSym> ts;
+    Vector<ImmTypedSym> ts;
     while(peek().t != TOKEN_RB_S) {
         ts.push_back(parse_typed_sym());
     }
@@ -276,7 +282,7 @@ pNode Parser::parse_array_def()
 {
     consume_token(TOKEN_LB_M);
     auto token = _current_token;
-    Immediates nums;
+    ImmValues nums;
     while(peek().t != TOKEN_RB_M) {
         nums.push_back(Ast::Executor(_result).must_have_value_execute(parse_value()));
     }

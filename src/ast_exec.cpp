@@ -2,7 +2,7 @@
 
 namespace Ast {
 
-Immediate must_have_value(ImmOrVoid imm, pNode root)
+ImmValue must_have_value(ImmOrVoid imm, pNode root)
 {
     if(imm.has_value())
         return imm.value();
@@ -22,7 +22,7 @@ Executor::Executor(AstProg cur_prog)
     }
 }
 
-Immediate Executor::must_have_value_execute(pNode root)
+ImmValue Executor::must_have_value_execute(pNode root)
 {
     return must_have_value(execute(root), root);
 }
@@ -123,7 +123,7 @@ ImmOrVoid Executor::execute(pNode root)
 ImmOrVoid Executor::execute_call(Pointer<OprNode> root)
 {
     Symbol name = nullptr;
-    auto args = Immediates();
+    auto args = ImmValues();
     for(auto i : root->ch) {
         if(!name) {
             name = std::static_pointer_cast<SymNode>(i)->sym;
@@ -134,7 +134,7 @@ ImmOrVoid Executor::execute_call(Pointer<OprNode> root)
     return execute_func(find_const_function(name, root), args);
 }
 
-ImmOrVoid Executor::execute_func(Pointer<FuncDefNode> func, Immediates args)
+ImmOrVoid Executor::execute_func(Pointer<FuncDefNode> func, ImmValues args)
 {
     node_assert(func->args.size() == args.size(), func, "[Executor] error 4: wrong count of arguments");
     _env.push_env();

@@ -18,7 +18,7 @@ DEFFUNC i32:fib ( CONST i32:n ) BLOCK {
 DEFFUNC i32:main ( ) {
     DEFVAR i32:ans 0
     ASSIGN n 10
-    WHILE ULE n 10
+    WHILE LE n 10
         ASSIGN n ADD n 1
     BLOCK {
         ASSIGN ans fib ( n )
@@ -33,7 +33,9 @@ DEFFUNC i32:main ( ) {
 
 * `DEFVAR`
 * `ASSIGN`
-* `i1|i8|i16|i32|i64`
+* `i1|i8|i16|i32|i64|u1|u8|i16|u32|u64|f32|f64`
+* `CAST`
+* `*`
 
 #### B 组：控制流
 
@@ -109,6 +111,7 @@ stat_list -> { }
 value -> function
        | const_val
        | variant
+       | CAST   type    value
 const_val -> basic_function_const
            | integer
 array_def -> [ const_val ]

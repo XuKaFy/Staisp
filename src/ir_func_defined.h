@@ -8,7 +8,7 @@
 namespace Ir {
 
 struct FuncDefined : public Func {
-    FuncDefined(TypedSym var, Vector<TypedSym> arg_types);
+    FuncDefined(ImmTypedSym var, Vector<ImmTypedSym> arg_types);
 
     virtual Symbol print_impl() const override;
     Symbol print_func() const;
@@ -23,6 +23,6 @@ struct FuncDefined : public Func {
 
 typedef Pointer<FuncDefined> pFuncDefined;
 
-pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types);
+pFuncDefined make_func_defined(ImmTypedSym var, Vector<ImmTypedSym> arg_types);
 
 } // namespace ir

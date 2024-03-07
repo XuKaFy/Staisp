@@ -1,6 +1,8 @@
 #pragma once
 
 #include "def.h"
+#include "imm.h"
+
 #include "common_node.h"
 #include "common_token.h"
 
@@ -8,10 +10,9 @@ namespace Ast {
 
 struct ImmNode : public Node
 {
-    ImmNode(pToken t, Immediate imm, ImmType tr) 
-        : Node(t, NODE_IMM), imm(imm), tr(tr) { }
-    Immediate imm;
-    ImmType tr;
+    ImmNode(pToken t, ImmValue imm) 
+        : Node(t, NODE_IMM), imm(imm) { }
+    ImmValue imm;
 };
 
 struct SymNode : public Node
@@ -38,18 +39,18 @@ struct AssignNode : public Node
 
 struct VarDefNode : public Node
 {
-    VarDefNode(pToken t,TypedSym var, pNode val)
+    VarDefNode(pToken t,ImmTypedSym var, pNode val)
         : Node(t, NODE_DEF_VAR), var(var), val(val) { }
-    TypedSym var;
+    ImmTypedSym var;
     pNode val;
 };
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const)
+    FuncDefNode(pToken t, ImmTypedSym var, Vector<ImmTypedSym> args, pNode body, bool is_const)
         : Node(t, is_const ? NODE_DEF_CONST_FUNC : NODE_DEF_FUNC), var(var), args(args), body(body) { }
-    TypedSym var;
-    Vector<TypedSym> args;
+    ImmTypedSym var;
+    Vector<ImmTypedSym> args;
     pNode body;
 };
 
@@ -62,18 +63,27 @@ struct BlockNode : public Node
 
 struct ArrayDefNode : public Node
 {
-    ArrayDefNode(pToken t, Immediates nums)
+    ArrayDefNode(pToken t, ImmValues nums)
         : Node(t, NODE_BLOCK), nums(nums) { }
-    Immediates nums;
+    ImmValues nums;
 };
 
-pNode new_imm_node(pToken t, Immediate imm, ImmType tr = IMM_I64);
+struct CastNode : public Node
+{
+    CastNode(pToken t, ImmType ty, pNode val)
+        : Node(t, NODE_CAST), ty(ty), val(val) { }
+    ImmType ty;
+    pNode val;
+};
+
+pNode new_imm_node(pToken t, ImmValue imm);
 pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
 pNode new_assign_node(pToken t, Symbol sym, pNode val);
-pNode new_var_def_node(pToken t, TypedSym var, pNode val);
-pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const);
+pNode new_var_def_node(pToken t, ImmTypedSym var, pNode val);
+pNode new_func_def_node(pToken t, ImmTypedSym var, Vector<ImmTypedSym> args, pNode body, bool is_const);
 pNode new_block_node(pToken t, AstProg body);
-pNode new_array_def_node(pToken t, Immediates nums);
+pNode new_array_def_node(pToken t, ImmValues nums);
+pNode new_cast_node(pToken t, ImmType ty, pNode val);
 
 } // namespace ast

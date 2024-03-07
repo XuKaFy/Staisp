@@ -2,7 +2,7 @@
 
 namespace Ir {
 
-FuncDefined::FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
+FuncDefined::FuncDefined(ImmTypedSym var, Vector<ImmTypedSym> arg_types)
     : Func(var, arg_types) {
     pBlock first_block = make_block();
     
@@ -55,7 +55,7 @@ PRINT_IMPL_END:
     return to_symbol(whole_function);
 }
 
-pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types)
+pFuncDefined make_func_defined(ImmTypedSym var, Vector<ImmTypedSym> arg_types)
 {
     return pFuncDefined(new FuncDefined(var, arg_types));
 }

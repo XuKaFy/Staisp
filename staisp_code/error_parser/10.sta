@@ -14,7 +14,7 @@ DEFFUNC i32:main() BLOCK {
     DEFVAR i32:ans 0
     ASSIGN n 5
     CONST i32:fib
-    WHILE ULE n 10
+    WHILE LE n 10
         ASSIGN n ADD n 1 # add n to 10
     BLOCK {
         ASSIGN ans fib (n)
