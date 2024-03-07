@@ -1,6 +1,7 @@
 #pragma once
 
 #include "def.h"
+#include "imm.h"
 #include "common_token.h"
 
 #include <cctype>
@@ -22,7 +23,7 @@ enum TokenType
 };
 
 struct StaispToken : public Token {
-    StaispToken(Immediate val, pCode code, 
+    StaispToken(ImmValue val, pCode code, 
                 String::iterator token_begin, String::iterator token_end, int line);
     StaispToken(Symbol sym, pCode code, 
                 String::iterator token_begin, String::iterator token_end, int line);
@@ -31,7 +32,7 @@ struct StaispToken : public Token {
     
     TokenType t;
     union {
-        Immediate val;
+        ImmValue val;
         Symbol sym;
     };
 };
@@ -50,6 +51,7 @@ private:
     pToken lexer_one_token();
     pToken lexer_number(String::value_type head);
     pToken lexer_sym(String::value_type head);
+    pToken lexer_float(Immediate head);
 
     String::iterator _begin;
     String::iterator _current;

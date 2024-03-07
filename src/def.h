@@ -34,6 +34,8 @@ template<typename T>
 using Opt = std::optional<T>;
 
 typedef long long Immediate;
+typedef double Float32;
+typedef double Float64;
 typedef const char* Symbol;
 typedef std::string String;
 typedef Pointer<String> pString;

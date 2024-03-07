@@ -1,0 +1,3 @@
+DEFFUNC i32:main() {
+    RETURN ADD 3.2 4.5
+}

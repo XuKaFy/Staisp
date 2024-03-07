@@ -156,7 +156,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         // impossible
         node_assert(root->ch.size() == 1, root, "[Convertor] \"RET\" opr has not 1 args - impossible");
         auto a = analyze_value(root->ch.front(), func);
-        func->add_instr(Ir::make_ret_instr(a->tr, a));
+        func->add_instr(Ir::make_ret_instr(func->var.tr, cast_to_type(a, func->var.tr, func)));
         return Ir::make_empty_instr();
     }
     case OPR_CALL: {

@@ -3,7 +3,7 @@
 namespace Staisp
 {
 
-StaispToken::StaispToken(Immediate val, pCode code, String::iterator token_begin, 
+StaispToken::StaispToken(ImmValue val, pCode code, String::iterator token_begin, 
                          String::iterator token_end, int line)
     : Token(code, token_begin, token_end, line), t(TOKEN_INT), val(val) { }
 
@@ -71,6 +71,10 @@ pToken Lexer::lexer_number(String::value_type head)
 {
     Immediate var = head - '0';
     while(has_char() && !isspace(peek())) {
+        if(peek() == '.') {
+            get_char();
+            return lexer_float(var);
+        }
         if(isalpha(peek())) {
             StaispToken(var, _p_code, _begin, _current, _line_count)
                 .print_error("[Lexer] error 1: not a number");
@@ -79,7 +83,27 @@ pToken Lexer::lexer_number(String::value_type head)
             break;
         var = var * 10 + get_char() - '0';
     }
-    return pToken(new StaispToken(var, _p_code, _begin, _current, _line_count));
+    if(var >= INT_MAX) {
+        return pToken(new StaispToken(ImmValue(var, IMM_I32), _p_code, _begin, _current, _line_count));
+    }
+    return pToken(new StaispToken(ImmValue(var, IMM_I64), _p_code, _begin, _current, _line_count));
+}
+
+pToken Lexer::lexer_float(Immediate head)
+{
+    Float64 var = head;
+    Float64 small = 0.1;
+    while(has_char() && !isspace(peek())) {
+        if(isalpha(peek())) {
+            StaispToken(var, _p_code, _begin, _current, _line_count)
+                .print_error("[Lexer] error 1: not a number");
+        }
+        if(!isdigit(peek()))
+            break;
+        var += small * (get_char() - '0');
+        small /= 10;
+    }
+    return pToken(new StaispToken(ImmValue(var), _p_code, _begin, _current, _line_count));
 }
 
 pToken Lexer::lexer_sym(String::value_type head)

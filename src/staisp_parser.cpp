@@ -97,9 +97,7 @@ pNode Parser::parse_value()
 {
     get_token();
     if(current_token().t == TOKEN_INT) {
-        if(current_token().val >= INT_MAX)
-            return Ast::new_imm_node(current_p_token(), ImmValue(current_token().val, IMM_I64));
-        return Ast::new_imm_node(current_p_token(), ImmValue(current_token().val, IMM_I32));
+        return Ast::new_imm_node(current_p_token(), current_token().val);
     }
     if(is_buildin_sym(current_token().sym)) {
         return parse_buildin_sym(current_token().sym);
