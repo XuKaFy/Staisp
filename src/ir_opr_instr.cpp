@@ -9,6 +9,7 @@ Symbol BinInstr::instr_print_impl() const
         String(print_impl())
         + " = "
         + (is_float(tr) ? "f" : "" ) 
+        + (binType == INSTR_DIV ? (is_signed_imm_type(tr) ? "s" : "u") : "") // SDIV and UDIV
         + gBinInstrName[binType] 
         + " " 
         + gImmName[tr]

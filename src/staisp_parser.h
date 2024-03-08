@@ -45,7 +45,7 @@ const Map<String, BuildinSym> gBuildinSymType {
     ENTRY(ADD, add) \
     ENTRY(SUB, sub) \
     ENTRY(MUL, mul) \
-    ENTRY(SDIV, sdiv) \
+    ENTRY(DIV, div) \
     ENTRY(REM, rem) \
     ENTRY(AND, and) \
     ENTRY(OR, or) \

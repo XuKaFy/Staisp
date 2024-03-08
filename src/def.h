@@ -10,6 +10,8 @@
 #include <list>
 #include <utility>
 #include <optional>
+#include <cstdint>
+#include <climits>
 
 #include <variant>
 

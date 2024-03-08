@@ -13,7 +13,7 @@ void Token::print_error(Symbol error_code)
     while(*line_end != '\n' && line_end != p_code->p_code->end()) ++line_end;
     if(*line_begin == '\n') ++line_begin;
 
-    printf("%s:%d:%lld: %s\n", p_code->file_name.c_str(), line, token_begin - line_begin + 1, error_code);
+    printf("%s:%d:%llu: %s\n", p_code->file_name.c_str(), line, (unsigned long long)(token_begin - line_begin + 1), error_code);
     printf("%5d | %s\n        ", line, String(line_begin, line_end).c_str());
     for(String::difference_type i=0; i<token_begin-line_begin; ++i)
         putchar(' ');

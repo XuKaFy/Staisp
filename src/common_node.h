@@ -20,7 +20,7 @@ enum NodeType
     ENTRY(ADD, +) \
     ENTRY(SUB, -) \
     ENTRY(MUL, *) \
-    ENTRY(SDIV, /) \
+    ENTRY(DIV, /) \
     ENTRY(REM, %) \
     ENTRY(AND, &&) \
     ENTRY(OR, ||) \

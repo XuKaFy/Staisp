@@ -35,7 +35,11 @@ DEFFUNC i32:main ( ) {
 * `ASSIGN`
 * `i1|i8|i16|i32|i64|u1|u8|i16|u32|u64|f32|f64`
 * `CAST`
-* `*`
+
+以及类型说明符
+
+* `type *`：指针
+* `type [const_number]`：数组
 
 #### B 组：控制流
 

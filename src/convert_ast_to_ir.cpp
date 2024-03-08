@@ -67,7 +67,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     case OPR_ADD:
     case OPR_SUB:
     case OPR_MUL:
-    case OPR_SDIV:
+    case OPR_DIV:
     case OPR_AND:
     case OPR_OR:
     case OPR_REM: {
@@ -343,7 +343,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
     SELECT(ADD)
     SELECT(SUB)
     SELECT(MUL)
-    SELECT(SDIV)
+    SELECT(DIV)
     SELECT(REM)
     SELECT(AND)
     SELECT(OR)
