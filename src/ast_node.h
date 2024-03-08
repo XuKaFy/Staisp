@@ -76,6 +76,21 @@ struct CastNode : public Node
     pNode val;
 };
 
+struct RefNode : public Node
+{
+    RefNode(pToken t, Symbol name)
+        : Node(t, NODE_REF), name(name) { }
+    Symbol name;
+};
+
+struct DerefNode : public Node
+{
+    DerefNode(pToken t, ImmType ty, pNode val)
+        : Node(t, NODE_DEREF), ty(ty), val(val) { }
+    ImmType ty;
+    pNode val;
+};
+
 pNode new_imm_node(pToken t, ImmValue imm);
 pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
@@ -85,5 +100,7 @@ pNode new_func_def_node(pToken t, ImmTypedSym var, Vector<ImmTypedSym> args, pNo
 pNode new_block_node(pToken t, AstProg body);
 pNode new_array_def_node(pToken t, ImmValues nums);
 pNode new_cast_node(pToken t, ImmType ty, pNode val);
+pNode new_ref_node(pToken t, Symbol name);
+pNode new_deref_node(pToken t, ImmType ty, pNode val);
 
 } // namespace ast

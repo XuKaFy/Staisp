@@ -1,0 +1,5 @@
+DEFFUNC i32:main() {
+    DEFVAR i32:a 1
+    ASSIGN a DEREF i32 REF a
+    RETURN a
+}

@@ -24,6 +24,8 @@ namespace Staisp {
     ENTRY(CONSTEXPR) \
     ENTRY(CONST) \
     ENTRY(CAST) \
+    ENTRY(REF) \
+    ENTRY(DEREF) \
     ENTRY(BLOCK)
 
 enum BuildinSym

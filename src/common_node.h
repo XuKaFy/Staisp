@@ -14,6 +14,8 @@ enum NodeType
     NODE_DEF_CONST_FUNC,
     NODE_BLOCK,
     NODE_CAST,
+    NODE_REF,
+    NODE_DEREF,
 };
 
 #define OPR_TABLE_CALCULATABLE \

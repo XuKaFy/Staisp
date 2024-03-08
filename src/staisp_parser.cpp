@@ -193,6 +193,13 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         auto type = parse_type();
         return Ast::new_cast_node(token, type, parse_value());
     }
+    case BUILDIN_REF: {
+        return Ast::new_ref_node(token, parse_sym());
+    }
+    case BUILDIN_DEREF: {
+        auto type = parse_type();
+        return Ast::new_deref_node(token, type, parse_value());
+    }
     case BUILDIN_CONST: {
         current_token().print_error("[Parser] error 10: beginning of a statement cannot be a type");
     }

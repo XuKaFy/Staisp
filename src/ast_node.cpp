@@ -47,4 +47,14 @@ pNode new_cast_node(pToken t, ImmType ty, pNode val)
     return pNode(new CastNode(t, ty, val));
 }
 
+pNode new_ref_node(pToken t, Symbol name)
+{
+    return pNode(new RefNode(t, name));
+}
+
+pNode new_deref_node(pToken t, ImmType ty, pNode val)
+{
+    return pNode(new DerefNode(t, ty, val));
+}
+
 }  // namespace ast

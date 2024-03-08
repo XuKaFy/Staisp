@@ -7,10 +7,10 @@ Ir::pModule Convertor::module() const
     return _mod;
 }
 
-Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func)
+Ir::pInstr Convertor::find_left_value(pNode root, Symbol sym, Ir::pFuncDefined func)
 {
-    if(_env.env()->count(root->sym)) { // local
-        Ir::pInstr found = _env.env()->find(root->sym);
+    if(_env.env()->count(sym)) { // local
+        Ir::pInstr found = _env.env()->find(sym);
         // const value is error
         if(found->instrType != Ir::INSTR_TYPE_ALLOC) 
             node_assert(false, root, "[Convertor] error 10: assignment to a local const value");
@@ -18,7 +18,7 @@ Ir::pInstr Convertor::find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDe
         return found;
     } else { // global
         for(auto i : module()->globs) {
-            if(strcmp(i->val.sym, root->sym) == 0) {
+            if(strcmp(i->val.sym, sym) == 0) {
                 if(i->val.is_const) {
                     node_assert(false, root, "[Convertor] error 11: assignment to a global const value");
                 }
@@ -229,6 +229,20 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
         auto to = find_value(r, func);
         return to;
     }
+    case NODE_REF: {
+        auto r = std::static_pointer_cast<Ast::RefNode>(root);
+        auto res = Ir::make_ref_instr(find_left_value(root, r->name, func));
+        func->add_instr(res);
+        return res;
+    }
+    case NODE_DEREF: {
+        auto r = std::static_pointer_cast<Ast::DerefNode>(root);
+        auto res = Ir::make_deref_instr(analyze_value(r->val, func), r->ty);
+        auto res2 = Ir::make_load_instr(r->ty, res);
+        func->add_instr(res);
+        func->add_instr(res2);
+        return res2;
+    }
     case NODE_ASSIGN:
     case NODE_DEF_VAR:
     case NODE_DEF_FUNC:
@@ -244,7 +258,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     switch(root->type) {
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
-        auto to = find_left_value(r, func);
+        auto to = find_left_value(r, r->sym, func);
         func->add_instr(Ir::make_store_instr(to->tr, to, cast_to_type(analyze_value(r->val, func), to->tr, func)));
         break;
     }
@@ -274,10 +288,12 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
         _env.end_env();
         break;
     }
-    case NODE_CAST: // meaningless
-    case NODE_IMM: // meaningless
-    case NODE_SYM: // meaningless
-        break;
+    case NODE_CAST:
+    case NODE_IMM:
+    case NODE_SYM:
+    case NODE_REF:
+    case NODE_DEREF:
+        break; // meaningless
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
         // impossible

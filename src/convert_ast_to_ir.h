@@ -11,6 +11,7 @@
 #include "ir_cmp_instr.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
+#include "ir_ptr_instr.h"
 
 namespace AstToIr {
 
@@ -38,7 +39,7 @@ private:
     Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func);
     Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func);
     Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func);
-    Ir::pInstr find_left_value(Pointer<Ast::AssignNode> root, Ir::pFuncDefined func);
+    Ir::pInstr find_left_value(pNode root, Symbol sym, Ir::pFuncDefined func);
     Ir::pInstr cast_to_type(Ir::pInstr val, ImmType tr, Ir::pFuncDefined func);
 
     Ir::pModule module() const;
