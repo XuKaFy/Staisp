@@ -7,7 +7,7 @@ Staisp（STAtic lISP），即静态语法表，用于用一种相比于 IR 更�
 ```
 DEFVAR i32:n 1
 
-DEFFUNC i32:fib ( CONST i32:n ) BLOCK {
+DEFFUNC i32:fib ( i32 CONST:n ) BLOCK {
     IF OR EQ n 1
           EQ n 2
         RETURN 1
@@ -103,8 +103,11 @@ basic_function -> unary_func    value
 basic_function_const -> unary_func    const_val
                      -> binary_func   const_val   const_val
                      -> triple        const_val   const_val   const_val
-typed_sym   -> CONST num_type:sym
-            -> num_type:sym
+typed_sym   -> type:sym
+type        -> num_type
+             | type CONST
+             | type*
+             | type[value]
 num_type    -> i64|i32|i16|i8|i1|void
 value_list  -> ( )
              | ( value, value_list )
@@ -178,7 +181,7 @@ compiler [file_name]
 10. `[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值
 11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值
 
-### Executor 报错
+### Executor 运行时报错
 
 1. `[Executor] error 1: function is not declared as DEFCONSTFUNC`：尝试执行非常数函数的函数
 2. `[Executor] error 2: function not found`：找不到函数
@@ -188,3 +191,6 @@ compiler [file_name]
 6. `[Executor] error 6: function has no return`：函数没有返回值
 7. `[Executor] error 7: empty value`：计算时含有 VOID
 
+### Type 类型错误
+
+1. `[Type] error 1: type has no joined type`：两类型不可计算

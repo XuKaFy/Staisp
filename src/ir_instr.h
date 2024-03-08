@@ -2,6 +2,7 @@
 
 #include "def.h"
 #include "imm.h"
+#include "type.h"
 
 #include "ir_val.h"
 
@@ -16,7 +17,7 @@ enum InstrType {
 };
 
 struct Instr : public Val {
-    Instr(InstrType instrType, ImmType tr)
+    Instr(InstrType instrType, pType tr)
         : instrType(instrType), tr(tr) { }
     
     Symbol instr_print();
@@ -26,7 +27,7 @@ struct Instr : public Val {
     virtual bool is_end_of_block() const = 0;
 
     InstrType instrType;
-    ImmType tr;
+    pType tr;
 
     Symbol instr_str_form { nullptr };
     int line;
@@ -35,7 +36,7 @@ struct Instr : public Val {
 typedef Pointer<Instr> pInstr;
 
 struct ConstArgInstr : public Instr {
-    ConstArgInstr(ImmTypedSym sym);
+    ConstArgInstr(TypedSym sym);
     virtual Symbol instr_print_impl() const override;
     virtual Symbol print_impl() const override;
     virtual bool is_end_of_block() const override;
@@ -44,6 +45,6 @@ struct ConstArgInstr : public Instr {
 };
 
 pInstr make_empty_instr();
-pInstr make_const_arg(ImmTypedSym sym);
+pInstr make_const_arg(TypedSym sym);
 
 } // namespace Ir

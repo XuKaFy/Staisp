@@ -8,11 +8,11 @@ Symbol BinInstr::instr_print_impl() const
     return to_symbol(
         String(print_impl())
         + " = "
-        + (is_float(tr) ? "f" : "" ) 
-        + (binType == INSTR_DIV ? (is_signed_imm_type(tr) ? "s" : "u") : "") // SDIV and UDIV
+        + (is_float(tr) ? "f" : 
+            (binType == INSTR_DIV ? (is_signed_imm_type(tr) ? "s" : "u") : "")) 
         + gBinInstrName[binType] 
         + " " 
-        + gImmName[tr]
+        + tr->type_name()
         + " "
         + oprd[0]->print()
         + ", "
@@ -26,17 +26,17 @@ Symbol UnaryInstr::instr_print_impl() const
         + " = "
         + gUnaryInstrName[unaryType]
         + " " 
-        + gImmName[tr]
+        + tr->type_name()
         + " "
         + oprd->print());
 }
 
-pInstr make_unary_instr(UnaryInstrType type, ImmType tr, pVal oprd)
+pInstr make_unary_instr(UnaryInstrType type, pType tr, pVal oprd)
 {
     return pInstr(new UnaryInstr(type, tr, oprd));
 }
 
-pInstr make_binary_instr(BinInstrType type, ImmType tr, pVal oprd1, pVal oprd2)
+pInstr make_binary_instr(BinInstrType type, pType tr, pVal oprd1, pVal oprd2)
 {
     return pInstr(new BinInstr(type, tr, oprd1, oprd2));
 }

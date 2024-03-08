@@ -67,7 +67,27 @@ Symbol Parser::parse_sym()
     return current_token().sym;
 }
 
-ImmType Parser::parse_type() {
+bool Parser::is_const_symbol() const
+{
+    if(peek().t == TOKEN_SYM
+        && gBuildinSymType.count(peek().sym) 
+        && gBuildinSymType.find(peek().sym)->second == BUILDIN_CONST) {
+        // consume_token(TOKEN_SYM);
+        return true;
+    }
+    return false;
+}
+
+bool Parser::is_type_ended() const
+{
+    if(peek().t == TOKEN_FLWR || peek().t == TOKEN_LB_M)
+        return false;
+    if(is_const_symbol()) return false;
+    return true;
+}
+
+pType Parser::parse_type() {
+    bool is_const = false;
     get_token();
     if(current_token().t != TOKEN_SYM) {
         current_token().print_error("[Parser] error 3: not a type");
@@ -75,22 +95,43 @@ ImmType Parser::parse_type() {
     if(gSymToImmType.count(current_token().sym) == 0) {
         current_token().print_error("[Parser] error 3: not a type");
     }
-    return gSymToImmType.find(current_token().sym)->second;
+    pType root = make_basic_type(gSymToImmType.find(current_token().sym)->second, is_const);
+    while(!is_type_ended()) {
+        if(peek().t == TOKEN_FLWR) {
+            root = make_pointer_type(root, false);
+            consume_token(TOKEN_FLWR);
+            continue;
+        }
+        if(is_const_symbol()) {
+            consume_token(TOKEN_SYM);
+            root->is_const = true;
+            continue;
+        }
+        // TODO TODO TODO
+        /*if(peek().t == TOKEN_LB_M) {
+            pNode v = parse_value();
+            root = make_array_type(root, );
+        }*/
+        my_assert(false, "not implemented");
+    }
+    return root;
 }
 
-ImmTypedSym Parser::parse_typed_sym()
+ImmValue Parser::parse_single_value_list()
 {
-    bool is_const = false;
-    if(peek().t == TOKEN_SYM
-        && gBuildinSymType.count(peek().sym) 
-        && gBuildinSymType.find(peek().sym)->second == BUILDIN_CONST) {
-        consume_token(TOKEN_SYM);
-        is_const = true;
-    }
+    consume_token(TOKEN_LB_M);
+    pNode val = parse_value();
+    consume_token(TOKEN_RB_M);
+    my_assert(false, "not implemented");
+    return ImmValue(); // TODO TODO TODO
+}
+
+TypedSym Parser::parse_typed_sym()
+{
     auto type = parse_type();
     consume_token(TOKEN_2DOT);
     auto sym = parse_sym();
-    return ImmTypedSym(sym, type, is_const);
+    return TypedSym(sym, type);
 }
 
 pNode Parser::parse_value()
@@ -225,10 +266,10 @@ pNode Parser::parse_statement()
     return parse_function_call(current_token().sym);
 }
 
-Vector<ImmTypedSym> Parser::parse_typed_sym_list()
+Vector<TypedSym> Parser::parse_typed_sym_list()
 {
     consume_token(TOKEN_LB_S);
-    Vector<ImmTypedSym> ts;
+    Vector<TypedSym> ts;
     while(peek().t != TOKEN_RB_S) {
         ts.push_back(parse_typed_sym());
     }

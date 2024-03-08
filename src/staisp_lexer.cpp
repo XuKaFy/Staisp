@@ -128,6 +128,7 @@ pToken Lexer::lexer_one_token()
     case '{': return pToken(new StaispToken(TOKEN_LB_L, '{', _p_code, _begin, _current, _line_count));
     case '}': return pToken(new StaispToken(TOKEN_RB_L, '}', _p_code, _begin, _current, _line_count));
     case ':': return pToken(new StaispToken(TOKEN_2DOT, ':', _p_code, _begin, _current, _line_count));
+    case '*': return pToken(new StaispToken(TOKEN_FLWR, '*', _p_code, _begin, _current, _line_count));
     }
     if(isdigit(ch)) {
         return lexer_number(ch);

@@ -19,7 +19,7 @@ Symbol BrInstr::instr_print_impl() const
 Symbol BrCondInstr::instr_print_impl() const
 {
     String ans = "br ";
-    ans += gImmName[cond->tr];
+    ans += cond->tr->type_name();
     ans += " ";
     ans += cond->print();
     ans += ", label ";

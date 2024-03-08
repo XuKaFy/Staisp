@@ -7,7 +7,7 @@
 namespace Ir {
 
 struct AllocInstr : public Instr {
-    AllocInstr(ImmType tr)
+    AllocInstr(pType tr)
         : Instr(INSTR_TYPE_ALLOC, tr) { }
     
     virtual Symbol instr_print_impl() const override;
@@ -15,7 +15,7 @@ struct AllocInstr : public Instr {
 };
 
 struct LoadInstr : public Instr {
-    LoadInstr(ImmType tr, pInstr from)
+    LoadInstr(pType tr, pInstr from)
         : Instr(INSTR_TYPE_NEED_REG, tr), from(from) { }
     
     virtual Symbol instr_print_impl() const override;
@@ -24,7 +24,7 @@ struct LoadInstr : public Instr {
 };
 
 struct StoreInstr : public Instr {
-    StoreInstr(ImmType tr, pInstr to, pVal val)
+    StoreInstr(pType tr, pInstr to, pVal val)
         : Instr(INSTR_TYPE_NO_REG, tr), to(to), val(val) { }
     
     virtual Symbol instr_print_impl() const override;
@@ -40,7 +40,7 @@ enum SymFrom {
 };
 
 struct SymInstr : public Instr {
-    SymInstr(ImmTypedSym val, SymFrom from = SYM_LOCAL)
+    SymInstr(TypedSym val, SymFrom from = SYM_LOCAL)
         : Instr(INSTR_TYPE_NO_REG, val.tr), sym(val.sym), from(from) { }
 
     virtual Symbol print_impl() const override;
@@ -49,9 +49,9 @@ struct SymInstr : public Instr {
     SymFrom from;
 };
 
-pInstr make_alloc_instr(ImmType tr);
-pInstr make_load_instr(ImmType tr, pInstr from);
-pInstr make_store_instr(ImmType tr, pInstr to, pVal val);
-pInstr make_sym_instr(ImmTypedSym val, SymFrom from = SYM_LOCAL);
+pInstr make_alloc_instr(pType tr);
+pInstr make_load_instr(pType tr, pInstr from);
+pInstr make_store_instr(pType tr, pInstr to, pVal val);
+pInstr make_sym_instr(TypedSym val, SymFrom from = SYM_LOCAL);
 
 } // namespace ir

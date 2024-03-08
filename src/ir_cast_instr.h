@@ -6,7 +6,7 @@ namespace Ir
 {
 
 struct CastInstr : public Instr {
-    CastInstr(ImmType tr, pInstr a1)
+    CastInstr(pType tr, pInstr a1)
         : Instr(INSTR_TYPE_NEED_REG, tr), val(a1) { }
 
     virtual Symbol instr_print_impl() const override;
@@ -15,6 +15,6 @@ struct CastInstr : public Instr {
     pInstr val;
 };
 
-pInstr make_cast_instr(ImmType tr, pInstr a1);
+pInstr make_cast_instr(pType tr, pInstr a1);
 
 } // namespace ir

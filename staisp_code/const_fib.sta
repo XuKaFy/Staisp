@@ -1,4 +1,4 @@
-DEFCONSTFUNC i32:fib(CONST i32:n) BLOCK {
+DEFCONSTFUNC i32:fib(i32 CONST:n) BLOCK {
     IF OR EQ n 1
           EQ n 2
         RETURN 1

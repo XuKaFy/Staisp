@@ -7,7 +7,7 @@ Symbol AllocInstr::instr_print_impl() const
     return to_symbol(
         String(print_impl())
         + " = alloca "
-        + gImmName[tr]
+        + tr->type_name()
     );
 }
 
@@ -16,9 +16,9 @@ Symbol LoadInstr::instr_print_impl() const
     return to_symbol(
         String(print_impl())
         + " = load "
-        + gImmName[tr]
+        + tr->type_name()
         + ", "
-        + gImmName[from->tr]
+        + from->tr->type_name()
         + "* "
         + from->print()
     );
@@ -28,11 +28,11 @@ Symbol StoreInstr::instr_print_impl() const
 {
     return to_symbol(
         String("store ")
-        + gImmName[tr]
+        + tr->type_name()
         + " "
         + val->print()
         + ", "
-        + gImmName[to->tr]
+        + to->tr->type_name()
         + "* "
         + to->print()
     );
@@ -45,22 +45,22 @@ Symbol SymInstr::print_impl() const
     return to_symbol(String("@") + sym);
 }
 
-pInstr make_alloc_instr(ImmType tr)
+pInstr make_alloc_instr(pType tr)
 {
     return pInstr(new AllocInstr(tr));
 }
 
-pInstr make_load_instr(ImmType tr, pInstr from)
+pInstr make_load_instr(pType tr, pInstr from)
 {
     return pInstr(new LoadInstr(tr, from));
 }
 
-pInstr make_store_instr(ImmType tr, pInstr to, pVal val)
+pInstr make_store_instr(pType tr, pInstr to, pVal val)
 {
     return pInstr(new StoreInstr(tr, to, val));
 }
 
-pInstr make_sym_instr(ImmTypedSym val, SymFrom from)
+pInstr make_sym_instr(TypedSym val, SymFrom from)
 {
     return pInstr(new SymInstr(val, from));
 }

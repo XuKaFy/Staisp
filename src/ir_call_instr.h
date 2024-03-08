@@ -17,7 +17,7 @@ struct CallInstr : public Instr {
 };
 
 struct RetInstr : public Instr {
-    RetInstr(ImmType tr, pInstr oprd)
+    RetInstr(pType tr, pInstr oprd)
         : Instr(INSTR_TYPE_NO_REG, tr), ret(oprd) { }
     
     virtual bool is_end_of_block() const { return true; }
@@ -27,6 +27,6 @@ struct RetInstr : public Instr {
 };
 
 pInstr make_call_instr(pFunc func, Vector<pInstr> args);
-pInstr make_ret_instr(ImmType tr, pInstr oprd);
+pInstr make_ret_instr(pType tr, pInstr oprd);
 
 } // namespace Ir

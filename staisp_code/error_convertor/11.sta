@@ -1,6 +1,6 @@
 # fib program # fib
 
-DEFVAR CONST i32:n 1
+DEFVAR i32 CONST:n 1
 
 DEFFUNC i32:fib(i32:n) BLOCK {
     IF OR EQ n 1

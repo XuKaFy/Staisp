@@ -2,12 +2,12 @@
 
 namespace Ir {
 
-FuncDefined::FuncDefined(ImmTypedSym var, Vector<ImmTypedSym> arg_types)
+FuncDefined::FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
     : Func(var, arg_types) {
     pBlock first_block = make_block();
     
     for(auto i : arg_types) {
-        if(i.is_const) {
+        if(i.tr->is_const) {
             args_value.push_back(make_const_arg(i));
         } else {
             pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
@@ -26,19 +26,20 @@ Symbol FuncDefined::print_func() const
         body[i]->generate_line(line_count);
     }
 
-    String whole_function = String("define ") + gImmName[var.tr] + " @" + var.sym + "("; // functions are all global
+    String whole_function = String("define ") 
+        + var.tr->type_name() + " @" + var.sym + "("; // functions are all global
 
     my_assert(!body.empty(), "Error: function has no block");
 
     if(args.empty()) goto PRINT_IMPL_END;
     
-    whole_function += gImmName[args[0].tr];
+    whole_function += args[0].tr->type_name();
     whole_function += " %";
     whole_function += args[0].sym;
     
     for(size_t i=1; i<args.size(); ++i) {
         whole_function += ", ";
-        whole_function += gImmName[args[i].tr];
+        whole_function += args[i].tr->type_name();
         whole_function += " %";
         whole_function += args[i].sym;
     }
@@ -55,7 +56,7 @@ PRINT_IMPL_END:
     return to_symbol(whole_function);
 }
 
-pFuncDefined make_func_defined(ImmTypedSym var, Vector<ImmTypedSym> arg_types)
+pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types)
 {
     return pFuncDefined(new FuncDefined(var, arg_types));
 }

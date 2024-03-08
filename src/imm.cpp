@@ -21,6 +21,12 @@ bool is_signed_imm_type(ImmType tr)
     }
 }
 
+ImmValue::ImmValue(Memory mem, ImmType ty)
+    : ty(ty)
+{
+    val.uval = *((unsigned long long*)mem.mem.get());
+}
+
 bool is_float(ImmType tr)
 {
     switch(tr) {

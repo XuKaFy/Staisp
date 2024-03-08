@@ -22,6 +22,8 @@ enum ImmType {
 #undef ENTRY
 };
 
+#define ARCH_USED_POINTER_TYPE IMM_U64
+
 const Map<String, ImmType> gSymToImmType {
 #define ENTRY(x, y, z, a) { #z, IMM_##y },
     IMM_TYPE_TABLE
@@ -63,6 +65,7 @@ struct ImmValue {
         : ty(IMM_I32), val() {}
     ImmValue(bool flag)
         : ty(IMM_I1), val((long long)flag) {}
+    ImmValue(Memory mem, ImmType ty);
     ImmValue(ImmType ty)
         : ty(ty), val() {
         switch(ty) {

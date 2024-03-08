@@ -29,7 +29,7 @@ class Convertor {
 public:
     Ir::pModule generate(AstProg asts);
     static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::OprNode> root);
-    static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root, ImmType tr);
+    static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root, pType tr);
 
 private:
     void generate_single(pNode root);
@@ -40,7 +40,7 @@ private:
     Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func);
     Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func);
     Ir::pInstr find_left_value(pNode root, Symbol sym, Ir::pFuncDefined func);
-    Ir::pInstr cast_to_type(Ir::pInstr val, ImmType tr, Ir::pFuncDefined func);
+    Ir::pInstr cast_to_type(Ir::pInstr val, pType tr, Ir::pFuncDefined func);
 
     Ir::pModule module() const;
 

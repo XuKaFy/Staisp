@@ -3,6 +3,7 @@
 #include "def.h"
 #include "env.h"
 #include "imm.h"
+#include "type.h"
 
 #include "staisp_lexer.h"
 #include "ast_node.h"
@@ -100,11 +101,15 @@ private:
     // pNode parse_array_val(); // { {1 2} {3 4} }
     pNode parse_statement();
     pNode parse_value();
-    ImmTypedSym parse_typed_sym();
+    TypedSym parse_typed_sym();
     Symbol parse_sym();
-    ImmType parse_type();
+    pType parse_type();
+    ImmValue parse_single_value_list();
     
-    Vector<ImmTypedSym> parse_typed_sym_list();
+    bool is_const_symbol() const;
+    bool is_type_ended() const;
+
+    Vector<TypedSym> parse_typed_sym_list();
     AstProg parse_value_list();
 
     EnvWrapper<SymType> _env;

@@ -8,7 +8,7 @@ Symbol Func::print_impl() const
     return to_symbol(String("@") + var.sym);
 }
 
-pFunc make_func(ImmTypedSym var, Vector<ImmTypedSym> arg_types)
+pFunc make_func(TypedSym var, Vector<TypedSym> arg_types)
 {
     return pFunc(new Func(var, arg_types));
 }

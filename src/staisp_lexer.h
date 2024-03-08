@@ -20,6 +20,7 @@ enum TokenType
     TOKEN_RB_L, // }
     TOKEN_2DOT, // :
     TOKEN_SHRP, // #
+    TOKEN_FLWR, // *
 };
 
 struct StaispToken : public Token {

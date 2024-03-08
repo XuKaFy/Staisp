@@ -19,7 +19,7 @@ Ir::pInstr Convertor::find_left_value(pNode root, Symbol sym, Ir::pFuncDefined f
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->val.sym, sym) == 0) {
-                if(i->val.is_const) {
+                if(i->val.tr->is_const) {
                     node_assert(false, root, "[Convertor] error 11: assignment to a global const value");
                 }
                 return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
@@ -52,7 +52,7 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
     return Ir::make_empty_instr();
 }
 
-Ir::pInstr Convertor::cast_to_type(Ir::pInstr val, ImmType tr, Ir::pFuncDefined func)
+Ir::pInstr Convertor::cast_to_type(Ir::pInstr val, pType tr, Ir::pFuncDefined func)
 {
     // if(val->tr == tr) return val; (included in line below)
     if(is_float(val->tr) == is_float(tr) && bits_of_type(val->tr) == bits_of_type(tr)) return val;
@@ -76,7 +76,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto a = root->ch.begin();
         auto a1 = analyze_value(*(a++), func);
         auto a2 = analyze_value(*(a++), func);
-        auto joined_type = join_imm_type(a1->tr, a2->tr);
+        auto joined_type = join_type(root, a1->tr, a2->tr);
         auto ir = Ir::make_binary_instr(fromBinaryOpr(root), joined_type, cast_to_type(a1, joined_type, func), cast_to_type(a2, joined_type, func));
         func->add_instr(ir);
         return ir;
@@ -92,7 +92,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto a = root->ch.begin();
         auto a1 = analyze_value(*(a++), func);
         auto a2 = analyze_value(*(a++), func);
-        auto ty = join_imm_type(a1->tr, a2->tr);
+        auto ty = join_type(root, a1->tr, a2->tr);
         auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), ty, cast_to_type(a1, ty, func), cast_to_type(a2, ty, func));
         func->add_instr(ir);
         return ir;
@@ -220,7 +220,8 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     }
     case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
-        auto res = Ir::make_binary_instr(Ir::INSTR_ADD, r->imm.ty, Ir::make_constant(r->imm.ty), Ir::make_constant(r->imm));
+        auto res = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(r->imm.ty, false),
+                     Ir::make_constant(r->imm.ty), Ir::make_constant(r->imm));
         func->add_instr(res);
         return res;
     }
@@ -265,7 +266,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
-        if(r->var.is_const) {
+        if(r->var.tr->is_const) {
             func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
                 Ir::make_constant(r->var.tr), cast_to_type(analyze_value(r->val, func), r->var.tr, func)));
             _env.env()->set(r->var.sym, tmp);
@@ -370,7 +371,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
     return Ir::INSTR_ADD;
 }
 
-Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, ImmType tr)
+Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, pType tr)
 {
     bool is_signed = is_signed_imm_type(tr);
 #define SELECT(x) case OPR_##x: return Ir::CMP_##x;

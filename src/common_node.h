@@ -1,6 +1,7 @@
 #pragma once
 
 #include "def.h"
+#include "type.h"
 #include "common_token.h"
 
 enum NodeType
@@ -64,3 +65,5 @@ typedef Pointer<Node> pNode;
 typedef List<pNode> AstProg;
 
 void node_assert(bool judge, pNode root, Symbol message);
+
+pType join_type(pNode r, pType a1, pType a2);

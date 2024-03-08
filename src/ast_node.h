@@ -2,6 +2,7 @@
 
 #include "def.h"
 #include "imm.h"
+#include "type.h"
 
 #include "common_node.h"
 #include "common_token.h"
@@ -39,18 +40,18 @@ struct AssignNode : public Node
 
 struct VarDefNode : public Node
 {
-    VarDefNode(pToken t,ImmTypedSym var, pNode val)
+    VarDefNode(pToken t,TypedSym var, pNode val)
         : Node(t, NODE_DEF_VAR), var(var), val(val) { }
-    ImmTypedSym var;
+    TypedSym var;
     pNode val;
 };
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(pToken t, ImmTypedSym var, Vector<ImmTypedSym> args, pNode body, bool is_const)
+    FuncDefNode(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const)
         : Node(t, is_const ? NODE_DEF_CONST_FUNC : NODE_DEF_FUNC), var(var), args(args), body(body) { }
-    ImmTypedSym var;
-    Vector<ImmTypedSym> args;
+    TypedSym var;
+    Vector<TypedSym> args;
     pNode body;
 };
 
@@ -70,9 +71,9 @@ struct ArrayDefNode : public Node
 
 struct CastNode : public Node
 {
-    CastNode(pToken t, ImmType ty, pNode val)
+    CastNode(pToken t, pType ty, pNode val)
         : Node(t, NODE_CAST), ty(ty), val(val) { }
-    ImmType ty;
+    pType ty;
     pNode val;
 };
 
@@ -85,9 +86,9 @@ struct RefNode : public Node
 
 struct DerefNode : public Node
 {
-    DerefNode(pToken t, ImmType ty, pNode val)
+    DerefNode(pToken t, pType ty, pNode val)
         : Node(t, NODE_DEREF), ty(ty), val(val) { }
-    ImmType ty;
+    pType ty;
     pNode val;
 };
 
@@ -95,12 +96,12 @@ pNode new_imm_node(pToken t, ImmValue imm);
 pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
 pNode new_assign_node(pToken t, Symbol sym, pNode val);
-pNode new_var_def_node(pToken t, ImmTypedSym var, pNode val);
-pNode new_func_def_node(pToken t, ImmTypedSym var, Vector<ImmTypedSym> args, pNode body, bool is_const);
+pNode new_var_def_node(pToken t, TypedSym var, pNode val);
+pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const);
 pNode new_block_node(pToken t, AstProg body);
 pNode new_array_def_node(pToken t, ImmValues nums);
-pNode new_cast_node(pToken t, ImmType ty, pNode val);
+pNode new_cast_node(pToken t, pType ty, pNode val);
 pNode new_ref_node(pToken t, Symbol name);
-pNode new_deref_node(pToken t, ImmType ty, pNode val);
+pNode new_deref_node(pToken t, pType ty, pNode val);
 
 } // namespace ast

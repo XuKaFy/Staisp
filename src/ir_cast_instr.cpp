@@ -11,11 +11,11 @@ Symbol CastInstr::instr_print_impl() const
         return to_symbol(
             String(print_impl())
             + " = trunc "
-            + gImmName[tsrc]
+            + tsrc->type_name()
             + " " 
             + val->print()
             + " to "
-            + gImmName[tdest]);
+            + tdest->type_name());
     }
     if(bits_of_type(tdest) == bits_of_type(tsrc)) { // i32<->float, i64<->double
         if(is_float(tdest)) {
@@ -23,63 +23,63 @@ Symbol CastInstr::instr_print_impl() const
                 return to_symbol(
                     String(print_impl())
                     + " = sitofp "
-                    + gImmName[tsrc]
+                    + tsrc->type_name()
                     + " " 
                     + val->print()
                     + " to "
-                    + gImmName[tdest]);
+                    + tdest->type_name());
             }
             return to_symbol(
                 String(print_impl())
                 + " = uitofp "
-                + gImmName[tsrc]
+                + tsrc->type_name()
                 + " " 
                 + val->print()
                 + " to "
-                + gImmName[tdest]);
+                + tdest->type_name());
         }
         // tsrc must be float
         if(is_signed_imm_type(tdest)) {
             return to_symbol(
                 String(print_impl())
                 + " = fptosi "
-                + gImmName[tsrc]
+                + tsrc->type_name()
                 + " " 
                 + val->print()
                 + " to "
-                + gImmName[tdest]);
+                + tdest->type_name());
         }
         return to_symbol(
             String(print_impl())
             + " = fptoui "
-            + gImmName[tsrc]
+            + tsrc->type_name()
             + " " 
             + val->print()
             + " to "
-            + gImmName[tdest]);
+            + tdest->type_name());
     }
     // zext or sext
     if(is_signed_imm_type(tdest)) {
         return to_symbol(
             String(print_impl())
             + " = sext "
-            + gImmName[tsrc]
+            + tsrc->type_name()
             + " " 
             + val->print()
             + " to "
-            + gImmName[tdest]);
+            + tdest->type_name());
     }
     return to_symbol(
         String(print_impl())
         + " = zext "
-        + gImmName[tsrc]
+        + tsrc->type_name()
         + " " 
         + val->print()
         + " to "
-        + gImmName[tdest]);
+        + tdest->type_name());
 }
 
-pInstr make_cast_instr(ImmType tr, pInstr a1)
+pInstr make_cast_instr(pType tr, pInstr a1)
 {
     return pInstr(new CastInstr(tr, a1));
 }

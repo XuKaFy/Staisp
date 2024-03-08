@@ -7,7 +7,7 @@ namespace Ir {
 struct LabelInstr : public Instr
 {
     LabelInstr()
-        : Instr(INSTR_TYPE_LABEL, IMM_I1) { }
+        : Instr(INSTR_TYPE_LABEL, make_basic_type(IMM_I1, false)) { }
 
     virtual Symbol instr_print_impl() const override;
     virtual bool is_end_of_block() const { return false; }
@@ -15,7 +15,7 @@ struct LabelInstr : public Instr
 
 struct BrInstr : public Instr {
     BrInstr(pInstr to)
-        : Instr(INSTR_TYPE_NO_REG, IMM_I1), to(to) {}
+        : Instr(INSTR_TYPE_NO_REG, make_basic_type(IMM_I1, false)), to(to) {}
 
     virtual Symbol instr_print_impl() const override;
     virtual bool is_end_of_block() const { return true; }

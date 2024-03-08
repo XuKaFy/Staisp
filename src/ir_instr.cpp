@@ -28,12 +28,12 @@ pInstr make_empty_instr()
     return empty;
 }
 
-pInstr make_const_arg(ImmTypedSym sym)
+pInstr make_const_arg(TypedSym sym)
 {
     return pInstr(new ConstArgInstr(sym));
 }
 
-ConstArgInstr::ConstArgInstr(ImmTypedSym sym)
+ConstArgInstr::ConstArgInstr(TypedSym sym)
     : Instr(INSTR_TYPE_HIDE, sym.tr), sym(sym.sym)
 {
 }
