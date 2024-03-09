@@ -1,0 +1,4 @@
+DEFFUNC i32:main() {
+    DEFVAR i32[2][2]:a [[1 2] [3 4]]
+    RETURN 0
+}

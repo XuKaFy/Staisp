@@ -188,6 +188,8 @@ compiler [file_name]
 13. `[Convertor] error 13: not castable`：隐式转换失败
 14. `[Convertor] error 14: type of index should be integer`：寻址的参数必须是整型
 15. `[Convertor] error 15: array should be initialized by a list`：必须用列表来初始化
+16. `[Convertor] error 16: list should initialize type that is pointed`：列表只能初始化指针类型指向的值
+17. `[Convertor] error 17: list dont match the expected value`：列表中的值类型与数组不符
 
 ### Executor 运行时报错
 

@@ -61,6 +61,14 @@ bool is_pointer(pType p)
     return true;
 }
 
+bool is_array(pType p)
+{
+    if(p->type_type() != TYPE_COMPOUND_TYPE) return false;
+    if(std::static_pointer_cast<CompoundType>(p)->compound_type_type() != COMPOUND_TYPE_ARRAY)
+        return false;
+    return true;
+}
+
 bool is_imm_type(pType p)
 {
     return p->type_type() == TYPE_BASIC_TYPE;

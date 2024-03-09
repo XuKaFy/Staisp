@@ -100,6 +100,8 @@ bool is_float(pType tr);
 size_t bits_of_type(pType tr);
 bool is_integer(pType tr);
 
+bool is_array(pType tr);
+
 Pointer<PointerType> to_pointer(pType p);
 pType to_pointed_type(pType p);
 
