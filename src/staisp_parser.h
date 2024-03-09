@@ -101,8 +101,10 @@ private:
     // pNode parse_array_val(); // { {1 2} {3 4} }
     pNode parse_statement();
     pNode parse_value();
+    pNode parse_left_value();
     TypedSym parse_typed_sym();
     Symbol parse_sym();
+    pNode parse_sym_node();
     pType parse_type();
     ImmValue parse_single_value_list();
     

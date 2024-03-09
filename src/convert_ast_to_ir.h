@@ -39,8 +39,9 @@ private:
     Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func);
     Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func);
     Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func);
-    Ir::pInstr find_left_value(pNode root, Symbol sym, Ir::pFuncDefined func);
-    Ir::pInstr cast_to_type(Ir::pInstr val, pType tr, Ir::pFuncDefined func);
+    Ir::pInstr find_left_value(pNode root, pNode lv, Ir::pFuncDefined func);
+    Ir::pInstr find_left_value(pNode root, Symbol name, Ir::pFuncDefined func);
+    Ir::pInstr cast_to_type(pNode root, Ir::pInstr val, pType tr, Ir::pFuncDefined func);
 
     Ir::pModule module() const;
 

@@ -57,7 +57,11 @@ ImmOrVoid Executor::execute(pNode root)
     }
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<AssignNode>(root);
-        _env.env()->set(r->sym, must_have_value_execute(r->val));
+        if(r->lv->type != NODE_SYM) {
+            my_assert(false, "not implemented");
+        }
+        auto lv = std::static_pointer_cast<SymNode>(r->lv);
+        _env.env()->set(lv->sym, must_have_value_execute(r->val));
     }
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:

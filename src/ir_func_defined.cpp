@@ -11,7 +11,7 @@ FuncDefined::FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
             args_value.push_back(make_const_arg(i));
         } else {
             pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
-            first_block->add_instr(make_store_instr(i.tr, tmp, make_sym_instr(i)));
+            first_block->add_instr(make_store_instr(tmp, make_sym_instr(i)));
             args_value.push_back(tmp);
         }
     }

@@ -58,6 +58,15 @@ bool Parser::is_buildin_sym(Symbol sym)
     return gBuildinBinaryOprType.count(sym) || gBuildinSymType.count(sym);
 }
 
+pNode Parser::parse_sym_node()
+{
+    get_token();
+    if(current_token().t != TOKEN_SYM) {
+        current_token().print_error("[Parser] error 2: not a symbol");
+    }
+    return Ast::new_sym_node(current_p_token(), current_token().sym);
+}
+
 Symbol Parser::parse_sym()
 {
     get_token();
@@ -104,6 +113,9 @@ pType Parser::parse_type() {
         }
         if(is_const_symbol()) {
             consume_token(TOKEN_SYM);
+            if(root->is_const) {
+                current_token().print_error("[Parser] error 11: too many CONSTs");
+            }
             root->is_const = true;
             continue;
         }
@@ -158,6 +170,23 @@ pNode Parser::parse_value()
     return Ast::new_sym_node(current_p_token(), current_token().sym);
 }
 
+pNode Parser::parse_left_value()
+{
+    auto nxt = peek();
+    if(nxt.t == TOKEN_INT) {
+        nxt.print_error("[Parser] error 12: expected to be a left-value [1]");
+    }
+    if(gBuildinSymType.count(nxt.sym)) {
+        get_token();
+        auto r = gBuildinSymType.find(current_token().sym)->second;
+        if(r == BUILDIN_DEREF) {
+            return parse_value();
+        }
+        nxt.print_error("[Parser] error 12: expected to be a left-value [2]");
+    }
+    return parse_sym_node();
+}
+
 pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
 {
     auto token = current_p_token();
@@ -179,7 +208,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_opr_node(token, OPR_IF, { a1, a2, a3 } );
     }
     case BUILDIN_ASSIGN: {
-        auto a1 = parse_sym();
+        auto a1 = parse_left_value();
         auto a2 = parse_value();
         return Ast::new_assign_node(token, a1, a2);
     }
@@ -238,8 +267,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_ref_node(token, parse_sym());
     }
     case BUILDIN_DEREF: {
-        auto type = parse_type();
-        return Ast::new_deref_node(token, type, parse_value());
+        return Ast::new_deref_node(token, parse_value());
     }
     case BUILDIN_CONST: {
         current_token().print_error("[Parser] error 10: beginning of a statement cannot be a type");

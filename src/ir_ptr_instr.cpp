@@ -32,9 +32,9 @@ pInstr make_ref_instr(pInstr obj)
     return pInstr(new RefInstr(obj));
 }
 
-pInstr make_deref_instr(pInstr obj, pType tr)
+pInstr make_deref_instr(pInstr obj)
 {
-    return pInstr(new DerefInstr(obj, tr));
+    return pInstr(new DerefInstr(obj));
 }
 
 } // namespace ir

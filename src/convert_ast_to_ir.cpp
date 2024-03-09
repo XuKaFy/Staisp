@@ -30,20 +30,33 @@ Ir::pInstr Convertor::find_left_value(pNode root, Symbol sym, Ir::pFuncDefined f
     return Ir::make_empty_instr();
 }
 
+Ir::pInstr Convertor::find_left_value(pNode root, pNode lv, Ir::pFuncDefined func)
+{
+    if(lv->type == NODE_DEREF) {
+        auto r = std::static_pointer_cast<Ast::DerefNode>(lv);
+        return func->add_instr(Ir::make_deref_instr(analyze_value(r->val, func)));
+    }
+    if(lv->type != NODE_SYM) {
+        node_assert(false, root, "[Convertor] error 12: expected to be a left-value");
+    }
+    Symbol sym = std::static_pointer_cast<Ast::SymNode>(lv)->sym;
+    return find_left_value(root, sym, func);
+}
+
 Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func)
 {
     if(_env.env()->count(root->sym)) { // local
         Ir::pInstr found = _env.env()->find(root->sym);
         // no-const value should be loaded
-        if(found->instrType == Ir::INSTR_TYPE_ALLOC) 
-            return func->add_instr(Ir::make_load_instr(found->tr, found));
+        if(is_pointer(found->tr))
+            return func->add_instr(Ir::make_load_instr(found));
         // const value should be immediately used
         return found;
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->val.sym, root->sym) == 0) {
                 auto sym = Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
-                return func->add_instr(Ir::make_load_instr(sym->tr, sym));
+                return func->add_instr(Ir::make_load_instr(sym));
             }
         }
     }
@@ -52,10 +65,13 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
     return Ir::make_empty_instr();
 }
 
-Ir::pInstr Convertor::cast_to_type(Ir::pInstr val, pType tr, Ir::pFuncDefined func)
+Ir::pInstr Convertor::cast_to_type(pNode root, Ir::pInstr val, pType tr, Ir::pFuncDefined func)
 {
-    // if(val->tr == tr) return val; (included in line below)
-    if(is_float(val->tr) == is_float(tr) && bits_of_type(val->tr) == bits_of_type(tr)) return val;
+    if(same_type(val->tr, tr)) return val;
+    if(!castable(val->tr, tr)) {
+        printf("Message: not castable from %s to %s\n", val->tr->type_name(), tr->type_name());
+        root->token->print_error("[Convertor] error 13: not castable");
+    }
     auto r = Ir::make_cast_instr(tr, val);
     func->add_instr(r);
     return r;
@@ -74,10 +90,14 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         // impossible
         node_assert(root->ch.size() == 2, root, "[Convertor] binary opr has not 2 args - impossible");
         auto a = root->ch.begin();
+        auto an1 = *a;
         auto a1 = analyze_value(*(a++), func);
+        auto an2 = *a;
         auto a2 = analyze_value(*(a++), func);
-        auto joined_type = join_type(root, a1->tr, a2->tr);
-        auto ir = Ir::make_binary_instr(fromBinaryOpr(root), joined_type, cast_to_type(a1, joined_type, func), cast_to_type(a2, joined_type, func));
+        auto joined_type = join_type(a1->tr, a2->tr);
+        if(!joined_type)
+            root->token->print_error("[Type] error 1: type has no joined type");
+        auto ir = Ir::make_binary_instr(fromBinaryOpr(root), joined_type, cast_to_type(an1, a1, joined_type, func), cast_to_type(an2, a2, joined_type, func));
         func->add_instr(ir);
         return ir;
     }
@@ -90,10 +110,14 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         // impossible
         node_assert(root->ch.size() == 2, root, "[Convertor] binary opr has not 2 args - impossible");
         auto a = root->ch.begin();
+        auto an1 = *a;
         auto a1 = analyze_value(*(a++), func);
+        auto an2 = *a;
         auto a2 = analyze_value(*(a++), func);
-        auto ty = join_type(root, a1->tr, a2->tr);
-        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), ty, cast_to_type(a1, ty, func), cast_to_type(a2, ty, func));
+        auto ty = join_type(a1->tr, a2->tr);
+        if(!ty)
+            root->token->print_error("[Type] error 1: type has no joined type");
+        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), ty, cast_to_type(an1, a1, ty, func), cast_to_type(an2, a2, ty, func));
         func->add_instr(ir);
         return ir;
     }
@@ -158,7 +182,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         // impossible
         node_assert(root->ch.size() == 1, root, "[Convertor] \"RET\" opr has not 1 args - impossible");
         auto a = analyze_value(root->ch.front(), func);
-        func->add_instr(Ir::make_ret_instr(func->var.tr, cast_to_type(a, func->var.tr, func)));
+        func->add_instr(Ir::make_ret_instr(func->var.tr, cast_to_type(root->ch.front(), a, func->var.tr, func)));
         return Ir::make_empty_instr();
     }
     case OPR_CALL: {
@@ -232,14 +256,12 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     }
     case NODE_REF: {
         auto r = std::static_pointer_cast<Ast::RefNode>(root);
-        auto res = Ir::make_ref_instr(find_left_value(root, r->name, func));
-        func->add_instr(res);
-        return res;
+        return find_left_value(root, r->name, func);
     }
     case NODE_DEREF: {
         auto r = std::static_pointer_cast<Ast::DerefNode>(root);
-        auto res = Ir::make_deref_instr(analyze_value(r->val, func), r->ty);
-        auto res2 = Ir::make_load_instr(r->ty, res);
+        auto res = Ir::make_deref_instr(analyze_value(r->val, func));
+        auto res2 = Ir::make_load_instr(res);
         func->add_instr(res);
         func->add_instr(res2);
         return res2;
@@ -259,8 +281,9 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     switch(root->type) {
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
-        auto to = find_left_value(r, r->sym, func);
-        func->add_instr(Ir::make_store_instr(to->tr, to, cast_to_type(analyze_value(r->val, func), to->tr, func)));
+        auto to = find_left_value(r, r->lv, func);
+        auto j = to_pointed_type(to->tr);
+        func->add_instr(Ir::make_store_instr(to, cast_to_type(r->val, analyze_value(r->val, func), j, func)));
         break;
     }
     case NODE_DEF_VAR: {
@@ -268,11 +291,11 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
         Ir::pInstr tmp;
         if(r->var.tr->is_const) {
             func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
-                Ir::make_constant(r->var.tr), cast_to_type(analyze_value(r->val, func), r->var.tr, func)));
+                Ir::make_constant(r->var.tr), cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func)));
             _env.env()->set(r->var.sym, tmp);
         } else {
             func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
-            func->add_instr(Ir::make_store_instr(r->var.tr, tmp, cast_to_type(analyze_value(r->val, func), r->var.tr, func)));
+            func->add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func)));
             _env.env()->set(r->var.sym, tmp);
         }
         break;

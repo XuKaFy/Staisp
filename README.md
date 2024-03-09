@@ -81,16 +81,13 @@ statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
            | stat_list
            | "BLOCK"     stat_list
            | "DEFVAR"    typed_sym   vaimage.pnglue
-           | "ASSIGN"    sym         value
+           | "ASSIGN"    left_value  value
            | "IF"        value       statement
            | "IFE"       value       statement       statement
            | "WHILE"     value       statement
            | "RETURN"    value
            | "DEFPTR"    typed_sym
            | "DEFARRAY"  typed_sym   array_def
-           | "REF"       sym
-           | "DEREF"     value
-           | "ITEM"      value       number
            | "CALL"      function
            | "BREAK"
            | "CONTINUE"
@@ -115,10 +112,14 @@ typed_sym_list -> ( )
                 | ( typed_sym, typed_sym_list )
 stat_list -> { }
            | { statement, stat_list }
+left_value -> sym
+            | "DEREF"   value
+            | "ITEM"    value       number
 value -> function
        | const_val
        | variant
-       | CAST   type    value
+       | CAST   type        value
+       | "REF"  left_value
 const_val -> basic_function_const
            | integer
 array_def -> [ const_val ]
@@ -164,6 +165,8 @@ compiler [file_name]
 8. `[Parser] error 8: function nested`：尝试在函数内定义函数
 9. `[Parser] error 9: beginning of a statement must be a symbol`：不能以非名称作为语句开头，例如使用数字
 10. `[Parser] error 10: beginning of a statement cannot be a type`：不能以数据类型作为开头，例如 CONST
+11. `[Parser] error 11: too many CONSTs`：输入了太多 CONST
+12. `[Parser] error 12: expected to be a left-value`：此处应为左值
 
 ### Convertor 语义错误
 
@@ -180,6 +183,8 @@ compiler [file_name]
 9. `[Convertor] error 9: no outer loops`：BREAK 或 CONTINUE 外层无循环
 10. `[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值
 11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值
+12. `[Convertor] error 12: expected to be a left-value`：此处应为左值
+13. `[Convertor] error 13: not castable`：隐式转换失败
 
 ### Executor 运行时报错
 

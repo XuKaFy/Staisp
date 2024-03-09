@@ -12,12 +12,18 @@ struct Type {
     Type(bool is_const = false)
         : is_const(is_const) { }
 
-    virtual TypeType type_type() const = 0;
-    virtual Symbol type_name() const = 0;
+    virtual TypeType type_type() const { return TYPE_BASIC_TYPE; }
+    virtual Symbol type_name() const { return "void"; }
     bool is_const;
 };
 
 typedef Pointer<Type> pType;
+
+bool same_type(pType a1, pType a2);
+pType join_type(pType a1, pType a2);
+bool castable(pType from, pType to);
+bool is_pointer(pType p);
+bool is_imm_type(pType p);
 
 struct TypedSym
 {
@@ -83,3 +89,6 @@ struct ArrayType : public CompoundType {
 bool is_signed_imm_type(pType tr);
 bool is_float(pType tr);
 int bits_of_type(pType tr);
+
+Pointer<PointerType> to_pointer(pType p);
+pType to_pointed_type(pType p);

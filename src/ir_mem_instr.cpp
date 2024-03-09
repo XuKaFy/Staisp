@@ -19,7 +19,7 @@ Symbol LoadInstr::instr_print_impl() const
         + tr->type_name()
         + ", "
         + from->tr->type_name()
-        + "* "
+        + " "
         + from->print()
     );
 }
@@ -33,7 +33,7 @@ Symbol StoreInstr::instr_print_impl() const
         + val->print()
         + ", "
         + to->tr->type_name()
-        + "* "
+        + " "
         + to->print()
     );
 }
@@ -50,18 +50,19 @@ pInstr make_alloc_instr(pType tr)
     return pInstr(new AllocInstr(tr));
 }
 
-pInstr make_load_instr(pType tr, pInstr from)
+pInstr make_load_instr(pInstr from)
 {
-    return pInstr(new LoadInstr(tr, from));
+    return pInstr(new LoadInstr(from));
 }
 
-pInstr make_store_instr(pType tr, pInstr to, pVal val)
+pInstr make_store_instr(pInstr to, pVal val)
 {
-    return pInstr(new StoreInstr(tr, to, val));
+    return pInstr(new StoreInstr(to, val));
 }
 
 pInstr make_sym_instr(TypedSym val, SymFrom from)
 {
+    val.tr = make_pointer_type(val.tr, false);
     return pInstr(new SymInstr(val, from));
 }
 

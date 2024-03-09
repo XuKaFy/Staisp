@@ -7,6 +7,29 @@ Symbol CastInstr::instr_print_impl() const
 {
     auto tsrc = val->tr;
     auto tdest = tr;
+    if(same_type(tsrc, tdest)) {
+        my_assert(false, "how");
+    }
+    if(is_pointer(tsrc) && is_imm_type(tdest)) {
+        return to_symbol(
+            String(print_impl())
+            + " = ptrtoint "
+            + tsrc->type_name()
+            + " "
+            + val->print()
+            + " to "
+            + tr->type_name());
+    }
+    if(is_pointer(tdest) && is_imm_type(tsrc)) {
+        return to_symbol(
+            String(print_impl())
+            + " = inttoptr "
+            + tsrc->type_name()
+            + " "
+            + val->print()
+            + " to "
+            + tr->type_name());
+    }
     if(bits_of_type(tdest) < bits_of_type(tsrc)) { // trunc
         return to_symbol(
             String(print_impl())

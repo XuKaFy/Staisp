@@ -17,9 +17,9 @@ pNode new_opr_node(pToken t, OprType type, AstProg ch)
     return pNode(new OprNode(t, type, ch));
 }
 
-pNode new_assign_node(pToken t, Symbol sym, pNode val)
+pNode new_assign_node(pToken t, pNode lv, pNode val)
 {
-    return pNode(new AssignNode(t, sym, val));
+    return pNode(new AssignNode(t, lv, val));
 }
 
 pNode new_var_def_node(pToken t, TypedSym var, pNode val)
@@ -52,9 +52,9 @@ pNode new_ref_node(pToken t, Symbol name)
     return pNode(new RefNode(t, name));
 }
 
-pNode new_deref_node(pToken t, pType ty, pNode val)
+pNode new_deref_node(pToken t, pNode val)
 {
-    return pNode(new DerefNode(t, ty, val));
+    return pNode(new DerefNode(t, val));
 }
 
 }  // namespace ast

@@ -32,9 +32,9 @@ struct OprNode : public Node
 
 struct AssignNode : public Node
 {
-    AssignNode(pToken t,Symbol sym, pNode val)
-        : Node(t, NODE_ASSIGN), sym(sym), val(val) { }
-    Symbol sym;
+    AssignNode(pToken t, pNode lv, pNode val)
+        : Node(t, NODE_ASSIGN), lv(lv), val(val) { }
+    pNode lv;
     pNode val;
 };
 
@@ -86,22 +86,21 @@ struct RefNode : public Node
 
 struct DerefNode : public Node
 {
-    DerefNode(pToken t, pType ty, pNode val)
-        : Node(t, NODE_DEREF), ty(ty), val(val) { }
-    pType ty;
+    DerefNode(pToken t, pNode val)
+        : Node(t, NODE_DEREF), val(val) { }
     pNode val;
 };
 
 pNode new_imm_node(pToken t, ImmValue imm);
 pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
-pNode new_assign_node(pToken t, Symbol sym, pNode val);
+pNode new_assign_node(pToken t, pNode lv, pNode val);
 pNode new_var_def_node(pToken t, TypedSym var, pNode val);
 pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const);
 pNode new_block_node(pToken t, AstProg body);
 pNode new_array_def_node(pToken t, ImmValues nums);
 pNode new_cast_node(pToken t, pType ty, pNode val);
 pNode new_ref_node(pToken t, Symbol name);
-pNode new_deref_node(pToken t, pType ty, pNode val);
+pNode new_deref_node(pToken t, pNode val);
 
 } // namespace ast
