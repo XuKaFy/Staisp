@@ -27,7 +27,7 @@ struct DerefInstr : public Instr {
 
 struct ItemInstr : public Instr {
     ItemInstr(pInstr val, pInstr index)
-        :  Instr(INSTR_TYPE_NEED_REG, to_elem_type(val->tr)), val(val), index(index) { }
+        :  Instr(INSTR_TYPE_NEED_REG, make_pointer_type(to_elem_type(to_pointed_type(val->tr)), false)), val(val), index(index) { }
 
     virtual bool is_end_of_block() const { return false; }
     virtual Symbol instr_print_impl() const override;

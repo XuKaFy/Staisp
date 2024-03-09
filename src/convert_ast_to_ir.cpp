@@ -26,6 +26,7 @@ Ir::pInstr Convertor::find_left_value(pNode root, Symbol sym, Ir::pFuncDefined f
             }
         }
     }
+    printf("Warning: left-value \"%s\" not found.\n", sym);
     node_assert(false, root, "[Convertor] error 1: left value cannot be found");
     return Ir::make_empty_instr();
 }
@@ -39,7 +40,10 @@ Ir::pInstr Convertor::find_left_value(pNode root, pNode lv, Ir::pFuncDefined fun
     }
     if(lv->type == NODE_ITEM) {
         auto r = std::static_pointer_cast<Ast::ItemNode>(lv);
-        node_assert(false, lv, "[Convertor] not implemented");
+        auto array = find_left_value(r, r->v, func);
+        auto index = analyze_value(r->index, func);
+        auto res = Ir::make_item_instr(array, index);
+        return func->add_instr(res);
     }
     if(lv->type != NODE_SYM) {
         node_assert(false, lv, "[Convertor] error 12: expected to be a left-value");
@@ -271,10 +275,13 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     }
     case NODE_ITEM: {
         auto r = std::static_pointer_cast<Ast::ItemNode>(root);
-        auto sym = r->v;
+        auto array = find_left_value(r, r->v, func);
         auto index = analyze_value(r->index, func);
+        auto itemptr = Ir::make_item_instr(array, index);
+        auto val = Ir::make_load_instr(itemptr);
         node_assert(is_integer(index->tr), r->index, "[Convertor] error 14: type of index should be integer");
-        return func->add_instr(Ir::make_item_instr(find_left_value(r, sym, func), index));
+        func->add_instr(itemptr);
+        return func->add_instr(val);
     }
     case NODE_ARRAY_VAL: {
         node_assert(false, root, "[Convertor] array definition is not calculatable - impossible");
@@ -313,6 +320,8 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
             if(rr == COMPOUND_TYPE_ARRAY) {
                 node_assert(r->val->type == NODE_ARRAY_VAL, r->val, "[Convertor] error 15: array should be initialized by a list");
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
+                func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
+                _env.env()->set(r->var.sym, tmp);
                 copy_to_array(r->var, rrr->nums, func);
                 break;
             }

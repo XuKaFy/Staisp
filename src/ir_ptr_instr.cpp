@@ -31,7 +31,16 @@ Symbol ItemInstr::instr_print_impl() const
 {
     return to_symbol(
         String(print_impl())
-        + " = getelemptr");
+        + " = getelementptr "
+        + to_pointed_type(val->tr)->type_name()
+        + ", "
+        + val->tr->type_name()
+        + " "
+        + val->print()
+        + ", i32 0, "
+        + index->tr->type_name()
+        + " "
+        + index->print());
 }
 
 pInstr make_ref_instr(pInstr obj)
