@@ -42,7 +42,7 @@ Symbol CastInstr::instr_print_impl() const
     }
     if(bits_of_type(tdest) == bits_of_type(tsrc)) { // i32<->float, i64<->double
         if(is_float(tdest)) {
-            if(is_signed_imm_type(tsrc)) {
+            if(is_signed_type(tsrc)) {
                 return to_symbol(
                     String(print_impl())
                     + " = sitofp "
@@ -62,7 +62,7 @@ Symbol CastInstr::instr_print_impl() const
                 + tdest->type_name());
         }
         // tsrc must be float
-        if(is_signed_imm_type(tdest)) {
+        if(is_signed_type(tdest)) {
             return to_symbol(
                 String(print_impl())
                 + " = fptosi "
@@ -82,7 +82,7 @@ Symbol CastInstr::instr_print_impl() const
             + tdest->type_name());
     }
     // zext or sext
-    if(is_signed_imm_type(tdest)) {
+    if(is_signed_type(tdest)) {
         return to_symbol(
             String(print_impl())
             + " = sext "

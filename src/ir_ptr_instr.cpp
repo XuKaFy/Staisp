@@ -27,6 +27,13 @@ Symbol DerefInstr::instr_print_impl() const
         + "*");
 }
 
+Symbol ItemInstr::instr_print_impl() const
+{
+    return to_symbol(
+        String(print_impl())
+        + " = getelemptr");
+}
+
 pInstr make_ref_instr(pInstr obj)
 {
     return pInstr(new RefInstr(obj));
@@ -35,6 +42,11 @@ pInstr make_ref_instr(pInstr obj)
 pInstr make_deref_instr(pInstr obj)
 {
     return pInstr(new DerefInstr(obj));
+}
+
+pInstr make_item_instr(pInstr val, pInstr index)
+{
+    return pInstr(new ItemInstr(val, index));
 }
 
 } // namespace ir

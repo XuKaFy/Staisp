@@ -124,7 +124,7 @@ pToken Lexer::lexer_one_token()
     case '(': return pToken(new StaispToken(TOKEN_LB_S, '(', _p_code, _begin, _current, _line_count));
     case ')': return pToken(new StaispToken(TOKEN_RB_S, ')', _p_code, _begin, _current, _line_count));
     case '[': return pToken(new StaispToken(TOKEN_LB_M, '[', _p_code, _begin, _current, _line_count));
-    case ']': return pToken(new StaispToken(TOKEN_LB_M, ']', _p_code, _begin, _current, _line_count));
+    case ']': return pToken(new StaispToken(TOKEN_RB_M, ']', _p_code, _begin, _current, _line_count));
     case '{': return pToken(new StaispToken(TOKEN_LB_L, '{', _p_code, _begin, _current, _line_count));
     case '}': return pToken(new StaispToken(TOKEN_RB_L, '}', _p_code, _begin, _current, _line_count));
     case ':': return pToken(new StaispToken(TOKEN_2DOT, ':', _p_code, _begin, _current, _line_count));

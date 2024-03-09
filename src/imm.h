@@ -38,8 +38,9 @@ const Symbol gImmName[] = {
 #undef IMM_TYPE_TABLE
 
 bool is_signed_imm_type(ImmType tr);
-bool is_float(ImmType tr);
-int bits_of_type(ImmType tr);
+bool is_imm_float(ImmType tr);
+size_t bits_of_type(ImmType tr);
+bool is_imm_integer(ImmType t);
 
 struct ImmValueOnly {
     ImmValueOnly()

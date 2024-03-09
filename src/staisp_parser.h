@@ -27,6 +27,7 @@ namespace Staisp {
     ENTRY(CAST) \
     ENTRY(REF) \
     ENTRY(DEREF) \
+    ENTRY(ITEM) \
     ENTRY(BLOCK)
 
 enum BuildinSym
@@ -91,16 +92,16 @@ private:
     StaispToken current_token() const;
     pToken current_p_token() const;
     StaispToken peek() const;
+    Pointer<StaispToken> peek_p() const;
     void consume_token(TokenType t);
     bool has_token() const;
     
     pNode parse_buildin_sym(Symbol sym, bool in_global = false);
     pNode parse_function_call(Symbol sym);
     pNode parse_block();
-    pNode parse_array_def(); // [2 2]
-    // pNode parse_array_val(); // { {1 2} {3 4} }
     pNode parse_statement();
     pNode parse_value();
+    Vector<pNode> parse_array_value();
     pNode parse_left_value();
     TypedSym parse_typed_sym();
     Symbol parse_sym();

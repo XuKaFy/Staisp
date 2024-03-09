@@ -265,6 +265,17 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
         func->add_instr(res);
         return res;
     }
+    case NODE_ITEM: {
+        auto r = std::static_pointer_cast<Ast::ItemNode>(root);
+        auto sym = r->v;
+        auto index = analyze_value(r->index, func);
+        node_assert(is_integer(index->tr), r->index, "[Convertor] error 14: type of index should be integer");
+        return func->add_instr(Ir::make_item_instr(find_left_value(r, sym, func), index));
+    }
+    case NODE_ARRAY_VAL: {
+        node_assert(false, root, "[Convertor] not implemented");
+        // TODO TODO TODO
+    }
     case NODE_ASSIGN:
     case NODE_DEF_VAR:
     case NODE_DEF_FUNC:
@@ -311,11 +322,13 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
         _env.end_env();
         break;
     }
+    case NODE_ITEM:
     case NODE_CAST:
     case NODE_IMM:
     case NODE_SYM:
     case NODE_REF:
     case NODE_DEREF:
+    case NODE_ARRAY_VAL:
         break; // meaningless
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
@@ -395,7 +408,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
 
 Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, pType tr)
 {
-    bool is_signed = is_signed_imm_type(tr);
+    bool is_signed = is_signed_type(tr);
 #define SELECT(x) case OPR_##x: return Ir::CMP_##x;
     switch(root->type) {
     SELECT(EQ)

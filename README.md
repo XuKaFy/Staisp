@@ -167,6 +167,7 @@ compiler [file_name]
 10. `[Parser] error 10: beginning of a statement cannot be a type`：不能以数据类型作为开头，例如 CONST
 11. `[Parser] error 11: too many CONSTs`：输入了太多 CONST
 12. `[Parser] error 12: expected to be a left-value`：此处应为左值
+13. `[Parser] error 13: type of index should be integer`：数组长度必须是整型
 
 ### Convertor 语义错误
 
@@ -185,6 +186,7 @@ compiler [file_name]
 11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值
 12. `[Convertor] error 12: expected to be a left-value`：此处应为左值
 13. `[Convertor] error 13: not castable`：隐式转换失败
+14. `[Convertor] error 14: type of index should be integer`：寻址的参数必须是整型
 
 ### Executor 运行时报错
 

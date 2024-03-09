@@ -25,7 +25,19 @@ struct DerefInstr : public Instr {
     pInstr obj;
 };
 
+struct ItemInstr : public Instr {
+    ItemInstr(pInstr val, pInstr index)
+        :  Instr(INSTR_TYPE_NEED_REG, to_elem_type(val->tr)), val(val), index(index) { }
+
+    virtual bool is_end_of_block() const { return false; }
+    virtual Symbol instr_print_impl() const override;
+
+    pInstr val;
+    pInstr index;
+};
+
 pInstr make_ref_instr(pInstr obj);
 pInstr make_deref_instr(pInstr obj);
+pInstr make_item_instr(pInstr val, pInstr index);
 
 } // namespace ir

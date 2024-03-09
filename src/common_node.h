@@ -17,6 +17,8 @@ enum NodeType
     NODE_CAST,
     NODE_REF,
     NODE_DEREF,
+    NODE_ITEM,
+    NODE_ARRAY_VAL,
 };
 
 #define OPR_TABLE_CALCULATABLE \

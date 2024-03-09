@@ -12,7 +12,7 @@ Const::Const(ImmValue var)
 Const::Const(pType ty)
     : ty(ty)
 {
-    size_t len = std::static_pointer_cast<CompoundType>(ty)->len;
+    size_t len = std::static_pointer_cast<CompoundType>(ty)->length();
     var_mem.realloc(len);
 }
 

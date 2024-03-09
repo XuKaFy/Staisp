@@ -37,7 +37,7 @@ pNode new_block_node(pToken t, AstProg body)
     return pNode(new BlockNode(t, body));
 }
 
-pNode new_array_def_node(pToken t, ImmValues nums)
+pNode new_array_def_node(pToken t, Vector<pNode> nums)
 {
     return pNode(new ArrayDefNode(t, nums));
 }
@@ -55,6 +55,11 @@ pNode new_ref_node(pToken t, Symbol name)
 pNode new_deref_node(pToken t, pNode val)
 {
     return pNode(new DerefNode(t, val));
+}
+
+pNode new_item_node(pToken t, Symbol v, pNode index)
+{
+    return pNode(new ItemNode(t, v, index));
 }
 
 }  // namespace ast

@@ -9,7 +9,7 @@ Symbol BinInstr::instr_print_impl() const
         String(print_impl())
         + " = "
         + (is_float(tr) ? "f" : 
-            (binType == INSTR_DIV ? (is_signed_imm_type(tr) ? "s" : "u") : "")) 
+            (binType == INSTR_DIV ? (is_signed_type(tr) ? "s" : "u") : "")) 
         + gBinInstrName[binType] 
         + " " 
         + tr->type_name()

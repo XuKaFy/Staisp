@@ -27,7 +27,7 @@ ImmValue::ImmValue(Memory mem, ImmType ty)
     val.uval = *((unsigned long long*)mem.mem.get());
 }
 
-bool is_float(ImmType tr)
+bool is_imm_float(ImmType tr)
 {
     switch(tr) {
     case IMM_F32:
@@ -38,7 +38,7 @@ bool is_float(ImmType tr)
     }
 }
 
-int bits_of_type(ImmType tr)
+size_t bits_of_type(ImmType tr)
 {
     switch(tr) {
     case IMM_I1:
@@ -55,6 +55,25 @@ int bits_of_type(ImmType tr)
     case IMM_F64: return 64;
     }
     return 0;
+}
+
+bool is_imm_integer(ImmType t)
+{
+    switch(t) {
+    case IMM_I1:
+    case IMM_U1:
+    case IMM_I8:
+    case IMM_U8:
+    case IMM_I16:
+    case IMM_U16:
+    case IMM_I32:
+    case IMM_U32:
+    case IMM_I64:
+    case IMM_U64: return true; 
+    case IMM_F32:
+    case IMM_F64: return false;
+    }
+    return false;
 }
 
 ImmValue::operator bool() const

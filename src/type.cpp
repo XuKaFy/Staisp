@@ -76,7 +76,12 @@ pType make_pointer_type(pType ty, bool is_const)
     return pType(new PointerType(ty, is_const));
 }
 
-bool is_signed_imm_type(pType tr)
+pType make_array_type(pType ty, size_t count)
+{
+    return pType(new ArrayType(ty, count));
+}
+
+bool is_signed_type(pType tr)
 {
     if(tr->type_type() == TYPE_BASIC_TYPE)
         return is_signed_imm_type(std::static_pointer_cast<BasicType>(tr)->ty);
@@ -86,18 +91,25 @@ bool is_signed_imm_type(pType tr)
 bool is_float(pType tr)
 {
     if(tr->type_type() == TYPE_BASIC_TYPE)
-        return is_float(std::static_pointer_cast<BasicType>(tr)->ty);
+        return is_imm_float(std::static_pointer_cast<BasicType>(tr)->ty);
     return false;
 }
 
-int bits_of_type(pType tr)
+bool is_integer(pType tr)
+{
+    if(tr->type_type() == TYPE_BASIC_TYPE)
+        return is_imm_integer(std::static_pointer_cast<BasicType>(tr)->ty);
+    return false;
+}
+
+size_t bits_of_type(pType tr)
 {
     if(tr->type_type() == TYPE_BASIC_TYPE)
     switch(tr->type_type()) {
     case TYPE_BASIC_TYPE:
         return bits_of_type(std::static_pointer_cast<BasicType>(tr)->ty);
     case TYPE_COMPOUND_TYPE:
-        return std::static_pointer_cast<CompoundType>(tr)->len;
+        return std::static_pointer_cast<CompoundType>(tr)->length();
     default: break;
     }
     return 0;
@@ -121,4 +133,16 @@ Pointer<PointerType> to_pointer(pType p)
 pType to_pointed_type(pType p)
 {
     return to_pointer(p)->pointed_type;
+}
+
+Pointer<ArrayType> to_array(pType p)
+{
+    auto j = std::static_pointer_cast<ArrayType>(p);
+    my_assert(j, "how");
+    return j;
+}
+
+pType to_elem_type(pType p)
+{
+    return to_array(p)->elem_type;
 }

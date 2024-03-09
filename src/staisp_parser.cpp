@@ -19,6 +19,11 @@ StaispToken Parser::peek() const
     return *std::static_pointer_cast<StaispToken>(*_current);
 }
 
+Pointer<StaispToken> Parser::peek_p() const
+{
+    return std::static_pointer_cast<StaispToken>(*_current);
+}
+
 StaispToken Parser::current_token() const
 {
     if(_current == _begin) {
@@ -119,12 +124,15 @@ pType Parser::parse_type() {
             root->is_const = true;
             continue;
         }
-        // TODO TODO TODO
-        /*if(peek().t == TOKEN_LB_M) {
-            pNode v = parse_value();
-            root = make_array_type(root, );
-        }*/
-        my_assert(false, "not implemented");
+        ImmValue val = parse_single_value_list();
+        if(!is_imm_integer(val.ty)) {
+            current_token().print_error("[Parser] error 13: type of index should be integer");
+        }
+        if(is_signed_imm_type(val.ty)) {
+            root = make_array_type(root, val.val.ival);
+        } else {
+            root = make_array_type(root, val.val.uval);
+        }
     }
     return root;
 }
@@ -132,10 +140,9 @@ pType Parser::parse_type() {
 ImmValue Parser::parse_single_value_list()
 {
     consume_token(TOKEN_LB_M);
-    pNode val = parse_value();
+    ImmValue num = Ast::Executor(_result).must_have_value_execute(parse_value());
     consume_token(TOKEN_RB_M);
-    my_assert(false, "not implemented");
-    return ImmValue(); // TODO TODO TODO
+    return num;
 }
 
 TypedSym Parser::parse_typed_sym()
@@ -146,8 +153,27 @@ TypedSym Parser::parse_typed_sym()
     return TypedSym(sym, type);
 }
 
+Vector<pNode> Parser::parse_array_value()
+{
+    consume_token(TOKEN_LB_M);
+    Vector<pNode> ts;
+    while(peek().t != TOKEN_RB_M) {
+        if(peek().t == TOKEN_LB_M) {
+            ts.push_back(Ast::new_array_def_node(peek_p(), parse_array_value()));
+        } else {
+            ts.push_back(parse_value());
+        }
+    }
+    consume_token(TOKEN_RB_M);
+    return ts;
+}
+
 pNode Parser::parse_value()
 {
+    if(peek().t == TOKEN_LB_M) {
+        auto i = peek_p();
+        return Ast::new_array_def_node(i, parse_array_value());
+    }
     get_token();
     if(current_token().t == TOKEN_INT) {
         return Ast::new_imm_node(current_p_token(), current_token().val);
@@ -181,6 +207,11 @@ pNode Parser::parse_left_value()
         auto r = gBuildinSymType.find(current_token().sym)->second;
         if(r == BUILDIN_DEREF) {
             return Ast::new_deref_node(current_p_token(), parse_value());
+        }
+        if(r == BUILDIN_ITEM) {
+            auto name = parse_sym();
+            auto index = parse_value();
+            return Ast::new_item_node(current_p_token(), name, index);
         }
         nxt.print_error("[Parser] error 12: expected to be a left-value [2]");
     }
@@ -269,6 +300,11 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_DEREF: {
         return Ast::new_deref_node(token, parse_value());
     }
+    case BUILDIN_ITEM: {
+        auto v = parse_sym();
+        auto index = parse_value();
+        return Ast::new_item_node(token, v, index);
+    }
     case BUILDIN_CONST: {
         current_token().print_error("[Parser] error 10: beginning of a statement cannot be a type");
     }
@@ -350,18 +386,6 @@ pNode Parser::parse_block()
     consume_token(TOKEN_RB_L);
     _env.end_env();
     return Ast::new_block_node(token, body);
-}
-
-pNode Parser::parse_array_def()
-{
-    consume_token(TOKEN_LB_M);
-    auto token = _current_token;
-    ImmValues nums;
-    while(peek().t != TOKEN_RB_M) {
-        nums.push_back(Ast::Executor(_result).must_have_value_execute(parse_value()));
-    }
-    consume_token(TOKEN_RB_M);
-    return Ast::new_array_def_node(token, nums);
 }
 
 AstProg Parser::parser(TokenList list)

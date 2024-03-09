@@ -14,6 +14,7 @@ struct Type {
 
     virtual TypeType type_type() const { return TYPE_BASIC_TYPE; }
     virtual Symbol type_name() const { return "void"; }
+    virtual size_t length() const { return 0; }
     bool is_const;
 };
 
@@ -41,6 +42,7 @@ struct BasicType : public Type
 
     virtual TypeType type_type() const override { return TYPE_BASIC_TYPE; }
     virtual Symbol type_name() const override;
+    virtual size_t length() const override { return bits_of_type(ty); }
     ImmType ty;
 };
 
@@ -53,42 +55,53 @@ enum CompoundTypeType {
 };
 
 struct CompoundType : public Type {
-    CompoundType(size_t len, bool is_const)
-        : Type(is_const), len(len) { }
+    CompoundType(bool is_const)
+        : Type(is_const) { }
 
     virtual TypeType type_type() const override { return TYPE_COMPOUND_TYPE; }
     virtual CompoundTypeType compound_type_type() const = 0;
-    size_t len;
 };
 
 struct StructType : public CompoundType {
     virtual CompoundTypeType compound_type_type() const { return COMPOUND_TYPE_STRUCT; }
-    size_t len;
+
     Vector<TypedSym> elems;
 };
 
 struct PointerType : public CompoundType {
     PointerType(pType ty, bool is_const)
-        : CompoundType(ARCH_BYTES, is_const), pointed_type(ty) { }
+        : CompoundType(is_const), pointed_type(ty) { }
 
     virtual Symbol type_name() const override;
     virtual CompoundTypeType compound_type_type() const { return COMPOUND_TYPE_POINTER; }
+    virtual size_t length() const { return ARCH_BYTES; }
+
     pType pointed_type;
 };
 
 pType make_pointer_type(pType ty, bool is_const);
 
 struct ArrayType : public CompoundType {
+    ArrayType(pType elem_type, size_t elem_count)
+        : CompoundType(false), elem_type(elem_type), elem_count(elem_count) { }
+
     virtual CompoundTypeType compound_type_type() const { return COMPOUND_TYPE_ARRAY; }
     virtual Symbol type_name() const override;
+    virtual size_t length() const { return elem_type->length() * elem_count; }
     
-    size_t elem_count;
     pType elem_type;
+    size_t elem_count;
 };
 
-bool is_signed_imm_type(pType tr);
+pType make_array_type(pType ty, size_t count);
+
+bool is_signed_type(pType tr);
 bool is_float(pType tr);
-int bits_of_type(pType tr);
+size_t bits_of_type(pType tr);
+bool is_integer(pType tr);
 
 Pointer<PointerType> to_pointer(pType p);
 pType to_pointed_type(pType p);
+
+Pointer<ArrayType> to_array(pType p);
+pType to_elem_type(pType p);

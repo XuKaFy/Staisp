@@ -64,9 +64,9 @@ struct BlockNode : public Node
 
 struct ArrayDefNode : public Node
 {
-    ArrayDefNode(pToken t, ImmValues nums)
-        : Node(t, NODE_BLOCK), nums(nums) { }
-    ImmValues nums;
+    ArrayDefNode(pToken t, Vector<pNode> nums)
+        : Node(t, NODE_ARRAY_VAL), nums(nums) { }
+    Vector<pNode> nums;
 };
 
 struct CastNode : public Node
@@ -91,6 +91,14 @@ struct DerefNode : public Node
     pNode val;
 };
 
+struct ItemNode : public Node
+{
+    ItemNode(pToken t, Symbol v, pNode index)
+        : Node(t, NODE_ITEM), v(v), index(index) { }
+    Symbol v;
+    pNode index;
+};
+
 pNode new_imm_node(pToken t, ImmValue imm);
 pNode new_sym_node(pToken t, Symbol symbol);
 pNode new_opr_node(pToken t, OprType type, AstProg ch);
@@ -98,9 +106,10 @@ pNode new_assign_node(pToken t, pNode lv, pNode val);
 pNode new_var_def_node(pToken t, TypedSym var, pNode val);
 pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const);
 pNode new_block_node(pToken t, AstProg body);
-pNode new_array_def_node(pToken t, ImmValues nums);
+pNode new_array_def_node(pToken t, Vector<pNode> nums);
 pNode new_cast_node(pToken t, pType ty, pNode val);
 pNode new_ref_node(pToken t, Symbol name);
 pNode new_deref_node(pToken t, pNode val);
+pNode new_item_node(pToken t, Symbol v, pNode index);
 
 } // namespace ast
