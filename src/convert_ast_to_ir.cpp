@@ -37,8 +37,12 @@ Ir::pInstr Convertor::find_left_value(pNode root, pNode lv, Ir::pFuncDefined fun
         auto res = analyze_value(r->val, func);
         return res;
     }
+    if(lv->type == NODE_ITEM) {
+        auto r = std::static_pointer_cast<Ast::ItemNode>(lv);
+        node_assert(false, lv, "[Convertor] not implemented");
+    }
     if(lv->type != NODE_SYM) {
-        node_assert(false, root, "[Convertor] error 12: expected to be a left-value");
+        node_assert(false, lv, "[Convertor] error 12: expected to be a left-value");
     }
     Symbol sym = std::static_pointer_cast<Ast::SymNode>(lv)->sym;
     return find_left_value(root, sym, func);
@@ -273,8 +277,7 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
         return func->add_instr(Ir::make_item_instr(find_left_value(r, sym, func), index));
     }
     case NODE_ARRAY_VAL: {
-        node_assert(false, root, "[Convertor] not implemented");
-        // TODO TODO TODO
+        node_assert(false, root, "[Convertor] array definition is not calculatable - impossible");
     }
     case NODE_ASSIGN:
     case NODE_DEF_VAR:
@@ -284,6 +287,12 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
         node_assert(false, root, "[Convertor] error 3: node not calculatable");
         return Ir::make_empty_instr();
     }
+}
+
+void Convertor::copy_to_array(TypedSym var, Vector<pNode> nums, Ir::pFuncDefined func)
+{
+    // TODO TODO TODO
+    printf("ready to define %s\n", var.sym);
 }
 
 void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
@@ -299,6 +308,15 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
+        if(r->var.tr->type_type() == TYPE_COMPOUND_TYPE) {
+            auto rr = std::static_pointer_cast<CompoundType>(r->var.tr)->compound_type_type();
+            if(rr == COMPOUND_TYPE_ARRAY) {
+                node_assert(r->val->type == NODE_ARRAY_VAL, r->val, "[Convertor] error 15: array should be initialized by a list");
+                auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
+                copy_to_array(r->var, rrr->nums, func);
+                break;
+            }
+        }
         if(r->var.tr->is_const) {
             func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
                 Ir::make_constant(r->var.tr), cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func)));

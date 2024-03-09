@@ -36,6 +36,7 @@ private:
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);
     void analyze_statement_node(pNode root, Ir::pFuncDefined func);
+    void copy_to_array(TypedSym var, Vector<pNode> nums, Ir::pFuncDefined func);
     Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func);
     Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func);
     Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func);

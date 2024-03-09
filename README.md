@@ -187,6 +187,7 @@ compiler [file_name]
 12. `[Convertor] error 12: expected to be a left-value`：此处应为左值
 13. `[Convertor] error 13: not castable`：隐式转换失败
 14. `[Convertor] error 14: type of index should be integer`：寻址的参数必须是整型
+15. `[Convertor] error 15: array should be initialized by a list`：必须用列表来初始化
 
 ### Executor 运行时报错
 
