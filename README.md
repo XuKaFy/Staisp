@@ -114,7 +114,7 @@ stat_list -> { }
            | { statement, stat_list }
 left_value -> sym
             | "DEREF"   value
-            | "ITEM"    value       number
+            | "ITEM"    value       array_def
 value -> function
        | const_val
        | variant

@@ -41,8 +41,10 @@ Ir::pInstr Convertor::find_left_value(pNode root, pNode lv, Ir::pFuncDefined fun
     if(lv->type == NODE_ITEM) {
         auto r = std::static_pointer_cast<Ast::ItemNode>(lv);
         auto array = find_left_value(r, r->v, func);
-        auto index = analyze_value(r->index, func);
-        auto res = Ir::make_item_instr(array, index);
+        Vector<Ir::pInstr> indexs;
+        for(auto i : r->index)
+            indexs.push_back(analyze_value(i, func));
+        auto res = Ir::make_item_instr(array, indexs);
         return func->add_instr(res);
     }
     if(lv->type != NODE_SYM) {
@@ -276,9 +278,12 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     case NODE_ITEM: {
         auto r = std::static_pointer_cast<Ast::ItemNode>(root);
         auto array = find_left_value(r, r->v, func);
-        auto index = analyze_value(r->index, func);
-        node_assert(is_integer(index->tr), r->index, "[Convertor] error 14: type of index should be integer");
-        auto itemptr = Ir::make_item_instr(array, index);
+        Vector<Ir::pInstr> indexs;
+        for(auto i : r->index) {
+            indexs.push_back(analyze_value(i, func));
+            node_assert(is_integer(indexs.back()->tr), i, "[Convertor] error 14: type of index should be integer");
+        }
+        auto itemptr = Ir::make_item_instr(array, indexs);
         func->add_instr(itemptr);
         return itemptr;
     }
@@ -295,34 +300,37 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     }
 }
 
-void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Vector<pNode> nums, Ir::pFuncDefined func)
+void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pInstr> indexs, Ir::pFuncDefined func)
 {
-    // TODO TODO TODO
     if(!is_pointer(addr->tr)) {
         root->token->print_error("[Convertor] error 16: list should initialize type that is pointed");
     }
-    auto array_type = std::static_pointer_cast<ArrayType>(to_pointed_type(addr->tr));
+    auto array_type = std::static_pointer_cast<ArrayType>(to_pointed_type(cur_type));
     auto elem_type = array_type->elem_type;
     auto subarray_type = make_pointer_type(elem_type, false);
     size_t valid_size = std::min(array_type->elem_count, nums.size());
     if(is_array(elem_type)) {
         for(size_t i=0; i<valid_size; ++i) {
-            auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue(i, IMM_I32)));
-            auto item = Ir::make_item_instr(addr, index);
-            func->add_instr(index);
-            func->add_instr(item);
             node_assert(nums[i]->type == NODE_ARRAY_VAL, nums[i], "[Convertor] error 17: list dont match the expected value");
-            copy_to_array(root, item, std::static_pointer_cast<Ast::ArrayDefNode>(nums[i])->nums, func);
+            auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue(i, IMM_I32)));
+            indexs.push_back(index);
+            func->add_instr(index);
+            copy_to_array(root, addr, subarray_type, std::static_pointer_cast<Ast::ArrayDefNode>(nums[i])->nums, indexs, func);
+            indexs.pop_back();
         }
         return ;
     }
     for(size_t i=0; i<valid_size; ++i) {
         auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue(i, IMM_I32)));
-        auto item = Ir::make_item_instr(addr, index);
-        auto store = Ir::make_store_instr(item, analyze_value(nums[i], func));
+        indexs.push_back(index);
+        auto item = Ir::make_item_instr(addr, indexs);
+        
         func->add_instr(index);
         func->add_instr(item);
+        
+        auto store = Ir::make_store_instr(item, analyze_value(nums[i], func));
         func->add_instr(store);
+        indexs.pop_back();
     }
 }
 
@@ -346,7 +354,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
                 func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
                 _env.env()->set(r->var.sym, tmp);
-                copy_to_array(r, tmp, rrr->nums, func);
+                copy_to_array(r, tmp, tmp->tr, rrr->nums, {}, func);
                 break;
             }
         }

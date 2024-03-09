@@ -29,7 +29,7 @@ Symbol DerefInstr::instr_print_impl() const
 
 Symbol ItemInstr::instr_print_impl() const
 {
-    return to_symbol(
+    String ans = 
         String(print_impl())
         + " = getelementptr "
         + to_pointed_type(val->tr)->type_name()
@@ -37,10 +37,13 @@ Symbol ItemInstr::instr_print_impl() const
         + val->tr->type_name()
         + " "
         + val->print()
-        + ", i32 0, "
-        + index->tr->type_name()
-        + " "
-        + index->print());
+        + ", i32 0";
+    for(auto i : index)
+        ans += String(", ")
+            + i->tr->type_name()
+            + " "
+            + i->print();
+    return to_symbol(ans);
 }
 
 pInstr make_ref_instr(pInstr obj)
@@ -53,7 +56,22 @@ pInstr make_deref_instr(pInstr obj)
     return pInstr(new DerefInstr(obj));
 }
 
-pInstr make_item_instr(pInstr val, pInstr index)
+pType ex_shell(pType t, size_t count)
+{
+    t = to_pointed_type(t);
+    for(size_t i=0; i<count; ++i) {
+        t = to_elem_type(t);
+    }
+    return make_pointer_type(t, false);
+}
+
+ItemInstr::ItemInstr(pInstr val, Vector<pInstr> index)
+    :  Instr(INSTR_TYPE_NEED_REG, ex_shell(val->tr, index.size())), val(val), index(index)
+{
+    ;
+}
+
+pInstr make_item_instr(pInstr val, Vector<pInstr> index)
 {
     return pInstr(new ItemInstr(val, index));
 }

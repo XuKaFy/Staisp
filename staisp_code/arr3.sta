@@ -1,0 +1,5 @@
+DEFFUNC i32:main() {
+    DEFVAR i32[2][2][2]:a []
+    ASSIGN ITEM a[1 1 1] 33
+    RETURN DEREF ITEM a[1 1 1]
+}

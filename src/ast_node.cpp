@@ -57,7 +57,7 @@ pNode new_deref_node(pToken t, pNode val)
     return pNode(new DerefNode(t, val));
 }
 
-pNode new_item_node(pToken t, Symbol v, pNode index)
+pNode new_item_node(pToken t, Symbol v, Vector<pNode> index)
 {
     return pNode(new ItemNode(t, v, index));
 }

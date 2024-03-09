@@ -210,7 +210,7 @@ pNode Parser::parse_left_value()
         }
         if(r == BUILDIN_ITEM) {
             auto name = parse_sym();
-            auto index = parse_value();
+            auto index = parse_array_value();
             return Ast::new_item_node(current_p_token(), name, index);
         }
         nxt.print_error("[Parser] error 12: expected to be a left-value [2]");
@@ -302,7 +302,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     }
     case BUILDIN_ITEM: {
         auto v = parse_sym();
-        auto index = parse_value();
+        auto index = parse_array_value();
         return Ast::new_item_node(token, v, index);
     }
     case BUILDIN_CONST: {

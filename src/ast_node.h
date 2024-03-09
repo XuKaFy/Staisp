@@ -93,10 +93,10 @@ struct DerefNode : public Node
 
 struct ItemNode : public Node
 {
-    ItemNode(pToken t, Symbol v, pNode index)
+    ItemNode(pToken t, Symbol v, Vector<pNode> index)
         : Node(t, NODE_ITEM), v(v), index(index) { }
     Symbol v;
-    pNode index;
+    Vector<pNode> index;
 };
 
 pNode new_imm_node(pToken t, ImmValue imm);
@@ -110,6 +110,6 @@ pNode new_array_def_node(pToken t, Vector<pNode> nums);
 pNode new_cast_node(pToken t, pType ty, pNode val);
 pNode new_ref_node(pToken t, Symbol name);
 pNode new_deref_node(pToken t, pNode val);
-pNode new_item_node(pToken t, Symbol v, pNode index);
+pNode new_item_node(pToken t, Symbol v, Vector<pNode> index);
 
 } // namespace ast
