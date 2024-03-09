@@ -180,7 +180,7 @@ pNode Parser::parse_left_value()
         get_token();
         auto r = gBuildinSymType.find(current_token().sym)->second;
         if(r == BUILDIN_DEREF) {
-            return parse_value();
+            return Ast::new_deref_node(current_p_token(), parse_value());
         }
         nxt.print_error("[Parser] error 12: expected to be a left-value [2]");
     }

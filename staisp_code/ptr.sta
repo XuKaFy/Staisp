@@ -1,6 +1,11 @@
+DEFFUNC i32:fun(i32*:a) {
+    ASSIGN DEREF a 2
+    RETURN 0
+}
+
 DEFFUNC i32:main() {
     DEFVAR i32:a 1
     DEFVAR i32*:b REF a
-    ASSIGN DEREF b 2 
+    fun(b) 
     RETURN a
 }

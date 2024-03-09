@@ -34,7 +34,8 @@ Ir::pInstr Convertor::find_left_value(pNode root, pNode lv, Ir::pFuncDefined fun
 {
     if(lv->type == NODE_DEREF) {
         auto r = std::static_pointer_cast<Ast::DerefNode>(lv);
-        return func->add_instr(Ir::make_deref_instr(analyze_value(r->val, func)));
+        auto res = analyze_value(r->val, func);
+        return res;
     }
     if(lv->type != NODE_SYM) {
         node_assert(false, root, "[Convertor] error 12: expected to be a left-value");
@@ -260,11 +261,9 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
     }
     case NODE_DEREF: {
         auto r = std::static_pointer_cast<Ast::DerefNode>(root);
-        auto res = Ir::make_deref_instr(analyze_value(r->val, func));
-        auto res2 = Ir::make_load_instr(res);
+        auto res = Ir::make_load_instr(analyze_value(r->val, func));
         func->add_instr(res);
-        func->add_instr(res2);
-        return res2;
+        return res;
     }
     case NODE_ASSIGN:
     case NODE_DEF_VAR:
