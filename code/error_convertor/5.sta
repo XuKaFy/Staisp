@@ -3,7 +3,7 @@ ADD 1 2
 DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK {
     IF EQ b a 
         RETURN a
-    IFGT a b
+    IF GT a b
         RETURN gcd ( SUB a b b )
     RETURN gcd ( SUB b a a )
 }

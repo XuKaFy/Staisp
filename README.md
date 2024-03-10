@@ -169,6 +169,7 @@ compiler [file_name]
 11. `[Parser] error 11: too many CONSTs`：输入了太多 CONST
 12. `[Parser] error 12: expected to be a left-value`：此处应为左值
 13. `[Parser] error 13: type of index should be integer`：数组长度必须是整型
+14. `[Parser] error 14: CONST of array type is meaningless`：数组无需 CONST 修饰
 
 ### Convertor 语义错误
 

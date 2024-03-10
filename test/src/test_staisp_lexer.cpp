@@ -26,7 +26,7 @@ TEST(test_staisp_lexer, basic_lexer) {
 TEST(test_staisp_lexer, lexer_error_1) {
     Staisp::Lexer lexer;
 
-    pCode p_code = read_file("error_lexer/1.sta");
+    pCode p_code = read_test_file("error_lexer/1.sta");
 
     try {
         lexer.lexer(p_code);

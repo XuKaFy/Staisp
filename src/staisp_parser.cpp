@@ -57,10 +57,10 @@ bool Parser::has_token() const
     return _current != _end;
 }
 
-AstProg Parser::parser(pCode code)
+AstProg Parser::parse(pCode code)
 {
     TokenList list = Lexer().lexer(code);
-    return parser(list);
+    return parse(list);
 }
 
 bool Parser::is_buildin_sym(Symbol sym)
@@ -115,6 +115,7 @@ pType Parser::parse_type() {
         throw_error(3, "not a type");
     }
     pType root = make_basic_type(gSymToImmType.find(current_token().sym)->second, is_const);
+    // 注意，对 Type 的识别是左递归的
     while(!is_type_ended()) {
         if(peek().t == TOKEN_FLWR) {
             root = make_pointer_type(root, false);
@@ -123,11 +124,17 @@ pType Parser::parse_type() {
         }
         if(is_const_symbol()) {
             consume_token(TOKEN_SYM);
-            if(is_const_type(root)) {
+            if(is_const_type(root)) { // CONST 不能出现太多次
                 throw_error(11, "too many CONSTs");
             }
-            to_basic_type(root)->is_const = true;
-            continue;
+            if(is_basic_type(root))
+                to_basic_type(root)->is_const = true;
+            else if(is_pointer(root))
+                to_pointer_type(root)->is_const = true;
+            else if(is_struct(root))
+                to_struct_type(root)->is_const = true;
+            else throw_error(14, "CONST of array type is meaningless"); // 只剩下数组类型，而数组类型的 CONST 是无意义的
+            continue; // 注意，必须要执行到这个 continue，下面还有别的计算
         }
         ImmValue val = parse_single_value_list();
         if(!is_imm_integer(val.ty)) {
@@ -145,6 +152,7 @@ pType Parser::parse_type() {
 ImmValue Parser::parse_single_value_list()
 {
     consume_token(TOKEN_LB_M);
+    // 数组大小必须是可以计算出的
     ImmValue num = Ast::Executor(_result).must_have_value_execute(parse_value());
     consume_token(TOKEN_RB_M);
     return num;
@@ -184,7 +192,7 @@ pNode Parser::parse_value()
         return Ast::new_imm_node(current_p_token(), current_token().val);
     }
     if(is_buildin_sym(current_token().sym)) {
-        return parse_buildin_sym(current_token().sym);
+        return parse_buildin_sym(current_token().sym, false);
     }
     if(!_env.env()->count(current_token().sym)) {
         if(peek().t == TOKEN_LB_S) {
@@ -288,7 +296,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         for(auto i : a2) {
             _env.env()->set(i.sym, SYM_VAL);
         }
-        auto a3 = parse_statement();
+        auto a3 = parse_statement(false);
         _env.end_env();
         return Ast::new_func_def_node(token, a1, a2, a3, gBuildinSymType.find(sym)->second == BUILDIN_DEFCONSTFUNC);
     }
@@ -311,7 +319,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_item_node(token, v, index);
     }
     case BUILDIN_CONST: {
-        throw_error(10, "beginning of a statement cannot be a type");
+        throw_error(10, "beginning of a statement cannot be \"CONST\"");
     }
     }
     // cannot reach
@@ -319,7 +327,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     return nullptr;
 }
 
-pNode Parser::parse_statement()
+pNode Parser::parse_statement(bool in_global)
 {
     if(peek().t == TOKEN_LB_L) { // if is start of BLOCK, then process BLOCK without key word
         return parse_block();
@@ -330,7 +338,7 @@ pNode Parser::parse_statement()
         return { };
     }
     if(is_buildin_sym(current_token().sym)) {
-        return parse_buildin_sym(current_token().sym, true);
+        return parse_buildin_sym(current_token().sym, in_global);
     }
     return parse_function_call(current_token().sym);
 }
@@ -386,14 +394,14 @@ pNode Parser::parse_block()
     auto token = _current_token;
     _env.push_env();
     while(peek().t != TOKEN_RB_L) {
-        body.push_back(parse_statement());
+        body.push_back(parse_statement(false));
     }
     consume_token(TOKEN_RB_L);
     _env.end_env();
     return Ast::new_block_node(token, body);
 }
 
-AstProg Parser::parser(TokenList list)
+AstProg Parser::parse(TokenList list)
 {
     _result.clear();
     _begin = list.begin();
@@ -402,7 +410,7 @@ AstProg Parser::parser(TokenList list)
     _env.clear_env();
     _env.push_env();
     while(has_token()) {
-        _result.push_back(parse_statement());
+        _result.push_back(parse_statement(true));
     }
     _env.end_env();
     return _result;
