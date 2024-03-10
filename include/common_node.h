@@ -1,3 +1,9 @@
+// 所有 Ast 的节点的基类
+// 每个节点存放的内容包括：
+//
+// * 节点的类型
+// * 节点所属的 Token（每一个节点都对应一个操作，一个操作对应一个谓词，一个谓词对应一个 Token）
+
 #pragma once
 
 #include "def.h"
@@ -21,6 +27,8 @@ enum NodeType
     NODE_ARRAY_VAL,
 };
 
+// 谓词分为两种
+// 一种是可计算的
 #define OPR_TABLE_CALCULATABLE \
     ENTRY(ADD, +) \
     ENTRY(SUB, -) \
@@ -36,6 +44,7 @@ enum NodeType
     ENTRY(LT, <) \
     ENTRY(LE, <=)
 
+// 一种是不可计算的
 #define OPR_TABLE_UNCALCULATABLE \
     ENTRY(IF) \
     ENTRY(RET) \
@@ -66,4 +75,4 @@ struct Node
 };
 
 typedef Pointer<Node> pNode;
-typedef List<pNode> AstProg;
+typedef List<pNode> AstProg; // 可以把一个由 Ast 组成的程序看作一组节点，每个节点都是全局中的某个操作
