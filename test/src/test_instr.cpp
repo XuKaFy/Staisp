@@ -2,6 +2,7 @@
 #include "ir_instr.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
+#include "ir_cmp_instr.h"
 
 using namespace Ir;
 
@@ -92,4 +93,22 @@ TEST(test_instr, cast_instr) {
         EXPECT_EQ(e.id, 2);
         EXPECT_STREQ(e.object, "CastInstr");
     }
+}
+
+// ir_cmp_instr.h
+
+TEST(test_instr, cmp_instr) {
+    pType ti32 = make_basic_type(IMM_I32, false);
+    pInstr arg_i32_1 = make_const_arg(TypedSym("arg_i32_1", ti32));
+    pInstr arg_i32_2 = make_const_arg(TypedSym("arg_i32_2", ti32));
+
+    pType tf32 = make_basic_type(IMM_F32, false);
+    pInstr arg_f32_1 = make_const_arg(TypedSym("arg_f32_1", tf32));
+    pInstr arg_f32_2 = make_const_arg(TypedSym("arg_f32_2", tf32));
+
+    auto c1 = make_cmp_instr(CMP_EQ, ti32, arg_i32_1, arg_i32_2); c1->line = 1;
+    auto c2 = make_cmp_instr(CMP_EQ, tf32, arg_f32_1, arg_f32_2); c2->line = 2;
+
+    EXPECT_STREQ("%1 = icmp eq i32 %arg_i32_1, %arg_i32_2", c1->instr_print());
+    EXPECT_STREQ("%2 = fcmp eq float %arg_f32_1, %arg_f32_2", c2->instr_print());
 }

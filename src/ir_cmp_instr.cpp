@@ -6,7 +6,7 @@ Symbol CmpInstr::instr_print_impl() const
 {
     return to_symbol(
         String(print_impl())
-        + (is_float(tr) ? " = fcmp " : " = icmp ")
+        + (is_float(cmp_val_type) ? " = fcmp " : " = icmp ")
         + gCmpInstrName[cmp_type]
         + " " 
         + ch[0]->tr->type_name()
