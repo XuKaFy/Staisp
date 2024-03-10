@@ -137,8 +137,9 @@ sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
 ## 编译
 
 ```
-cd src
-make
+mkdir build
+cmake .. -G "MinGW Makefiles"
+cmake --build .
 ```
 
 ## 使用

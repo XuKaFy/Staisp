@@ -312,7 +312,7 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vecto
     if(is_array(elem_type)) {
         for(size_t i=0; i<valid_size; ++i) {
             node_assert(nums[i]->type == NODE_ARRAY_VAL, nums[i], "[Convertor] error 17: list dont match the expected value");
-            auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue(i, IMM_I32)));
+            auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32)));
             indexs.push_back(index);
             func->add_instr(index);
             copy_to_array(root, addr, subarray_type, std::static_pointer_cast<Ast::ArrayDefNode>(nums[i])->nums, indexs, func);
@@ -321,7 +321,7 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vecto
         return ;
     }
     for(size_t i=0; i<valid_size; ++i) {
-        auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue(i, IMM_I32)));
+        auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32)));
         indexs.push_back(index);
         auto item = Ir::make_item_instr(addr, indexs);
         
