@@ -1,6 +1,7 @@
 include(GoogleTest)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../third_party/googletest/googletest/include/)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../include)
+include_directories(${CMAKE_CURRENT_LIST_DIR})
 
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src TEST_SRC)
 
