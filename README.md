@@ -136,9 +136,19 @@ sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
 
 ## 编译
 
+可以编译的版本是：
+
+```
+cmake version 3.28.3
+GNU Make 4.4.1（为 x86_64-pc-cygwin 编译）
+g++ (GCC) 11.4.0
+```
+
+编译指令：
+
 ```
 mkdir build
-cmake .. -G "MinGW Makefiles"
+cmake .. -G "Unix Makefiles"
 cmake --build .
 ```
 
