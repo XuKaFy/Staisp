@@ -2,11 +2,16 @@
 
 namespace Ast {
 
+void Executor::throw_error(pNode root, int id, Symbol msg)
+{
+    root->token->throw_error(id, "Executor", msg);
+}
+
 ImmValue must_have_value(ImmOrVoid imm, pNode root)
 {
     if(imm.has_value())
         return imm.value();
-    root->token->print_error("[Executor] error 7: empty value");
+    Executor::throw_error(root, 7, "empty value");
     return -1;
 }
 
@@ -42,7 +47,7 @@ ImmOrVoid Executor::execute(pNode root)
             throw e;
         }
         _env.end_env();
-        root->token->print_error("[Executor] error 6: function has no return");
+        throw_error(root, 6, "function has no return");
     }
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<VarDefNode>(root);
@@ -53,7 +58,7 @@ ImmOrVoid Executor::execute(pNode root)
         auto sym = std::static_pointer_cast<SymNode>(root)->sym;
         if(_env.env()->count(sym))
             return _env.env()->find(sym);
-        root->token->print_error("[Executor] error 3: variant not found");
+        throw_error(root, 3, "variant not found");
     }
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<AssignNode>(root);
@@ -65,7 +70,7 @@ ImmOrVoid Executor::execute(pNode root)
     }
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
-        root->token->print_error("[Executor] error 5: function nested");
+        throw_error(root, 5, "function nested");
     default: break;
     }
     // NODE_OPR
@@ -140,7 +145,8 @@ ImmOrVoid Executor::execute_call(Pointer<OprNode> root)
 
 ImmOrVoid Executor::execute_func(Pointer<FuncDefNode> func, ImmValues args)
 {
-    node_assert(func->args.size() == args.size(), func, "[Executor] error 4: wrong count of arguments");
+    if(func->args.size() != args.size())
+        throw_error(func, 4, "wrong count of arguments");
     _env.push_env();
     for(size_t i=0; i<args.size(); ++i) {
         _env.env()->set(func->args[i].sym, args[i]);
@@ -163,10 +169,10 @@ Pointer<FuncDefNode> Executor::find_const_function(Symbol sym, pNode root)
             if(String(sym) == String(cname)) {
                 return std::static_pointer_cast<FuncDefNode>(i);
             }
-            i->token->print_error("[Executor] error 1: function is not declared as DEFCONSTFUNC");
+            throw_error(i, 1, "function is not declared as DEFCONSTFUNC");
         }
     }
-    root->token->print_error("[Executor] error 2: function not found");
+    throw_error(root, 2, "function not found");
     return Pointer<FuncDefNode>();
 }
 

@@ -19,6 +19,11 @@ Symbol to_symbol(String s)
     return Symbol(m);
 }
 
+pCode make_code(String code, String file_name)
+{
+    return pCode(new Code { pString(new String(code)), file_name });
+}
+
 void Memory::realloc(size_t len)
 {
     this->len = len;

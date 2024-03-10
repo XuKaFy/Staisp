@@ -88,6 +88,8 @@ public:
     AstProg parser(TokenList list);
 
 private:
+    void throw_error(int id, Symbol msg);
+
     StaispToken get_token();
     StaispToken current_token() const;
     pToken current_p_token() const;

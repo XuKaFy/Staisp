@@ -39,7 +39,7 @@ public:
         }
         if(_parent)
             return _parent->find(sym);
-        throw Exception(1, "Env", "error 1: cannot find variant in this environment");
+        throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
     void set(Symbol sym, T i) {
@@ -65,7 +65,7 @@ public:
         if(env_count()) {
             return _env.top();
         }
-        throw Exception(1, "EnvWrapper", "error 1: current environment is empty");
+        throw Exception(1, "EnvWrapper", "current environment is empty");
     }
 
     size_t env_count() {
@@ -81,7 +81,7 @@ public:
 
     void end_env() {
         if(_env.empty())
-            throw Exception(2, "EnvWrapper", "error 2: environment stack is empty");
+            throw Exception(2, "EnvWrapper", "environment stack is empty");
         _env.pop();
     }
 

@@ -105,7 +105,7 @@ ImmValue::operator bool() const
         return val.f64val;
     }
     }
-    throw Exception(1, "ImmValue", "error 1: type not implemented {operator bool()}");
+    throw Exception(1, "ImmValue", "type not implemented {operator bool()}");
     return ImmValue();
 }
 
@@ -157,7 +157,7 @@ ImmValue ImmValue::cast_to(ImmType new_ty) const
     }
     }
 #undef SWITCHES
-    throw Exception(1, "ImmValue", "error 1: type not implemented {cast_to}");
+    throw Exception(1, "ImmValue", "type not implemented {cast_to}");
     return ImmValue();
 }
 
@@ -189,7 +189,7 @@ ImmValue ImmValue::operator y (ImmValue o) const \
         return ImmValue(a1.val.f64val y a2.val.f64val); \
     } \
     } \
-    throw Exception(1, "ImmValue", "error 1: type not implemented {OPR_DEF}"); \
+    throw Exception(1, "ImmValue", "type not implemented {OPR_DEF}"); \
     return ImmValue(); \
 }
 OPR_DEF(+)
@@ -220,9 +220,9 @@ ImmValue ImmValue::operator y (ImmValue o) const \
         return ImmValue(a1.val.uval y a2.val.uval, com_ty); \
     } \
     default:\
-        throw Exception(2, "ImmValue", "error 2: non-integer type does operation on integer"); \
+        throw Exception(2, "ImmValue", "non-integer type does operation on integer"); \
     } \
-    throw Exception(1, "ImmValue", "error 1: type not implemented {OPR_DEF_INT}"); \
+    throw Exception(1, "ImmValue", "type not implemented {OPR_DEF_INT}"); \
     return ImmValue(); \
 }
 OPR_DEF_INT(%)
@@ -258,7 +258,7 @@ ImmValue ImmValue::operator y (ImmValue o) const \
         return ImmValue(a1.val.f64val y a2.val.f64val); \
     } \
     } \
-    throw Exception(1, "ImmValue", "error 1: type not implemented {OPR_DEF_LOGICAL}"); \
+    throw Exception(1, "ImmValue", "type not implemented {OPR_DEF_LOGICAL}"); \
     return ImmValue(); \
 }
 OPR_DEF_LOGICAL(&&)

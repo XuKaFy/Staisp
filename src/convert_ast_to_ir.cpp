@@ -2,6 +2,11 @@
 
 namespace AstToIr {
 
+void Convertor::throw_error(pNode root, int id, Symbol msg)
+{
+    root->throw_error(id, "Convertor", msg);
+}
+
 Ir::pModule Convertor::module() const
 {
     return _mod;
@@ -13,21 +18,21 @@ Ir::pInstr Convertor::find_left_value(pNode root, Symbol sym, Ir::pFuncDefined f
         Ir::pInstr found = _env.env()->find(sym);
         // const value is error
         if(!is_pointer(found->tr))
-            node_assert(false, root, "[Convertor] error 10: assignment to a local const value");
+            throw_error(root, 10, "assignment to a local const value");
         // no-const value should be loaded
         return found;
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->val.sym, sym) == 0) {
                 if(is_const_type(i->val.tr)) {
-                    node_assert(false, root, "[Convertor] error 11: assignment to a global const value");
+                    throw_error(root, 11, "assignment to a global const value");
                 }
                 return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
             }
         }
     }
     printf("Warning: left-value \"%s\" not found.\n", sym);
-    node_assert(false, root, "[Convertor] error 1: left value cannot be found");
+    throw_error(root, 1, "left value cannot be found");
     return Ir::make_empty_instr();
 }
 
@@ -48,7 +53,7 @@ Ir::pInstr Convertor::find_left_value(pNode root, pNode lv, Ir::pFuncDefined fun
         return func->add_instr(res);
     }
     if(lv->type != NODE_SYM) {
-        node_assert(false, lv, "[Convertor] error 12: expected to be a left-value");
+        throw_error(lv, 12, "expected to be a left-value");
     }
     Symbol sym = std::static_pointer_cast<Ast::SymNode>(lv)->sym;
     return find_left_value(root, sym, func);
@@ -72,7 +77,7 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
         }
     }
     // impossible
-    node_assert(false, root, "[Convertor] symbol cannot be found - impossible");
+    throw_error(root, -1, "symbol cannot be found - impossible");
     return Ir::make_empty_instr();
 }
 
@@ -81,7 +86,7 @@ Ir::pInstr Convertor::cast_to_type(pNode root, Ir::pInstr val, pType tr, Ir::pFu
     if(is_same_type(val->tr, tr)) return val;
     if(!is_castable(val->tr, tr)) {
         printf("Message: not castable from %s to %s\n", val->tr->type_name(), tr->type_name());
-        root->token->print_error("[Convertor] error 13: not castable");
+        throw_error(root, 13, "[Convertor] error 13: not castable");
     }
     auto r = Ir::make_cast_instr(tr, val);
     func->add_instr(r);
@@ -99,7 +104,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     case OPR_OR:
     case OPR_REM: {
         // impossible
-        node_assert(root->ch.size() == 2, root, "[Convertor] binary opr has not 2 args - impossible");
+        if(root->ch.size() != 2)
+            throw_error(root, -1, "binary opr has not 2 args - impossible");
         auto a = root->ch.begin();
         auto an1 = *a;
         auto a1 = analyze_value(*(a++), func);
@@ -107,7 +113,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto a2 = analyze_value(*(a++), func);
         auto joined_type = join_type(a1->tr, a2->tr);
         if(!joined_type)
-            root->token->print_error("[Type] error 1: type has no joined type");
+            throw_error(root, 18, "type has no joined type");
         auto ir = Ir::make_binary_instr(fromBinaryOpr(root), joined_type, cast_to_type(an1, a1, joined_type, func), cast_to_type(an2, a2, joined_type, func));
         func->add_instr(ir);
         return ir;
@@ -119,7 +125,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     case OPR_LT:
     case OPR_LE: {
         // impossible
-        node_assert(root->ch.size() == 2, root, "[Convertor] binary opr has not 2 args - impossible");
+        if(root->ch.size() != 2)
+            throw_error(root, -1, "binary opr has not 2 args - impossible");
         auto a = root->ch.begin();
         auto an1 = *a;
         auto a1 = analyze_value(*(a++), func);
@@ -127,7 +134,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto a2 = analyze_value(*(a++), func);
         auto ty = join_type(a1->tr, a2->tr);
         if(!ty)
-            root->token->print_error("[Type] error 1: type has no joined type");
+            throw_error(root, 18, "type has no joined type");
         auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), ty, cast_to_type(an1, a1, ty, func), cast_to_type(an2, a2, ty, func));
         func->add_instr(ir);
         return ir;
@@ -137,8 +144,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto falseBlock = Ir::make_block();
         auto afterBlock = Ir::make_block();
         // impossible
-        node_assert(root->ch.size() == 3 || root->ch.size() == 2, root, "[Convertor] \"IF\" has not 2 or 3 args - impossible");
-        
+        if(root->ch.size() != 3 && root->ch.size() != 2)
+            throw_error(root, -1, "\"IF\" has not 2 or 3 args - impossible");
         auto a = root->ch.begin();
         auto cond = analyze_value(*(a++), func);
         // printf("for if cond, tr = %d\n", cond->tr);
@@ -167,7 +174,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto afterBlock = Ir::make_block();
 
         // impossible
-        node_assert(root->ch.size() == 3 || root->ch.size() == 2, root, "[Convertor] \"WHILE\" opr has not 2 args - impossible");
+        if(root->ch.size() != 2)
+            throw_error(root, -1, "\"WHILE\" has not 2 args - impossible");
 
         push_loop_env(pLoopEnv(new LoopEnv { compBlock, afterBlock } ));
 
@@ -191,31 +199,37 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     }
     case OPR_RET: {
         // impossible
-        node_assert(root->ch.size() == 1, root, "[Convertor] \"RET\" opr has not 1 args - impossible");
+        if(root->ch.size() != 1)
+            throw_error(root, -1, "\"RET\" opr has not 1 args - impossible");
         auto a = analyze_value(root->ch.front(), func);
         func->add_instr(Ir::make_ret_instr(func->var.tr, cast_to_type(root->ch.front(), a, func->var.tr, func)));
         return Ir::make_empty_instr();
     }
     case OPR_CALL: {
         // impossible
-        node_assert(root->ch.size() >= 1, root, "[Convertor] \"CALL\" opr has less than 1 args - impossible");
+        if(root->ch.size() < 1)
+            throw_error(root, -1, "\"CALL\" opr has less than 1 args - impossible");
         Vector<Ir::pInstr> args;
         // impossible
-        node_assert(root->ch.front()->type == NODE_SYM, root, "[Convertor] \"CALL\" opr gets a name that not sym - impossible");
+        if(root->ch.front()->type != NODE_SYM)
+            throw_error(root, -1, "\"CALL\" opr gets a name that not sym - impossible");
         for(auto i=++root->ch.begin(); i!=root->ch.end(); ++i) {
             args.push_back(analyze_value(*i, func));
         }
         auto name_node = std::static_pointer_cast<Ast::SymNode>(root->ch.front());
         auto func_instr = find_func(name_node->sym);
-        node_assert(func_instr->args.size() == root->ch.size() - 1, root, "[Convertor] error 8: wrong count of arguments");
+        if(func_instr->args.size() != root->ch.size() - 1)
+            throw_error(root, 8, "wrong count of arguments");
         auto func_ir = Ir::make_call_instr(func_instr, args);
         func->add_instr(func_ir);
         return func_ir;
     }
     case OPR_BREAK: {
         // impossible
-        node_assert(root->ch.size() == 0, root, "[Convertor] \"BREAK\" opr has less than 1 args - impossible");
-        node_assert(has_loop_env(), root, "[Convertor] error 9: no outer loops");
+        if(root->ch.size() != 0)
+            throw_error(root, -1, "\"BREAK\" opr has args - impossible");
+        if(!has_loop_env())
+            throw_error(root, 9, "no outer loops");
         
         auto r = Ir::make_br_instr(loop_env()->loop_end->label());
         func->add_instr(r);
@@ -225,8 +239,10 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
     }
     case OPR_CONTINUE: {
         // impossible
-        node_assert(root->ch.size() == 0, root, "[Convertor] \"CONTINUE\" opr has less than 1 args - impossible");
-        node_assert(has_loop_env(), root, "[Convertor] error 9: no outer loops");
+        if(root->ch.size() != 0)
+            throw_error(root, -1, "\"CONTINUE\" opr has args - impossible");
+        if(!has_loop_env())
+            throw_error(root, 9, "no outer loops");
         
         auto r = Ir::make_br_instr(loop_env()->loop_begin->label());
         func->add_instr(r);
@@ -235,7 +251,7 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         return Ir::make_empty_instr();
     }
     default:
-        node_assert(false, root, "[Convertor] error 2: operation not implemented");
+        throw_error(root, 2, "operation not implemented");
         return Ir::make_empty_instr();
     }
 }
@@ -281,21 +297,22 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
         Vector<Ir::pInstr> indexs;
         for(auto i : r->index) {
             indexs.push_back(analyze_value(i, func));
-            node_assert(is_integer(indexs.back()->tr), i, "[Convertor] error 14: type of index should be integer");
+            if(!is_integer(indexs.back()->tr))
+                throw_error(i, 14, "type of index should be integer");
         }
         auto itemptr = Ir::make_item_instr(array, indexs);
         func->add_instr(itemptr);
         return itemptr;
     }
     case NODE_ARRAY_VAL: {
-        node_assert(false, root, "[Convertor] array definition is not calculatable - impossible");
+        throw_error(root, -1, "array definition is not calculatable - impossible");
     }
     case NODE_ASSIGN:
     case NODE_DEF_VAR:
     case NODE_DEF_FUNC:
     case NODE_BLOCK:
     default:
-        node_assert(false, root, "[Convertor] error 3: node not calculatable");
+        throw_error(root, 3, "node not calculatable");
         return Ir::make_empty_instr();
     }
 }
@@ -303,7 +320,7 @@ Ir::pInstr Convertor::analyze_value(pNode root, Ir::pFuncDefined func)
 void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pInstr> indexs, Ir::pFuncDefined func)
 {
     if(!is_pointer(addr->tr)) {
-        root->token->print_error("[Convertor] error 16: list should initialize type that is pointed");
+        throw_error(root, 16, "list should initialize type that is pointed");
     }
     auto array_type = std::static_pointer_cast<ArrayType>(to_pointed_type(cur_type));
     auto elem_type = array_type->elem_type;
@@ -311,7 +328,8 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vecto
     size_t valid_size = std::min(array_type->elem_count, nums.size());
     if(is_array(elem_type)) {
         for(size_t i=0; i<valid_size; ++i) {
-            node_assert(nums[i]->type == NODE_ARRAY_VAL, nums[i], "[Convertor] error 17: list dont match the expected value");
+            if(nums[i]->type != NODE_ARRAY_VAL)
+                throw_error(root, 17, "list doesn't match the expected value");
             auto index = Ir::make_binary_instr(Ir::INSTR_ADD, make_basic_type(IMM_I32, false), Ir::make_constant(ImmValue(0ull, IMM_I32)), Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32)));
             indexs.push_back(index);
             func->add_instr(index);
@@ -350,7 +368,8 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
         if(r->var.tr->type_type() == TYPE_COMPOUND_TYPE) {
             auto rr = std::static_pointer_cast<CompoundType>(r->var.tr)->compound_type_type();
             if(rr == COMPOUND_TYPE_ARRAY) {
-                node_assert(r->val->type == NODE_ARRAY_VAL, r->val, "[Convertor] error 15: array should be initialized by a list");
+                if(r->val->type != NODE_ARRAY_VAL)
+                    throw_error(r->val, 17, "array should be initialized by a list");
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
                 func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
                 _env.env()->set(r->var.sym, tmp);
@@ -392,7 +411,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
         // impossible
-        node_assert(false, root, "[Convertor] function nested - impossible");
+        throw_error(root, -1, "statement calculation not implemented - impossible");
     }
 }
 
@@ -431,7 +450,7 @@ void Convertor::generate_single(pNode root)
         generate_global_var(std::static_pointer_cast<Ast::VarDefNode>(root));
         break;
     default:
-        node_assert(false, root, "[Convertor] error 5: global operation has type that not implemented");
+        throw_error(root, 5, "global operation has type that not implemented");
     }
 }
 
@@ -459,7 +478,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
     SELECT(AND)
     SELECT(OR)
     default:
-        node_assert(false, root, "[Convertor] error 6: binary operation conversion from ast to ir not implemented");
+        throw_error(root, -1, "binary operation conversion from ast to ir not implemented");
     }
 #undef SELECT
     return Ir::INSTR_ADD;
@@ -488,7 +507,7 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, pType tr)
     SELECT_US(GT)
 #undef SELECT
     default:
-        node_assert(false, std::static_pointer_cast<Node>(root), "[Convertor] error 7: comparasion operation conversion from ast to ir not implemented");
+        throw_error(root, 7, "comparasion operation conversion from ast to ir not implemented");
     }
     return Ir::CMP_EQ;
 }

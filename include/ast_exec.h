@@ -23,6 +23,8 @@ struct Executor {
     ImmOrVoid execute(pNode root);
     ImmValue must_have_value_execute(pNode root);
 
+    static void throw_error(pNode root, int id, Symbol msg);
+
 private:
     ImmOrVoid execute_call(Pointer<OprNode> root);
     ImmOrVoid execute_func(Pointer<FuncDefNode> func, ImmValues args);

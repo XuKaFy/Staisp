@@ -3,6 +3,11 @@
 namespace Staisp
 {
 
+void Parser::throw_error(int id, Symbol msg)
+{
+    current_token().throw_error(id, "Parser", msg);
+}
+
 StaispToken Parser::get_token()
 {
     if(_current == _end) {
@@ -43,7 +48,7 @@ pToken Parser::current_p_token() const
 void Parser::consume_token(TokenType t)
 {
     if(get_token().t != t) {
-        current_token().print_error("[Parser] error 1: token out of expectation");
+        throw_error(1, "token out of expectation");
     }
 }
 
@@ -67,7 +72,7 @@ pNode Parser::parse_sym_node()
 {
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        current_token().print_error("[Parser] error 2: not a symbol");
+        throw_error(2, "not a symbol");
     }
     return Ast::new_sym_node(current_p_token(), current_token().sym);
 }
@@ -76,7 +81,7 @@ Symbol Parser::parse_sym()
 {
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        current_token().print_error("[Parser] error 2: not a symbol");
+        throw_error(2, "not a symbol");
     }
     return current_token().sym;
 }
@@ -104,10 +109,10 @@ pType Parser::parse_type() {
     bool is_const = false;
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        current_token().print_error("[Parser] error 3: not a type");
+        throw_error(3, "not a type");
     }
     if(gSymToImmType.count(current_token().sym) == 0) {
-        current_token().print_error("[Parser] error 3: not a type");
+        throw_error(3, "not a type");
     }
     pType root = make_basic_type(gSymToImmType.find(current_token().sym)->second, is_const);
     while(!is_type_ended()) {
@@ -119,14 +124,14 @@ pType Parser::parse_type() {
         if(is_const_symbol()) {
             consume_token(TOKEN_SYM);
             if(is_const_type(root)) {
-                current_token().print_error("[Parser] error 11: too many CONSTs");
+                throw_error(11, "too many CONSTs");
             }
             to_basic_type(root)->is_const = true;
             continue;
         }
         ImmValue val = parse_single_value_list();
         if(!is_imm_integer(val.ty)) {
-            current_token().print_error("[Parser] error 13: type of index should be integer");
+            throw_error(13, "type of index should be integer");
         }
         if(is_imm_signed(val.ty)) {
             root = make_array_type(root, val.val.ival);
@@ -183,15 +188,15 @@ pNode Parser::parse_value()
     }
     if(!_env.env()->count(current_token().sym)) {
         if(peek().t == TOKEN_LB_S) {
-            current_token().print_error("[Parser] error 4: function not found");
+            throw_error(4, "function not found");
         }
-        current_token().print_error("[Parser] error 5: variable not found");
+        throw_error(5, "variable not found");
     }
     if((*_env.env())[current_token().sym] == SYM_FUNC) {
         return parse_function_call(current_token().sym);
     }
     if(peek().t == TOKEN_LB_S) {
-        current_token().print_error("[Parser] error 6: calling a variable");
+        throw_error(6, "calling a variable");
     }
     return Ast::new_sym_node(current_p_token(), current_token().sym);
 }
@@ -200,7 +205,7 @@ pNode Parser::parse_left_value()
 {
     auto nxt = peek();
     if(nxt.t == TOKEN_INT) {
-        nxt.print_error("[Parser] error 12: expected to be a left-value [1]");
+        throw_error(12, "expected to be a left-value [1]");
     }
     if(gBuildinSymType.count(nxt.sym)) {
         get_token();
@@ -213,7 +218,7 @@ pNode Parser::parse_left_value()
             auto index = parse_array_value();
             return Ast::new_item_node(current_p_token(), name, index);
         }
-        nxt.print_error("[Parser] error 12: expected to be a left-value [2]");
+        throw_error(12, "expected to be a left-value [2]");
     }
     return parse_sym_node();
 }
@@ -256,7 +261,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         auto a1 = parse_typed_sym();
         auto a2 = parse_value();
         if(_env.env()->count_current(a1.sym)) {
-            current_token().print_error("[Parser] error 7: definition existed");
+            throw_error(7, "definition existed");
         }
         _env.env()->set(a1.sym, SYM_VAL);
         return Ast::new_var_def_node(token, a1, a2);
@@ -270,13 +275,13 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_DEFCONSTFUNC:
     case BUILDIN_DEFFUNC: {
         if(!in_global) {
-            current_token().print_error("[Parser] error 8: function nested");
+            throw_error(8, "function nested");
         }
         auto a1 = parse_typed_sym();
         auto a2 = parse_typed_sym_list();
         if(_env.env()->count_current(a1.sym)) {
             // should be rejected at error 8
-            current_token().print_error("[Parser] error 7: definition existed - impossible");
+            throw_error(-1, "definition existed - impossible");
         }
         _env.env()->set(a1.sym, SYM_FUNC);
         _env.push_env();
@@ -306,7 +311,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_item_node(token, v, index);
     }
     case BUILDIN_CONST: {
-        current_token().print_error("[Parser] error 10: beginning of a statement cannot be a type");
+        throw_error(10, "beginning of a statement cannot be a type");
     }
     }
     // cannot reach
@@ -321,7 +326,7 @@ pNode Parser::parse_statement()
     }
     get_token();
     if(current_token().t != TOKEN_SYM) {
-        current_token().print_error("[Parser] error 9: beginning of a statement must be a symbol");
+        throw_error(9, "beginning of a statement must be a symbol");
         return { };
     }
     if(is_buildin_sym(current_token().sym)) {
@@ -355,13 +360,13 @@ AstProg Parser::parse_value_list()
 pNode Parser::parse_function_call(Symbol sym)
 {
     if(!_env.env()->count(sym)) {
-        current_token().print_error("[Parser] error 4: function not found");
+        throw_error(4, "function not found");
     }
     auto token = current_p_token();
     switch((*_env.env())[sym]) {
     case SYM_VAL:
         my_assert(false, "Error: cannot reach this point");
-        // current_token().print_error("[Parser] calling a value");
+        // current_token().throw_error("[Parser] calling a value");
         break;
     case SYM_FUNC: {
         AstProg args = parse_value_list();

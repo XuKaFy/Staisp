@@ -5,9 +5,7 @@ Node::Node(pToken t, NodeType type)
 {
 }
 
-void node_assert(bool judge, pNode root, Symbol message)
+void Node::throw_error(int id, Symbol object, Symbol message)
 {
-    if(!judge) {
-        root->token->print_error(message);
-    }
+    token->throw_error(id, object, message);
 }

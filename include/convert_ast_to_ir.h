@@ -32,6 +32,8 @@ public:
     static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root, pType tr);
 
 private:
+    static void throw_error(pNode root, int id, Symbol msg);
+
     void generate_single(pNode root);
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);

@@ -77,7 +77,7 @@ pToken Lexer::lexer_number(String::value_type head)
         }
         if(isalpha(peek())) {
             StaispToken(var, _p_code, _begin, _current, _line_count)
-                .print_error("[Lexer] error 1: not a number");
+                .throw_error(1, "Lexer", "not a number");
         }
         if(!isdigit(peek()))
             break;
@@ -96,7 +96,7 @@ pToken Lexer::lexer_float(Immediate head)
     while(has_char() && !isspace(peek())) {
         if(isalpha(peek())) {
             StaispToken(var, _p_code, _begin, _current, _line_count)
-                .print_error("[Lexer] error 1: not a number");
+                .throw_error(1, "Lexer", "error 1: not a number");
         }
         if(!isdigit(peek()))
             break;

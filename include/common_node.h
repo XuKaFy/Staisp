@@ -59,12 +59,11 @@ struct Node
 {
     Node(pToken t, NodeType type);
 
+    void throw_error(int id, Symbol object, Symbol message);
+
     pToken token;
     NodeType type;
 };
 
 typedef Pointer<Node> pNode;
 typedef List<pNode> AstProg;
-
-void node_assert(bool judge, pNode root, Symbol message);
-

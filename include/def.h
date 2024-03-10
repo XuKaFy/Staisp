@@ -77,6 +77,8 @@ struct Code {
 
 typedef Pointer<Code> pCode;
 
+pCode make_code(String code, String file_name);
+
 // 所有异常的基类
 struct Exception {
     Exception(size_t id, Symbol obj, Symbol msg)

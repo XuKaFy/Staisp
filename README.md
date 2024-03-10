@@ -190,7 +190,8 @@ compiler [file_name]
 14. `[Convertor] error 14: type of index should be integer`：寻址的参数必须是整型
 15. `[Convertor] error 15: array should be initialized by a list`：必须用列表来初始化
 16. `[Convertor] error 16: list should initialize type that is pointed`：列表只能初始化指针类型指向的值
-17. `[Convertor] error 17: list dont match the expected value`：列表中的值类型与数组不符
+17. `[Convertor] error 17: list doesn't match the expected value`：列表中的值类型与数组不符
+18. `[Convertor] error 18: type has no joined type`：两类型不可计算
 
 ### Executor 运行时报错
 
@@ -201,7 +202,3 @@ compiler [file_name]
 5. `[Executor] error 5: function nested`：尝试执行函数内的函数
 6. `[Executor] error 6: function has no return`：函数没有返回值
 7. `[Executor] error 7: empty value`：计算时含有 VOID
-
-### Type 类型错误
-
-1. `[Type] error 1: type has no joined type`：两类型不可计算

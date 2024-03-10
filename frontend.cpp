@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     }
     String code((std::istreambuf_iterator<char>(in)),  
                  std::istreambuf_iterator<char>()); 
-    pCode p_code = pCode(new Code { pString(new String(code)), argv[1] });
+    pCode p_code = make_code(code, argv[1]);
     try {
         AstProg root = Staisp::Parser().parser(p_code);
         Ir::pModule mod = AstToIr::Convertor().generate(root);
@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
         out.open(String(argv[1]) + ".ll", std::fstream::out);
         out << mod->print_module();
         out.close();
-    } catch (TokenException) {
-        puts("TokenException Catched.");
+    } catch (Exception) {
+        puts("Exception Catched.");
     }
     return 0;
 }
