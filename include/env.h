@@ -14,7 +14,7 @@ class Env {
 public:
     typedef Pointer<Env> pEnv;
 
-    Env(pEnv parent = {})
+    Env(pEnv parent = pEnv())
         : _parent(parent) { }
 
     bool count_current(Symbol sym) {
@@ -37,8 +37,9 @@ public:
         if(_var_map.count(sym)) {
             return _var_map[sym];
         }
-        my_assert(_parent, "Error: empty env");
-        return _parent->find(sym);
+        if(_parent)
+            return _parent->find(sym);
+        throw Exception(1, "Env", "error 1: cannot find variant in this environment");
     }
 
     void set(Symbol sym, T i) {
@@ -64,7 +65,7 @@ public:
         if(env_count()) {
             return _env.top();
         }
-        return pEnv();
+        throw Exception(1, "EnvWrapper", "error 1: current environment is empty");
     }
 
     size_t env_count() {
@@ -72,10 +73,15 @@ public:
     }
 
     void push_env() {
-        _env.push(pEnv(new tEnv(env())));
+        if(env_count())
+            _env.push(pEnv(new tEnv(env())));
+        else
+            _env.push(pEnv(new tEnv()));
     }
 
     void end_env() {
+        if(_env.empty())
+            throw Exception(2, "EnvWrapper", "error 2: environment stack is empty");
         _env.pop();
     }
 

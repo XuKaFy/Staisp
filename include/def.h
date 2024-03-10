@@ -77,6 +77,15 @@ struct Code {
 
 typedef Pointer<Code> pCode;
 
+// 所有异常的基类
+struct Exception {
+    Exception(size_t id, Symbol obj, Symbol msg)
+        : id(id), object(obj), message(msg) { }
+    size_t id;
+    Symbol object;
+    Symbol message;
+};
+
 // 接下来的部分与运行时类型的存放有关
 // 未来将被废弃
 

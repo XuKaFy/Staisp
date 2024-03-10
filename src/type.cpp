@@ -13,7 +13,7 @@ Symbol PointerType::type_name() const
 Symbol ArrayType::type_name() const
 {
     static char tmp[256];
-    sprintf(tmp, "[%llu x %s]", elem_count, elem_type->type_name());
+    sprintf(tmp, "[%llu x %s]", (unsigned long long) elem_count, elem_type->type_name());
     return to_symbol(String(tmp));
 }
 
