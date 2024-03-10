@@ -5,7 +5,7 @@ namespace Ir {
 Symbol Func::print_impl() const
 {
     // functions are all global
-    return to_symbol(String("@") + var.sym);
+    return var.sym;
 }
 
 pFunc make_func(TypedSym var, Vector<TypedSym> arg_types)

@@ -11,7 +11,7 @@ TEST(test_staisp_parser, parser_error_##x) { \
         EXPECT_TRUE(false); \
     } catch (Exception e) { \
         EXPECT_EQ(e.id, x); \
-        EXPECT_TRUE(strcmp(e.object, "Parser") == 0); \
+        EXPECT_STREQ(e.object, "Parser"); \
     } \
 }
 

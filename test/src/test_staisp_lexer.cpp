@@ -19,7 +19,7 @@ TEST(test_staisp_lexer, basic_lexer) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_TRUE(strcmp(e.object, "Lexer") == 0);
+        EXPECT_STREQ(e.object, "Lexer");
     }
 }
 
@@ -33,6 +33,6 @@ TEST(test_staisp_lexer, lexer_error_1) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_TRUE(strcmp(e.object, "Lexer") == 0);
+        EXPECT_STREQ(e.object, "Lexer");
     }
 }

@@ -10,8 +10,8 @@ TEST(test_common_token, basic_token) {
         t.throw_error(10, "test", "null");
         EXPECT_TRUE(false);
     } catch (Exception e) {
-        EXPECT_TRUE(strcmp(e.object, "test") == 0);
-        EXPECT_TRUE(strcmp(e.message, "null") == 0);
+        EXPECT_STREQ(e.object, "test");
+        EXPECT_STREQ(e.message, "null");
         EXPECT_EQ(e.id, 10);
     }
 }
@@ -25,8 +25,8 @@ TEST(test_common_node, basic_node) {
         n.throw_error(10, "test", "null");
         EXPECT_TRUE(false);
     } catch (Exception e) {
-        EXPECT_TRUE(strcmp(e.object, "test") == 0);
-        EXPECT_TRUE(strcmp(e.message, "null") == 0);
+        EXPECT_STREQ(e.object, "test");
+        EXPECT_STREQ(e.message, "null");
         EXPECT_EQ(e.id, 10);
     }
 }

@@ -17,6 +17,6 @@ struct Func : public Val {
 
 typedef Pointer<Func> pFunc;
 
-pFunc make_func(TypedSym var, Vector<pType> arg_types);
+pFunc make_func(TypedSym var, Vector<TypedSym> arg_types);
 
 } // namespace ir

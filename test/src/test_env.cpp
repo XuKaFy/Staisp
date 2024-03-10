@@ -8,7 +8,7 @@ TEST(test_env, basic_env) {
         EXPECT_TRUE(false);
     } catch(Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_TRUE(strcmp(e.object, "Env") == 0);
+        EXPECT_STREQ(e.object, "Env");
     }
     a.set("hello", 10);
     try {
@@ -21,7 +21,7 @@ TEST(test_env, basic_env) {
         EXPECT_TRUE(false);
     } catch(Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_TRUE(strcmp(e.object, "Env") == 0);
+        EXPECT_STREQ(e.object, "Env");
     }
 }
 
@@ -32,7 +32,7 @@ TEST(test_env_wrapper, basic_env_wrapper) {
         ew.env();
     } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_TRUE(strcmp(e.object, "EnvWrapper") == 0);
+        EXPECT_STREQ(e.object, "EnvWrapper");
     }
     ew.push_env();
     EXPECT_EQ(ew.env_count(), 1);
@@ -58,6 +58,6 @@ TEST(test_env_wrapper, basic_env_wrapper) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
-        EXPECT_TRUE(strcmp(e.object, "EnvWrapper") == 0);
+        EXPECT_STREQ(e.object, "EnvWrapper");
     }
 }

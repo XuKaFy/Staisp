@@ -8,9 +8,10 @@ Symbol CastInstr::instr_print_impl() const
     auto tsrc = val->tr;
     auto tdest = tr;
     if(is_same_type(tsrc, tdest)) {
-        my_assert(false, "how");
+        throw Exception(1, "CastInstr", "no need to cast");
     }
-    if(is_pointer(tsrc) && is_basic_type(tdest)) {
+    // 第一种转换：在整数和指针之间转换
+    if(is_pointer(tsrc) && is_basic_type(tdest) && is_imm_integer(to_basic_type(tdest)->ty)) {
         return to_symbol(
             String(print_impl())
             + " = ptrtoint "
@@ -20,7 +21,7 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tr->type_name());
     }
-    if(is_pointer(tdest) && is_basic_type(tsrc)) {
+    if(is_pointer(tdest) && is_basic_type(tsrc) && is_imm_integer(to_basic_type(tsrc)->ty)) {
         return to_symbol(
             String(print_impl())
             + " = inttoptr "
@@ -30,7 +31,8 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tr->type_name());
     }
-    if(bytes_of_type(tdest) < bytes_of_type(tsrc)) { // trunc
+    // 第二种转换：整数之间的降格
+    if(is_integer(tdest) && is_integer(tsrc) && bytes_of_type(tdest) < bytes_of_type(tsrc)) { // trunc
         return to_symbol(
             String(print_impl())
             + " = trunc "
@@ -40,7 +42,8 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tdest->type_name());
     }
-    if(bytes_of_type(tdest) == bytes_of_type(tsrc)) { // i32<->float, i64<->double
+    // 第三种转换：浮点数和整数之间的转换
+    if(is_float(tdest) != is_float(tsrc)) {
         if(is_float(tdest)) {
             if(is_signed_type(tsrc)) {
                 return to_symbol(
@@ -81,25 +84,28 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tdest->type_name());
     }
-    // zext or sext
-    if(is_signed_type(tdest)) {
+    // 第四种转换：整数之间的升格
+    if(is_integer(tdest) && is_integer(tsrc) && bytes_of_type(tdest) > bytes_of_type(tsrc)) {
+        if(is_signed_type(tdest)) {
+            return to_symbol(
+                String(print_impl())
+                + " = sext "
+                + tsrc->type_name()
+                + " " 
+                + val->print()
+                + " to "
+                + tdest->type_name());
+        }
         return to_symbol(
             String(print_impl())
-            + " = sext "
+            + " = zext "
             + tsrc->type_name()
             + " " 
             + val->print()
             + " to "
             + tdest->type_name());
     }
-    return to_symbol(
-        String(print_impl())
-        + " = zext "
-        + tsrc->type_name()
-        + " " 
-        + val->print()
-        + " to "
-        + tdest->type_name());
+    throw Exception(2, "CastInstr", "not castable");
 }
 
 pInstr make_cast_instr(pType tr, pInstr a1)

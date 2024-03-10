@@ -76,7 +76,7 @@ TEST(test_imm, imm_opr_float) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
-        EXPECT_TRUE(strcmp(e.object, "ImmValue") == 0);
+        EXPECT_STREQ(e.object, "ImmValue");
     }
     EXPECT_EQ((a&&b).val.ival, 1);
     EXPECT_EQ((a||b).val.ival, 1);
@@ -85,14 +85,14 @@ TEST(test_imm, imm_opr_float) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
-        EXPECT_TRUE(strcmp(e.object, "ImmValue") == 0);
+        EXPECT_STREQ(e.object, "ImmValue");
     }
     try {
         (a|b).val.f64val;
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
-        EXPECT_TRUE(strcmp(e.object, "ImmValue") == 0);
+        EXPECT_STREQ(e.object, "ImmValue");
     }
     EXPECT_EQ((a<b).val.ival, 0);
     EXPECT_EQ((a>b).val.ival, 1);
