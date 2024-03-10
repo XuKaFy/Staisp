@@ -19,7 +19,7 @@ Ir::pInstr Convertor::find_left_value(pNode root, Symbol sym, Ir::pFuncDefined f
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->val.sym, sym) == 0) {
-                if(i->val.tr->is_const) {
+                if(is_const_type(i->val.tr)) {
                     node_assert(false, root, "[Convertor] error 11: assignment to a global const value");
                 }
                 return Ir::make_sym_instr(i->val, Ir::SYM_GLOBAL);
@@ -78,8 +78,8 @@ Ir::pInstr Convertor::find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined fu
 
 Ir::pInstr Convertor::cast_to_type(pNode root, Ir::pInstr val, pType tr, Ir::pFuncDefined func)
 {
-    if(same_type(val->tr, tr)) return val;
-    if(!castable(val->tr, tr)) {
+    if(is_same_type(val->tr, tr)) return val;
+    if(!is_castable(val->tr, tr)) {
         printf("Message: not castable from %s to %s\n", val->tr->type_name(), tr->type_name());
         root->token->print_error("[Convertor] error 13: not castable");
     }
@@ -358,7 +358,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
                 break;
             }
         }
-        if(r->var.tr->is_const) {
+        if(is_const_type(r->var.tr)) {
             func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
                 Ir::make_constant(r->var.tr), cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func)));
             _env.env()->set(r->var.sym, tmp);

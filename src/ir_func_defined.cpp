@@ -7,7 +7,7 @@ FuncDefined::FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
     pBlock first_block = make_block();
     
     for(auto i : arg_types) {
-        if(i.tr->is_const) {
+        if(is_const_type(i.tr)) {
             args_value.push_back(make_const_arg(i));
         } else {
             pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));

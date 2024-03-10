@@ -1,6 +1,6 @@
 #include "imm.h"
 
-bool is_imm_signed_type(ImmType tr)
+bool is_imm_signed(ImmType tr)
 {
     switch(tr) {
     case IMM_I1:
@@ -33,21 +33,21 @@ bool is_imm_float(ImmType tr)
     }
 }
 
-size_t bits_of_imm_type(ImmType tr)
+size_t bytes_of_imm_type(ImmType tr)
 {
     switch(tr) {
     case IMM_I1:
     case IMM_U1: return 1;
     case IMM_I8:
-    case IMM_U8: return 8;
+    case IMM_U8: return 1;
     case IMM_I16:
-    case IMM_U16: return 16;
+    case IMM_U16: return 2;
     case IMM_I32:
     case IMM_U32:
-    case IMM_F32: return 32;
+    case IMM_F32: return 4;
     case IMM_I64:
     case IMM_U64: 
-    case IMM_F64: return 64;
+    case IMM_F64: return 8;
     }
     return 0;
 }

@@ -7,10 +7,10 @@ Symbol CastInstr::instr_print_impl() const
 {
     auto tsrc = val->tr;
     auto tdest = tr;
-    if(same_type(tsrc, tdest)) {
+    if(is_same_type(tsrc, tdest)) {
         my_assert(false, "how");
     }
-    if(is_pointer(tsrc) && is_imm_type(tdest)) {
+    if(is_pointer(tsrc) && is_basic_type(tdest)) {
         return to_symbol(
             String(print_impl())
             + " = ptrtoint "
@@ -20,7 +20,7 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tr->type_name());
     }
-    if(is_pointer(tdest) && is_imm_type(tsrc)) {
+    if(is_pointer(tdest) && is_basic_type(tsrc)) {
         return to_symbol(
             String(print_impl())
             + " = inttoptr "
@@ -30,7 +30,7 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tr->type_name());
     }
-    if(bits_of_imm_type(tdest) < bits_of_imm_type(tsrc)) { // trunc
+    if(bytes_of_type(tdest) < bytes_of_type(tsrc)) { // trunc
         return to_symbol(
             String(print_impl())
             + " = trunc "
@@ -40,7 +40,7 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tdest->type_name());
     }
-    if(bits_of_imm_type(tdest) == bits_of_imm_type(tsrc)) { // i32<->float, i64<->double
+    if(bytes_of_type(tdest) == bytes_of_type(tsrc)) { // i32<->float, i64<->double
         if(is_float(tdest)) {
             if(is_signed_type(tsrc)) {
                 return to_symbol(

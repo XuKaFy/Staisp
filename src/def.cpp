@@ -18,3 +18,11 @@ Symbol to_symbol(String s)
     watcher.s.push_back(m);
     return Symbol(m);
 }
+
+void Memory::realloc(size_t len)
+{
+    this->len = len;
+    auto j = new int8_t[len];
+    memset(j, 0, sizeof(len));
+    this->mem = RawMemory(j);
+}

@@ -56,10 +56,10 @@ const Symbol gImmName[] = {
 #undef IMM_TYPE_TABLE
 
 // 与 Imm 类型有关的 utilities
-bool is_imm_signed_type(ImmType tr);
+bool is_imm_signed(ImmType tr);
 bool is_imm_float(ImmType tr);
 bool is_imm_integer(ImmType t);
-size_t bits_of_imm_type(ImmType tr);
+size_t bytes_of_imm_type(ImmType tr);
 ImmType join_imm_type(ImmType a, ImmType b);
 
 // 此结构体存放基本类型的数据**本身**

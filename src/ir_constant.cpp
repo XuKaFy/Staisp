@@ -21,7 +21,7 @@ Symbol Const::print_impl() const
     static char buf[128];
     switch(ty->type_type()) {
     case TYPE_BASIC_TYPE: {
-        auto imm_ty = std::static_pointer_cast<BasicType>(ty)->ty;
+        auto imm_ty = to_basic_type(ty)->ty;
         ImmValue var(var_mem, imm_ty);
         switch(imm_ty) {
         case IMM_I1:
@@ -61,7 +61,7 @@ pVal make_constant(ImmValue var)
 pVal make_constant(pType ty)
 {
     if(ty->type_type() == TYPE_BASIC_TYPE) {
-        return make_constant(std::static_pointer_cast<BasicType>(ty)->ty);
+        return make_constant(to_basic_type(ty)->ty);
     }
     my_assert(false, "not implemented");
     return pVal();

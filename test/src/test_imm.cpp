@@ -20,17 +20,19 @@ TEST(test_imm, imm_utility) {
     EXPECT_FALSE(is_imm_integer(IMM_F64));
     EXPECT_FALSE(is_imm_integer(IMM_F32));
     // signed type
-    EXPECT_TRUE(is_imm_signed_type(IMM_F64));
-    EXPECT_TRUE(is_imm_signed_type(IMM_F32));
-    EXPECT_TRUE(is_imm_signed_type(IMM_I64));
-    EXPECT_FALSE(is_imm_signed_type(IMM_U64));
-    // bits of type
-    EXPECT_EQ(bits_of_imm_type(IMM_I64), 64);
-    EXPECT_EQ(bits_of_imm_type(IMM_U64), 64);
-    EXPECT_EQ(bits_of_imm_type(IMM_F64), 64);
-    EXPECT_EQ(bits_of_imm_type(IMM_F32), 32);
-    EXPECT_EQ(bits_of_imm_type(IMM_I32), 32);
-    EXPECT_EQ(bits_of_imm_type(IMM_U32), 32);
+    EXPECT_TRUE(is_imm_signed(IMM_F64));
+    EXPECT_TRUE(is_imm_signed(IMM_F32));
+    EXPECT_TRUE(is_imm_signed(IMM_I64));
+    EXPECT_FALSE(is_imm_signed(IMM_U64));
+    // bytes of type
+    EXPECT_EQ(bytes_of_imm_type(IMM_I64), 8);
+    EXPECT_EQ(bytes_of_imm_type(IMM_U64), 8);
+    EXPECT_EQ(bytes_of_imm_type(IMM_F64), 8);
+    EXPECT_EQ(bytes_of_imm_type(IMM_F32), 4);
+    EXPECT_EQ(bytes_of_imm_type(IMM_I32), 4);
+    EXPECT_EQ(bytes_of_imm_type(IMM_U32), 4);
+    EXPECT_EQ(bytes_of_imm_type(IMM_I8), 1);
+    EXPECT_EQ(bytes_of_imm_type(IMM_I1), 1);
     // join type
     EXPECT_EQ(join_imm_type(IMM_I32, IMM_I64), IMM_I64);
     EXPECT_EQ(join_imm_type(IMM_F32, IMM_F32), IMM_F32);

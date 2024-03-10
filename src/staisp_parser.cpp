@@ -118,17 +118,17 @@ pType Parser::parse_type() {
         }
         if(is_const_symbol()) {
             consume_token(TOKEN_SYM);
-            if(root->is_const) {
+            if(is_const_type(root)) {
                 current_token().print_error("[Parser] error 11: too many CONSTs");
             }
-            root->is_const = true;
+            to_basic_type(root)->is_const = true;
             continue;
         }
         ImmValue val = parse_single_value_list();
         if(!is_imm_integer(val.ty)) {
             current_token().print_error("[Parser] error 13: type of index should be integer");
         }
-        if(is_imm_signed_type(val.ty)) {
+        if(is_imm_signed(val.ty)) {
             root = make_array_type(root, val.val.ival);
         } else {
             root = make_array_type(root, val.val.uval);

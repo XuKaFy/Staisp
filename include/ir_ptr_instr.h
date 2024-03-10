@@ -17,7 +17,7 @@ struct RefInstr : public Instr {
 
 struct DerefInstr : public Instr {
     DerefInstr(pInstr obj)
-        :  Instr(INSTR_TYPE_NEED_REG, to_pointer(obj->tr)->pointed_type), obj(obj) { }
+        :  Instr(INSTR_TYPE_NEED_REG, to_pointer_type(obj->tr)->pointed_type), obj(obj) { }
 
     virtual bool is_end_of_block() const { return false; }
     virtual Symbol instr_print_impl() const override;
