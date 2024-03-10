@@ -61,7 +61,7 @@ struct BasicType : public Type
 
     virtual TypeType type_type() const override { return TYPE_BASIC_TYPE; }
     virtual Symbol type_name() const override;
-    virtual size_t length() const override { return bits_of_type(ty); }
+    virtual size_t length() const override { return bits_of_imm_type(ty); }
     ImmType ty;
 };
 
@@ -116,7 +116,7 @@ pType make_array_type(pType ty, size_t count);
 
 bool is_signed_type(pType tr);
 bool is_float(pType tr);
-size_t bits_of_type(pType tr);
+size_t bits_of_imm_type(pType tr);
 bool is_integer(pType tr);
 
 bool is_array(pType tr);

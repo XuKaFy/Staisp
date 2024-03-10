@@ -92,7 +92,7 @@ pType make_array_type(pType ty, size_t count)
 bool is_signed_type(pType tr)
 {
     if(tr->type_type() == TYPE_BASIC_TYPE)
-        return is_signed_imm_type(std::static_pointer_cast<BasicType>(tr)->ty);
+        return is_imm_signed_type(std::static_pointer_cast<BasicType>(tr)->ty);
     return false;
 }
 
@@ -110,12 +110,12 @@ bool is_integer(pType tr)
     return false;
 }
 
-size_t bits_of_type(pType tr)
+size_t bits_of_imm_type(pType tr)
 {
     if(tr->type_type() == TYPE_BASIC_TYPE)
     switch(tr->type_type()) {
     case TYPE_BASIC_TYPE:
-        return bits_of_type(std::static_pointer_cast<BasicType>(tr)->ty);
+        return bits_of_imm_type(std::static_pointer_cast<BasicType>(tr)->ty);
     case TYPE_COMPOUND_TYPE:
         return std::static_pointer_cast<CompoundType>(tr)->length();
     default: break;

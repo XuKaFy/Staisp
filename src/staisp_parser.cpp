@@ -128,7 +128,7 @@ pType Parser::parse_type() {
         if(!is_imm_integer(val.ty)) {
             current_token().print_error("[Parser] error 13: type of index should be integer");
         }
-        if(is_signed_imm_type(val.ty)) {
+        if(is_imm_signed_type(val.ty)) {
             root = make_array_type(root, val.val.ival);
         } else {
             root = make_array_type(root, val.val.uval);

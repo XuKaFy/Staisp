@@ -30,7 +30,7 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tr->type_name());
     }
-    if(bits_of_type(tdest) < bits_of_type(tsrc)) { // trunc
+    if(bits_of_imm_type(tdest) < bits_of_imm_type(tsrc)) { // trunc
         return to_symbol(
             String(print_impl())
             + " = trunc "
@@ -40,7 +40,7 @@ Symbol CastInstr::instr_print_impl() const
             + " to "
             + tdest->type_name());
     }
-    if(bits_of_type(tdest) == bits_of_type(tsrc)) { // i32<->float, i64<->double
+    if(bits_of_imm_type(tdest) == bits_of_imm_type(tsrc)) { // i32<->float, i64<->double
         if(is_float(tdest)) {
             if(is_signed_type(tsrc)) {
                 return to_symbol(

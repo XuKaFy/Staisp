@@ -1,11 +1,6 @@
 #include "imm.h"
 
-ImmTypedSym::ImmTypedSym(Symbol sym, ImmType tr, bool is_const)
-    : sym(sym), tr(tr), is_const(is_const)
-{
-}
-
-bool is_signed_imm_type(ImmType tr)
+bool is_imm_signed_type(ImmType tr)
 {
     switch(tr) {
     case IMM_I1:
@@ -38,7 +33,7 @@ bool is_imm_float(ImmType tr)
     }
 }
 
-size_t bits_of_type(ImmType tr)
+size_t bits_of_imm_type(ImmType tr)
 {
     switch(tr) {
     case IMM_I1:
@@ -76,6 +71,16 @@ bool is_imm_integer(ImmType t)
     return false;
 }
 
+ImmType join_imm_type(ImmType a, ImmType b)
+{
+    return std::max(a, b);
+}
+
+ImmTypedSym::ImmTypedSym(Symbol sym, ImmType tr, bool is_const)
+    : sym(sym), tr(tr), is_const(is_const)
+{
+}
+
 ImmValue::operator bool() const
 {
     switch(ty) {
@@ -100,7 +105,7 @@ ImmValue::operator bool() const
         return val.f64val;
     }
     }
-    my_assert(false, "?");
+    throw Exception(1, "ImmValue", "error 1: type not implemented {operator bool()}");
     return ImmValue();
 }
 
@@ -152,7 +157,7 @@ ImmValue ImmValue::cast_to(ImmType new_ty) const
     }
     }
 #undef SWITCHES
-    my_assert(false, "?");
+    throw Exception(1, "ImmValue", "error 1: type not implemented {cast_to}");
     return ImmValue();
 }
 
@@ -184,6 +189,7 @@ ImmValue ImmValue::operator y (ImmValue o) const \
         return ImmValue(a1.val.f64val y a2.val.f64val); \
     } \
     } \
+    throw Exception(1, "ImmValue", "error 1: type not implemented {OPR_DEF}"); \
     return ImmValue(); \
 }
 OPR_DEF(+)
@@ -214,8 +220,9 @@ ImmValue ImmValue::operator y (ImmValue o) const \
         return ImmValue(a1.val.uval y a2.val.uval, com_ty); \
     } \
     default:\
-        my_assert(false, "int to float"); \
+        throw Exception(2, "ImmValue", "error 2: non-integer type does operation on integer"); \
     } \
+    throw Exception(1, "ImmValue", "error 1: type not implemented {OPR_DEF_INT}"); \
     return ImmValue(); \
 }
 OPR_DEF_INT(%)
@@ -251,6 +258,7 @@ ImmValue ImmValue::operator y (ImmValue o) const \
         return ImmValue(a1.val.f64val y a2.val.f64val); \
     } \
     } \
+    throw Exception(1, "ImmValue", "error 1: type not implemented {OPR_DEF_LOGICAL}"); \
     return ImmValue(); \
 }
 OPR_DEF_LOGICAL(&&)
@@ -262,8 +270,3 @@ OPR_DEF_LOGICAL(>=)
 OPR_DEF_LOGICAL(==)
 OPR_DEF_LOGICAL(!=)
 #undef OPR_DEF_INT
-
-ImmType join_imm_type(ImmType a, ImmType b)
-{
-    return std::max(a, b);
-}
