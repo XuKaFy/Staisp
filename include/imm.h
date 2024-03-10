@@ -1,3 +1,5 @@
+// 与基本类型相关的所有类和基本常量
+
 #pragma once
 
 #include "def.h"

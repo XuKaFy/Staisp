@@ -36,3 +36,5 @@
 .VSCodeCounter
 .VSCodeCounter/*.*
 *.ll
+
+build
