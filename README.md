@@ -105,20 +105,23 @@ type        -> num_type
              | type CONST
              | type*
              | type[value]
-num_type    -> i64|i32|i16|i8|i1|void
-value_list  -> ( )
-             | ( value, value_list )
-typed_sym_list -> ( )
-                | ( typed_sym, typed_sym_list )
-stat_list -> { }
-           | { statement, stat_list }
+num_type    -> i64|i32|i16|i8|i1|u64|u32|u16|u8|u1|f64|f32
+value_list  -> ( value_list_inner )
+value_list_inner  ->
+                   | value, value_list_inne
+typed_sym_list -> ( typed_sym_list_inner )
+typed_sym_list_inner -> 
+                      | typed_sym, typed_sym_list_inner
+stat_list -> { stat_list_inner }
+stat_list_inner -> 
+                 | statement, stat_list_inner
 left_value -> sym
             | "DEREF"   value
             | "ITEM"    value       array_def
 value -> function
        | const_val
        | variant
-       | CAST   type        value
+       | "CAST"   type        value
        | "REF"  left_value
 const_val -> basic_function_const
            | integer
@@ -141,7 +144,7 @@ sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
 ```
 cmake version 3.28.3
 GNU Make 4.4.1（为 x86_64-pc-cygwin 编译）
-g++ (GCC) 11.4.0
+g++ (GCC) 11.4.0（cygwin）
 ```
 
 编译指令：
@@ -213,3 +216,5 @@ compiler [file_name]
 5. `[Executor] error 5: function nested`：尝试执行函数内的函数
 6. `[Executor] error 6: function has no return`：函数没有返回值
 7. `[Executor] error 7: empty value`：计算时含有 VOID
+8. `[Executor] error 8: operation of non-immediate value`：非立即数不能计算
+9. `[Executor] error 9: dereference of non-pointer type`：只能对指针解引用

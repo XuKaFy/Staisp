@@ -16,12 +16,6 @@ bool is_imm_signed(ImmType tr)
     }
 }
 
-ImmValue::ImmValue(Memory mem, ImmType ty)
-    : ty(ty)
-{
-    val.uval = *((unsigned long long*)mem.mem.get());
-}
-
 bool is_imm_float(ImmType tr)
 {
     switch(tr) {
@@ -270,3 +264,31 @@ OPR_DEF_LOGICAL(>=)
 OPR_DEF_LOGICAL(==)
 OPR_DEF_LOGICAL(!=)
 #undef OPR_DEF_INT
+
+Symbol ImmValue::print() const
+{
+    static char buf[256] = {0};
+    switch(ty) {
+    case IMM_I1:
+    case IMM_I8:
+    case IMM_I16:
+    case IMM_I32:
+    case IMM_I64:
+        sprintf(buf, "%lld", val.ival);
+        break;
+    case IMM_U1:
+    case IMM_U8:
+    case IMM_U16:
+    case IMM_U32:
+    case IMM_U64:
+        sprintf(buf, "%llu", val.uval);
+        break;
+    case IMM_F32:
+        sprintf(buf, "%f", val.f32val);
+        break;
+    case IMM_F64:
+        sprintf(buf, "%lf", val.f64val);
+        break;
+    }
+    return to_symbol(String(buf));
+}

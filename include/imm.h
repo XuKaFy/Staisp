@@ -92,7 +92,6 @@ struct ImmValue {
     // 注意，对于 bool 类型而言，其被翻译为 IMM_I1
     ImmValue(bool flag)
         : ty(IMM_I1), val((long long)flag) {}
-    ImmValue(Memory mem, ImmType ty);
     ImmValue(ImmType ty)
         : ty(ty), val() {
         switch(ty) {
@@ -149,6 +148,8 @@ struct ImmValue {
     ImmValue operator == (ImmValue o) const;
     ImmValue operator != (ImmValue o) const;
     ImmValue operator ! () const;
+
+    Symbol print() const;
 };
 
 typedef Vector<ImmValue> ImmValues;

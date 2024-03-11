@@ -378,9 +378,7 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
             }
         }
         if(is_const_type(r->var.tr)) {
-            func->add_instr(tmp = Ir::make_binary_instr(Ir::INSTR_ADD, r->var.tr, 
-                Ir::make_constant(r->var.tr), cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func)));
-            _env.env()->set(r->var.sym, tmp);
+            _env.env()->set(r->var.sym, cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func));
         } else {
             func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
             func->add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func)));

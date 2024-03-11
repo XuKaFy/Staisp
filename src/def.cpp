@@ -23,11 +23,3 @@ pCode make_code(String code, String file_name)
 {
     return pCode(new Code { pString(new String(code)), file_name });
 }
-
-void Memory::realloc(size_t len)
-{
-    this->len = len;
-    auto j = new int8_t[len];
-    memset(j, 0, sizeof(len));
-    this->mem = RawMemory(j);
-}

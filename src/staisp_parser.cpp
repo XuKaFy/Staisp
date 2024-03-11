@@ -153,9 +153,11 @@ ImmValue Parser::parse_single_value_list()
 {
     consume_token(TOKEN_LB_M);
     // 数组大小必须是可以计算出的
-    ImmValue num = Ast::Executor(_result).must_have_value_execute(parse_value());
+    Value num = Ast::Executor(_result).must_have_value_execute(parse_value());
+    if(num.type() != VALUE_IMM)
+        throw_error(13, "type of index should be integer");
     consume_token(TOKEN_RB_M);
-    return num;
+    return num.imm_value();
 }
 
 TypedSym Parser::parse_typed_sym()
@@ -278,8 +280,12 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_opr_node(token, OPR_BREAK, { });
     case BUILDIN_CONTINUE:
         return Ast::new_opr_node(token, OPR_CONTINUE, { });
-    case BUILDIN_CONSTEXPR:
-        return Ast::new_imm_node(token, Ast::Executor(_result).must_have_value_execute(parse_value()));
+    case BUILDIN_CONSTEXPR: {
+        Value val = Ast::Executor(_result).must_have_value_execute(parse_value());
+        if(val.type() != VALUE_IMM)
+            throw_error(-1, "not implemented");
+        return Ast::new_imm_node(token, val.imm_value());
+    }
     case BUILDIN_DEFCONSTFUNC:
     case BUILDIN_DEFFUNC: {
         if(!in_global) {

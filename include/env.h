@@ -29,11 +29,11 @@ public:
         return false;
     }
 
-    T operator [](Symbol sym) {
+    T& operator [](Symbol sym) {
         return find(sym);
     }
 
-    T find(Symbol sym) {
+    T& find(Symbol sym) {
         if(_var_map.count(sym)) {
             return _var_map[sym];
         }

@@ -87,29 +87,3 @@ struct Exception {
     Symbol object;
     Symbol message;
 };
-
-// 接下来的部分与运行时类型的存放有关
-// 未来将被废弃
-
-typedef Pointer<int8_t> RawMemory;
-
-struct Memory {
-    Memory()
-        : len(0), mem() {}
-    Memory(size_t len)
-        : len(len), mem(RawMemory(new int8_t[len])) {}
-    void realloc(size_t len);
-
-    size_t len;
-    RawMemory mem;
-};
-
-struct MemoryRef
-{
-    MemoryRef(Memory mem)
-        : begin(0), len(mem.len), mem(mem.mem) { }
-    size_t begin;
-    size_t len;
-    RawMemory mem;
-};
-

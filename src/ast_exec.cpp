@@ -7,12 +7,12 @@ void Executor::throw_error(pNode root, int id, Symbol msg)
     root->token->throw_error(id, "Executor", msg);
 }
 
-ImmValue must_have_value(ImmOrVoid imm, pNode root)
+Value must_have_value(ValueOrVoid imm, pNode root)
 {
     if(imm.has_value())
         return imm.value();
     Executor::throw_error(root, 7, "empty value");
-    return -1;
+    return Value();
 }
 
 Executor::Executor(AstProg cur_prog)
@@ -27,12 +27,12 @@ Executor::Executor(AstProg cur_prog)
     }
 }
 
-ImmValue Executor::must_have_value_execute(pNode root)
+Value Executor::must_have_value_execute(pNode root)
 {
     return must_have_value(execute(root), root);
 }
 
-ImmOrVoid Executor::execute(pNode root)
+ValueOrVoid Executor::execute(pNode root)
 {
     switch(root->type) {
     case NODE_IMM:
@@ -52,7 +52,7 @@ ImmOrVoid Executor::execute(pNode root)
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<VarDefNode>(root);
         _env.env()->set(r->var.sym, must_have_value_execute(r->val));
-        return ImmOrVoid();
+        return ValueOrVoid();
     }
     case NODE_SYM: {
         auto sym = std::static_pointer_cast<SymNode>(root)->sym;
@@ -68,6 +68,21 @@ ImmOrVoid Executor::execute(pNode root)
         auto lv = std::static_pointer_cast<SymNode>(r->lv);
         _env.env()->set(lv->sym, must_have_value_execute(r->val));
     }
+    case NODE_ITEM: {
+        auto r = std::static_pointer_cast<ItemNode>(root);
+    }
+    case NODE_CAST: {
+        auto r = std::static_pointer_cast<CastNode>(root);
+    }
+    case NODE_REF: {
+        auto r = std::static_pointer_cast<RefNode>(root);
+    }
+    case NODE_DEREF: {
+        auto r = std::static_pointer_cast<DerefNode>(root);
+        Value v = must_have_value_execute(r->val);
+        if(v.type() != VALUE_POINTER)
+            throw_error(root, 9, "dereference of non-pointer type");
+    }
     case NODE_DEF_CONST_FUNC:
     case NODE_DEF_FUNC:
         throw_error(root, 5, "function nested");
@@ -81,7 +96,9 @@ ImmOrVoid Executor::execute(pNode root)
         my_assert(r->ch.size() == 2, "Error: constexpr operator has wrong count of args."); \
         auto a1 = must_have_value_execute(r->ch.front()); \
         auto a2 = must_have_value_execute(r->ch.back()); \
-        return a1 y a2; \
+        if(a1.type() == VALUE_IMM && a2.type() == VALUE_IMM) \
+            return a1.imm_value() y a2.imm_value(); \
+        throw_error(root, 8, "operation of non-immediate value"); \
     }
     OPR_TABLE_CALCULATABLE
 #undef ENTRY
@@ -98,7 +115,7 @@ ImmOrVoid Executor::execute(pNode root)
             else
                 execute(r->ch.back());
         }
-        return ImmOrVoid();
+        return ValueOrVoid();
     }
     case OPR_WHILE: {
         while(must_have_value_execute(r->ch.front())) {
@@ -110,7 +127,7 @@ ImmOrVoid Executor::execute(pNode root)
                 break;
             }
         }
-        return ImmOrVoid();
+        return ValueOrVoid();
     }
     case OPR_BREAK: {
         throw BreakException {};
@@ -126,13 +143,13 @@ ImmOrVoid Executor::execute(pNode root)
     }
     }
     my_assert(false, "?");
-    return ImmOrVoid();
+    return ValueOrVoid();
 }
 
-ImmOrVoid Executor::execute_call(Pointer<OprNode> root)
+ValueOrVoid Executor::execute_call(Pointer<OprNode> root)
 {
     Symbol name = nullptr;
-    auto args = ImmValues();
+    auto args = Values();
     for(auto i : root->ch) {
         if(!name) {
             name = std::static_pointer_cast<SymNode>(i)->sym;
@@ -143,7 +160,7 @@ ImmOrVoid Executor::execute_call(Pointer<OprNode> root)
     return execute_func(find_const_function(name, root), args);
 }
 
-ImmOrVoid Executor::execute_func(Pointer<FuncDefNode> func, ImmValues args)
+ValueOrVoid Executor::execute_func(Pointer<FuncDefNode> func, Values args)
 {
     if(func->args.size() != args.size())
         throw_error(func, 4, "wrong count of arguments");
@@ -151,7 +168,7 @@ ImmOrVoid Executor::execute_func(Pointer<FuncDefNode> func, ImmValues args)
     for(size_t i=0; i<args.size(); ++i) {
         _env.env()->set(func->args[i].sym, args[i]);
     }
-    ImmOrVoid ans;
+    ValueOrVoid ans;
     try {
         ans = execute(func->body);
     } catch(ReturnException e) {
