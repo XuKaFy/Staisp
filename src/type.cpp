@@ -156,7 +156,8 @@ size_t bytes_of_type(pType tr)
 Pointer<PointerType> to_pointer_type(pType p)
 {
     auto j = std::static_pointer_cast<PointerType>(p);
-    my_assert(j, "how");
+    if(!j)
+        throw Exception(1, "to_pointer_type", "not castable");
     return j;
 }
 
@@ -168,7 +169,8 @@ pType to_pointed_type(pType p)
 Pointer<ArrayType> to_array_type(pType p)
 {
     auto j = std::static_pointer_cast<ArrayType>(p);
-    my_assert(j, "how");
+    if(!j)
+        throw Exception(1, "to_array_type", "not castable");
     return j;
 }
 
@@ -180,13 +182,15 @@ pType to_elem_type(pType p)
 Pointer<StructType> to_struct_type(pType p)
 {
     auto j = std::static_pointer_cast<StructType>(p);
-    my_assert(j, "how");
+    if(!j)
+        throw Exception(1, "to_struct_type", "not castable");
     return j;
 }
 
 Pointer<BasicType> to_basic_type(pType p)
 {
     auto j = std::static_pointer_cast<BasicType>(p);
-    my_assert(j, "how");
+    if(!j)
+        throw Exception(1, "to_basic_type", "not castable");
     return j;
 }

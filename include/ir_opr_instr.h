@@ -7,8 +7,7 @@ namespace Ir {
 
 #define UNARY_INSTR_TABLE \
     ENTRY(NEG, neg) \
-    ENTRY(NOT, not) \
-    ENTRY(MOV, mov)
+    ENTRY(NOT, not)
 
 #define BIN_INSTR_TABLE \
     ENTRY(ADD, add) \

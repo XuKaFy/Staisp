@@ -2,6 +2,7 @@
 
 namespace Ir {
 
+/*
 Symbol RefInstr::instr_print_impl() const
 {
     return to_symbol(
@@ -26,6 +27,7 @@ Symbol DerefInstr::instr_print_impl() const
         + tr->type_name()
         + "*");
 }
+*/
 
 Symbol ItemInstr::instr_print_impl() const
 {
@@ -46,6 +48,7 @@ Symbol ItemInstr::instr_print_impl() const
     return to_symbol(ans);
 }
 
+/*
 pInstr make_ref_instr(pInstr obj)
 {
     return pInstr(new RefInstr(obj));
@@ -55,6 +58,7 @@ pInstr make_deref_instr(pInstr obj)
 {
     return pInstr(new DerefInstr(obj));
 }
+*/
 
 pType ex_shell(pType t, size_t count)
 {

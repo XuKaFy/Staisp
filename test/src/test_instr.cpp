@@ -4,7 +4,10 @@
 #include "ir_cast_instr.h"
 #include "ir_cmp_instr.h"
 #include "ir_control_instr.h"
+#include "ir_constant.h"
 #include "ir_mem_instr.h"
+#include "ir_opr_instr.h"
+#include "ir_ptr_instr.h"
 
 using namespace Ir;
 
@@ -167,4 +170,58 @@ TEST(test_instr, store_instr) {
     pInstr arg1 = make_const_arg(TypedSym("arg1", make_basic_type(IMM_F64, false)));
     pInstr i = make_store_instr(alloc, arg1);
     EXPECT_STREQ("store double %arg1, double* %200", i->instr_print());
+}
+
+// ir_opr_instr.h
+
+TEST(test_instr, binary_opr_instr) {
+    pType i32 = make_basic_type(IMM_I32, false);
+    pInstr arg1 = make_const_arg(TypedSym("arg1", i32));
+    pInstr arg2 = make_const_arg(TypedSym("arg2", i32));
+    pInstr i = make_binary_instr(INSTR_DIV, i32, arg1, arg2);
+    i->line = 999;
+    EXPECT_STREQ("%999 = sdiv i32 %arg1, %arg2", i->instr_print());
+
+    pType f32 = make_basic_type(IMM_F32, false);
+    pInstr arg3 = make_const_arg(TypedSym("arg3", f32));
+    pInstr arg4 = make_const_arg(TypedSym("arg4", f32));
+    pInstr j = make_binary_instr(INSTR_DIV, f32, arg3, arg4);
+    j->line = 998;
+    EXPECT_STREQ("%998 = fdiv float %arg3, %arg4", j->instr_print());
+
+    pType u32 = make_basic_type(IMM_U32, false);
+    pInstr arg5 = make_const_arg(TypedSym("arg5", u32));
+    pInstr arg6 = make_const_arg(TypedSym("arg6", u32));
+    pInstr k = make_binary_instr(INSTR_DIV, u32, arg5, arg6);
+    k->line = 997;
+    EXPECT_STREQ("%997 = udiv i32 %arg5, %arg6", k->instr_print());
+}
+
+TEST(test_instr, unary_opr_instr) {
+    pType i32 = make_basic_type(IMM_I32, false);
+    pInstr arg1 = make_const_arg(TypedSym("arg1", i32));
+    pInstr i = make_unary_instr(INSTR_NOT, i32, arg1);
+    i->line = 999;
+    EXPECT_STREQ("%999 = not i32 %arg1", i->instr_print());
+}
+
+// ir_ptr_instr.h
+
+TEST(test_instr, item_instr) {
+    pType i32 = make_basic_type(IMM_I32, false);
+    pType arr = make_array_type(make_array_type(i32, 10), 10);
+    pInstr arg = make_const_arg(TypedSym("arg", make_pointer_type(arr, false)));
+    EXPECT_STREQ(arg->tr->type_name(), "[10 x [10 x i32]]*");
+
+    pInstr a1 = make_binary_instr(INSTR_ADD, i32, 
+        make_constant(ImmValue(2ll, IMM_I32)),
+        make_constant(ImmValue(3ll, IMM_I32))
+    );
+    a1->line = 2;
+    EXPECT_STREQ(a1->tr->type_name(), "i32");
+
+    pInstr i = make_item_instr(arg, { a1, a1 });
+    i->line = 500;
+    EXPECT_TRUE(is_same_type(i->tr, make_pointer_type(i32, false)));
+    EXPECT_STREQ("%500 = getelementptr [10 x [10 x i32]], [10 x [10 x i32]]* %arg, i32 0, i32 %2, i32 %2", i->instr_print());
 }

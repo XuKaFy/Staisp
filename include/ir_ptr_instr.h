@@ -5,6 +5,7 @@
 
 namespace Ir {
 
+/*
 struct RefInstr : public Instr {
     RefInstr(pInstr obj)
         :  Instr(INSTR_TYPE_NEED_REG, make_pointer_type(obj->tr, false)), obj(obj) { }
@@ -24,6 +25,7 @@ struct DerefInstr : public Instr {
 
     pInstr obj;
 };
+*/
 
 struct ItemInstr : public Instr {
     ItemInstr(pInstr val, Vector<pInstr> index);
@@ -35,8 +37,10 @@ struct ItemInstr : public Instr {
     Vector<pInstr> index;
 };
 
+/*
 pInstr make_ref_instr(pInstr obj);
 pInstr make_deref_instr(pInstr obj);
+*/
 pInstr make_item_instr(pInstr val, Vector<pInstr> index);
 
 } // namespace ir

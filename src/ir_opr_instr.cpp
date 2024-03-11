@@ -3,6 +3,18 @@
 namespace Ir
 {
 
+Symbol UnaryInstr::instr_print_impl() const
+{
+    return to_symbol(
+        String(print_impl())
+        + " = "
+        + gUnaryInstrName[unaryType]
+        + " " 
+        + tr->type_name()
+        + " "
+        + oprd->print());
+}
+
 Symbol BinInstr::instr_print_impl() const
 {
     return to_symbol(
@@ -17,18 +29,6 @@ Symbol BinInstr::instr_print_impl() const
         + oprd[0]->print()
         + ", "
         + oprd[1]->print());
-}
-
-Symbol UnaryInstr::instr_print_impl() const
-{
-    return to_symbol(
-        String(print_impl())
-        + " = "
-        + gUnaryInstrName[unaryType]
-        + " " 
-        + tr->type_name()
-        + " "
-        + oprd->print());
 }
 
 pInstr make_unary_instr(UnaryInstrType type, pType tr, pVal oprd)
