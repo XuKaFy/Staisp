@@ -3,6 +3,8 @@
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
 #include "ir_cmp_instr.h"
+#include "ir_control_instr.h"
+#include "ir_mem_instr.h"
 
 using namespace Ir;
 
@@ -111,4 +113,58 @@ TEST(test_instr, cmp_instr) {
 
     EXPECT_STREQ("%1 = icmp eq i32 %arg_i32_1, %arg_i32_2", c1->instr_print());
     EXPECT_STREQ("%2 = fcmp eq float %arg_f32_1, %arg_f32_2", c2->instr_print());
+}
+
+// ir_control_instr.h
+
+TEST(test_instr, label_instr) {
+    pInstr i = make_label_instr();
+    i->line = 100;
+    EXPECT_STREQ("100:", i->instr_print());
+}
+
+TEST(test_instr, br_instr) {
+    pInstr i = make_label_instr();
+    i->line = 100;
+    pInstr br = make_br_instr(i);
+    EXPECT_STREQ("br label %100", br->instr_print());
+}
+
+TEST(test_instr, br_cond_instr) {
+    pInstr arg1 = make_const_arg(TypedSym("cond", make_basic_type(IMM_I32, false)));
+    pInstr i = make_label_instr();
+    i->line = 100;
+    pInstr j = make_label_instr();
+    j->line = 200;
+    pInstr br = make_br_cond_instr(arg1, i, j);
+    EXPECT_STREQ("br i32 %cond, label %100, label %200", br->instr_print());
+}
+
+// ir_mem_instr.h
+
+TEST(test_instr, alloc_instr) {
+    pType elem_type = make_basic_type(IMM_F64, false);
+    pInstr i = make_alloc_instr(elem_type);
+    i->line = 200;
+    EXPECT_TRUE(is_same_type(to_elem_type(i->tr), elem_type));
+    EXPECT_STREQ("%200 = alloca double*", i->instr_print());
+}
+
+TEST(test_instr, load_instr) {
+    pType elem_type = make_basic_type(IMM_F64, false);
+    pInstr alloc = make_alloc_instr(elem_type);
+    alloc->line = 200;
+    pInstr i = make_load_instr(alloc);
+    i->line = 300;
+    EXPECT_TRUE(is_same_type(i->tr, elem_type));
+    EXPECT_STREQ("%300 = load double, double* %200", i->instr_print());
+}
+
+TEST(test_instr, store_instr) {
+    pType elem_type = make_basic_type(IMM_F64, false);
+    pInstr alloc = make_alloc_instr(elem_type);
+    alloc->line = 200;
+    pInstr arg1 = make_const_arg(TypedSym("arg1", make_basic_type(IMM_F64, false)));
+    pInstr i = make_store_instr(alloc, arg1);
+    EXPECT_STREQ("store double %arg1, double* %200", i->instr_print());
 }
