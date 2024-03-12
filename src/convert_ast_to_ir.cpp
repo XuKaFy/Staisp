@@ -358,6 +358,8 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     case NODE_ASSIGN: {
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
         auto to = find_left_value(r, r->lv, func);
+        if(!is_pointer(to->tr))
+            throw_error(r, 19, "try to dereference a non-pointer value");
         auto j = to_pointed_type(to->tr);
         func->add_instr(Ir::make_store_instr(to, cast_to_type(r->val, analyze_value(r->val, func), j, func)));
         break;
@@ -433,7 +435,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
 {
     _env.push_env();
-    module()->add_global(Ir::make_global(root->var, Ast::Executor(_prog).must_have_value_execute(root->val)));
+    module()->add_global(Ir::make_global(root->var, *Ast::Executor(_prog).must_have_value_execute(root->val)));
     _env.end_env();
 }
 

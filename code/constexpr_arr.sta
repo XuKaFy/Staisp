@@ -1,0 +1,10 @@
+DEFCONSTFUNC i32:CALC() {
+    DEFVAR i32[10]:ans []
+    ASSIGN ITEM ans [0] 10
+    RETURN ITEM ans [0]
+}
+
+DEFFUNC i32:main() {
+    DEFVAR i32:n CONSTEXPR CALC()
+    RETURN n
+}

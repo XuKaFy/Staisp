@@ -6,9 +6,13 @@
 #include <variant>
 
 struct Value;
+typedef Pointer<Value> pValue;
 
-typedef Vector<Value> ArrayValue;
-typedef Pointer<Value> PointerValue;
+struct PointerValue {
+    pValue v;
+};
+
+typedef Vector<pValue> ArrayValue;
 
 struct ElemValue;
 
@@ -33,6 +37,8 @@ struct Value {
     Value(StructValue v)
         : val(v) { }
 
+    void reset_value(Value v) { val = v.val; }
+
     ValueType type() const {
         return (ValueType) val.index();
     }
@@ -49,12 +55,20 @@ struct Value {
     const ArrayValue& array_value() const { return std::get<ArrayValue>(val); }
     const StructValue& struct_value() const { return std::get<StructValue>(val); }
 
+    bool is_static() const;
+
 private:
     std::variant<ImmValue, PointerValue, ArrayValue, StructValue> val;
 };
 
-typedef Opt<Value> ValueOrVoid;
-typedef Vector<Value> Values;
+typedef Opt<pValue> LValueOrVoid;
+typedef Vector<pValue> Values;
+
+pValue make_value(Value v);
+pValue make_value(ImmValue v);
+pValue make_value(PointerValue v);
+pValue make_value(ArrayValue v);
+pValue make_value(StructValue v);
 
 struct ElemValue {
     Symbol name;

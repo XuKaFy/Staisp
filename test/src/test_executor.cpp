@@ -4,22 +4,16 @@
 #include "read_file.h"
 
 #define TEST_A_FILE(x) \
-TEST(test_convertor, convertor_error_##x) { \
-    pCode p_code = read_test_file("error_convertor/" #x ".sta"); \
+TEST(test_executor, executor_error_##x) { \
+    pCode p_code = read_test_file("error_executor/" #x ".sta"); \
     try { \
         AstProg root = Staisp::Parser().parse(p_code); \
         Ir::pModule mod = AstToIr::Convertor().generate(root); \
         EXPECT_TRUE(false); \
     } catch (Exception e) { \
         EXPECT_EQ(e.id, x); \
-        EXPECT_STREQ(e.object, "Convertor"); \
+        EXPECT_STREQ(e.object, "Executor"); \
     } \
 }
 
-TEST_A_FILE(3)
-TEST_A_FILE(5)
 TEST_A_FILE(8)
-TEST_A_FILE(9)
-TEST_A_FILE(10)
-TEST_A_FILE(11)
-TEST_A_FILE(19)

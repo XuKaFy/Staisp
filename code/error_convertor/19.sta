@@ -1,0 +1,11 @@
+DEFCONSTFUNC i32:CALC() {
+    DEFVAR i32:ans 0
+    DEFVAR i32*:pans REF ans
+    ASSIGN DEREF ans 2
+    RETURN ans
+}
+
+DEFFUNC i32:main() {
+    DEFVAR i32:n CALC()
+    RETURN n
+}

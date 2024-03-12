@@ -30,10 +30,31 @@ public:
     }
 
     T& operator [](Symbol sym) {
+        if(sym == nullptr)
+            throw Exception(2, "Env", "empty symbol");
+        return find(sym);
+    }
+
+    const T& operator [](Symbol sym) const {
+        if(sym == nullptr)
+            throw Exception(2, "Env", "empty symbol");
         return find(sym);
     }
 
     T& find(Symbol sym) {
+        if(sym == nullptr)
+            throw Exception(2, "Env", "empty symbol");
+        if(_var_map.count(sym)) {
+            return _var_map[sym];
+        }
+        if(_parent)
+            return _parent->find(sym);
+        throw Exception(1, "Env", "cannot find variant in this environment");
+    }
+
+    const T& find(Symbol sym) const {
+        if(sym == nullptr)
+            throw Exception(2, "Env", "empty symbol");
         if(_var_map.count(sym)) {
             return _var_map[sym];
         }

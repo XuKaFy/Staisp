@@ -206,6 +206,7 @@ compiler [file_name]
 16. `[Convertor] error 16: list should initialize type that is pointed`：列表只能初始化指针类型指向的值
 17. `[Convertor] error 17: list doesn't match the expected value`：列表中的值类型与数组不符
 18. `[Convertor] error 18: type has no joined type`：两类型不可计算
+19. `[Convertor] error 19: try to dereference a non-pointer value`：DEREF 只能用于指针
 
 ### Executor 运行时报错
 
@@ -218,3 +219,7 @@ compiler [file_name]
 7. `[Executor] error 7: empty value`：计算时含有 VOID
 8. `[Executor] error 8: operation of non-immediate value`：非立即数不能计算
 9. `[Executor] error 9: dereference of non-pointer type`：只能对指针解引用
+10. `[Executor] error 10: returned type is not static`：尝试返回非静态值（例如指针等）
+11. `[Executor] error 11: type of index should be integer`：寻址的参数必须是整型
+12. `[Executor] error 12: index used to non-array type`：不能对非数组类型使用 ITEM
+13. `[Executor] error 13: bad cast`：不能 CAST

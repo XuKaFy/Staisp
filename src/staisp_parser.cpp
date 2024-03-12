@@ -153,11 +153,11 @@ ImmValue Parser::parse_single_value_list()
 {
     consume_token(TOKEN_LB_M);
     // 数组大小必须是可以计算出的
-    Value num = Ast::Executor(_result).must_have_value_execute(parse_value());
-    if(num.type() != VALUE_IMM)
+    pValue num = Ast::Executor(_result).must_have_value_execute(parse_value());
+    if(num->type() != VALUE_IMM)
         throw_error(13, "type of index should be integer");
     consume_token(TOKEN_RB_M);
-    return num.imm_value();
+    return num->imm_value();
 }
 
 TypedSym Parser::parse_typed_sym()
@@ -281,7 +281,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_CONTINUE:
         return Ast::new_opr_node(token, OPR_CONTINUE, { });
     case BUILDIN_CONSTEXPR: {
-        Value val = Ast::Executor(_result).must_have_value_execute(parse_value());
+        Value val = *Ast::Executor(_result).must_have_value_execute(parse_value());
         if(val.type() != VALUE_IMM)
             throw_error(-1, "not implemented");
         return Ast::new_imm_node(token, val.imm_value());
@@ -409,17 +409,22 @@ pNode Parser::parse_block()
 
 AstProg Parser::parse(TokenList list)
 {
-    _result.clear();
-    _begin = list.begin();
-    _current = list.begin();
-    _end = list.end();
-    _env.clear_env();
-    _env.push_env();
-    while(has_token()) {
-        _result.push_back(parse_statement(true));
+    try {
+        _result.clear();
+        _begin = list.begin();
+        _current = list.begin();
+        _end = list.end();
+        _env.clear_env();
+        _env.push_env();
+        while(has_token()) {
+            _result.push_back(parse_statement(true));
+        }
+        _env.end_env();
+        return _result;
+    } catch (Exception e) {
+        current_token().throw_error(e.id, e.object, e.message);
     }
-    _env.end_env();
-    return _result;
+    return {};
 }
 
 } // namespace staisp

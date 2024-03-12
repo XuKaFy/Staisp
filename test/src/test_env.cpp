@@ -25,6 +25,17 @@ TEST(test_env, basic_env) {
     }
 }
 
+TEST(test_env, env_found_empty) {
+    Env<int> a;
+    try {
+        a.find(nullptr);
+        EXPECT_TRUE(false);
+    } catch(Exception e) {
+        EXPECT_EQ(e.id, 2);
+        EXPECT_STREQ(e.object, "Env");
+    }
+}
+
 TEST(test_env_wrapper, basic_env_wrapper) {
     EnvWrapper<int> ew;
     EXPECT_EQ(ew.env_count(), 0);
