@@ -151,12 +151,18 @@ g++ (GCC) 11.4.0（cygwin）
 cmake version 3.27.4
 GNU Make 4.3（为 aarch64-unknown-linux-gnu 编译）
 g++ (Ubuntu 13.2.0-4ubuntu3) 13.2.0
+
+// macOS
+cmake version 3.28.3
+GNU Make 3.81 (built for i386-apple-darwin11.3.0)
+Apple clang version 15.0.0 (clang-1500.0.40.1)
+Target: arm64-apple-darwin23.1.0
 ```
 
 编译指令：
 
 ```
-mkdir build
+mkdir build && cd build
 cmake .. -G "Unix Makefiles"
 cmake --build .
 ```
