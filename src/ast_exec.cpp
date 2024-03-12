@@ -33,6 +33,24 @@ pValue Executor::must_have_value_execute(pNode root)
     return must_have_value(execute(root), root);
 }
 
+pValue Executor::array_init(pType arr_type, pNode root)
+{
+    if(!is_array(arr_type)) {
+        // 语义已经分析 这里不再检查
+        return must_have_value_execute(root);
+    }
+    Pointer<ArrayType> t = to_array_type(arr_type);
+    pValue ans = make_value(ArrayValue {});
+    ArrayValue& arr = ans->array_value();
+    Pointer<ArrayDefNode> r = std::static_pointer_cast<ArrayDefNode> (root);
+    arr.resize(t->elem_count);
+    size_t valid_cnt = std::min(t->elem_count, r->nums.size());
+    for(size_t i=0; i<valid_cnt; ++i) {
+        arr[i] = array_init(t->elem_type, r->nums[i]);
+    }
+    return ans;
+}
+
 LValueOrVoid Executor::execute(pNode root)
 {
     try {
@@ -53,7 +71,12 @@ LValueOrVoid Executor::execute(pNode root)
         }
         case NODE_DEF_VAR: {
             auto r = std::static_pointer_cast<VarDefNode>(root);
-            _env.env()->set(r->var.sym, must_have_value_execute(r->val));
+            if(is_array(r->var.tr)) {
+                // 因为在 Parser 中已经验证过，因此不做语义验证
+                _env.env()->set(r->var.sym, array_init(r->var.tr, r->val));
+            } else {
+                _env.env()->set(r->var.sym, must_have_value_execute(r->val));
+            }
             return LValueOrVoid();
         }
         case NODE_SYM: {
@@ -79,15 +102,15 @@ LValueOrVoid Executor::execute(pNode root)
         }
         case NODE_ITEM: {
             auto r = std::static_pointer_cast<ItemNode>(root);
-            const pValue &v = _env.env()->find(r->v);
+            pValue v = _env.env()->find(r->v);
             for(auto i : r->index) {
-                pValue v = must_have_value_execute(i);
-                if(v->type() != VALUE_IMM || !is_imm_integer(v->imm_value().ty)) {
+                pValue vv = must_have_value_execute(i);
+                if(vv->type() != VALUE_IMM || !is_imm_integer(vv->imm_value().ty)) {
                     throw_error(i, 11, "type of index should be integer");
                 }
-                ImmValue index = v->imm_value();
+                ImmValue index = vv->imm_value();
                 if(v->type() != VALUE_ARRAY) {
-                    throw_error(i, 12, "index used to non-array type");
+                    throw_error(r, 12, "index used to non-array type");
                 }
                 if(is_imm_signed(index.ty)) {
                     long long ii = index.val.ival;
@@ -97,7 +120,8 @@ LValueOrVoid Executor::execute(pNode root)
                     v = v->array_value()[ui];
                 }
             }
-            return v;
+            PointerValue p {v};
+            return make_value(p);
         }
         case NODE_CAST: {
             auto r = std::static_pointer_cast<CastNode>(root);
@@ -115,8 +139,10 @@ LValueOrVoid Executor::execute(pNode root)
         case NODE_DEREF: {
             auto r = std::static_pointer_cast<DerefNode>(root);
             pValue v = must_have_value_execute(r->val);
-            if(v->type() != VALUE_POINTER)
+            if(v->type() != VALUE_POINTER) {
+                printf("Warning: current type = %d\n", v->type());
                 throw_error(root, 9, "dereference of non-pointer type");
+            }
             return v->pointer_value().v;
         }
         case NODE_DEF_CONST_FUNC:

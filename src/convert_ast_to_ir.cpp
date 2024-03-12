@@ -112,8 +112,10 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         auto an2 = *a;
         auto a2 = analyze_value(*(a++), func);
         auto joined_type = join_type(a1->tr, a2->tr);
-        if(!joined_type)
+        if(!joined_type) {
+            printf("Warning: try to join %s and %s.\n", a1->tr->type_name(), a2->tr->type_name());
             throw_error(root, 18, "type has no joined type");
+        }
         auto ir = Ir::make_binary_instr(fromBinaryOpr(root), joined_type, cast_to_type(an1, a1, joined_type, func), cast_to_type(an2, a2, joined_type, func));
         func->add_instr(ir);
         return ir;
@@ -367,17 +369,14 @@ void Convertor::analyze_statement_node(pNode root, Ir::pFuncDefined func)
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
-        if(r->var.tr->type_type() == TYPE_COMPOUND_TYPE) {
-            auto rr = std::static_pointer_cast<CompoundType>(r->var.tr)->compound_type_type();
-            if(rr == COMPOUND_TYPE_ARRAY) {
-                if(r->val->type != NODE_ARRAY_VAL)
-                    throw_error(r->val, 17, "array should be initialized by a list");
-                auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
-                func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
-                _env.env()->set(r->var.sym, tmp);
-                copy_to_array(r, tmp, tmp->tr, rrr->nums, {}, func);
-                break;
-            }
+        if(is_array(r->var.tr)) {
+            if(r->val->type != NODE_ARRAY_VAL)
+                throw_error(r->val, 17, "array should be initialized by a list");
+            auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
+            func->add_instr(tmp = Ir::make_alloc_instr(r->var.tr));
+            _env.env()->set(r->var.sym, tmp);
+            copy_to_array(r, tmp, tmp->tr, rrr->nums, {}, func);
+            break;
         }
         if(is_const_type(r->var.tr)) {
             _env.env()->set(r->var.sym, cast_to_type(r->val, analyze_value(r->val, func), r->var.tr, func));

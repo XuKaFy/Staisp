@@ -30,6 +30,8 @@ private:
     LValueOrVoid execute_call(Pointer<OprNode> root);
     LValueOrVoid execute_func(Pointer<FuncDefNode> func, Values args);
 
+    pValue array_init(pType arr_type, pNode root);
+
     Pointer<FuncDefNode> find_const_function(Symbol sym, pNode root);
 
     EnvWrapper<pValue> _env;

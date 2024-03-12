@@ -7,7 +7,7 @@ Symbol AllocInstr::instr_print_impl() const
     return to_symbol(
         String(print_impl())
         + " = alloca "
-        + tr->type_name()
+        + to_pointed_type(tr)->type_name()
     );
 }
 

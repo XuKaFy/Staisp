@@ -52,6 +52,7 @@ TEST(test_instr, ret_instr) {
 // ir_cast_instr.h
 
 TEST(test_instr, cast_instr) {
+    pType ti1 = make_basic_type(IMM_I1, false);
     pType ti32 = make_basic_type(IMM_I32, false);
     pType ti64 = make_basic_type(IMM_I64, false);
     pType tu32 = make_basic_type(IMM_U32, false);
@@ -65,6 +66,7 @@ TEST(test_instr, cast_instr) {
     pInstr arg_u32 = make_const_arg(TypedSym("arg_u32", tu32));
     pInstr arg_f32 = make_const_arg(TypedSym("arg_f32", tf32));
     pInstr arg_ptr = make_const_arg(TypedSym("arg_ptr", tptr));
+    pInstr arg_i1 = make_const_arg(TypedSym("arg_i1", ti1));
 
     auto c1 = make_cast_instr(ti32, arg_i64); c1->line = 1;
     auto c2 = make_cast_instr(ti64, arg_i32); c2->line = 2;
@@ -75,6 +77,8 @@ TEST(test_instr, cast_instr) {
     auto c7 = make_cast_instr(tu64, arg_f32); c7->line = 7;
     auto c8 = make_cast_instr(tf32, arg_u32); c8->line = 8;
     auto c9 = make_cast_instr(tu64, arg_u32); c9->line = 9;
+    auto c10 = make_cast_instr(tu64, arg_i1); c10->line = 10;
+    auto c11 = make_cast_instr(ti64, arg_i1); c11->line = 11;
 
     EXPECT_STREQ("%1 = trunc i64 %arg_i64 to i32", c1->instr_print());
     EXPECT_STREQ("%2 = sext i32 %arg_i32 to i64", c2->instr_print());
@@ -85,6 +89,8 @@ TEST(test_instr, cast_instr) {
     EXPECT_STREQ("%7 = fptoui float %arg_f32 to i64", c7->instr_print());
     EXPECT_STREQ("%8 = uitofp i32 %arg_u32 to float", c8->instr_print());
     EXPECT_STREQ("%9 = zext i32 %arg_u32 to i64", c9->instr_print());
+    EXPECT_STREQ("%10 = zext i1 %arg_i1 to i64", c10->instr_print());
+    EXPECT_STREQ("%11 = zext i1 %arg_i1 to i64", c11->instr_print());
 
     try {
         make_cast_instr(ti32, arg_i64);
@@ -150,7 +156,7 @@ TEST(test_instr, alloc_instr) {
     pInstr i = make_alloc_instr(elem_type);
     i->line = 200;
     EXPECT_TRUE(is_same_type(to_elem_type(i->tr), elem_type));
-    EXPECT_STREQ("%200 = alloca double*", i->instr_print());
+    EXPECT_STREQ("%200 = alloca double", i->instr_print());
 }
 
 TEST(test_instr, load_instr) {

@@ -86,7 +86,8 @@ Symbol CastInstr::instr_print_impl() const
     }
     // 第四种转换：整数之间的升格
     if(is_integer(tdest) && is_integer(tsrc) && bytes_of_type(tdest) > bytes_of_type(tsrc)) {
-        if(is_signed_type(tdest)) {
+        // 注意，从 i1 进行升格必须使用 zext，否则会把 1 扩展为 -1
+        if(is_signed_type(tdest) && to_basic_type(tsrc)->ty != IMM_I1) {
             return to_symbol(
                 String(print_impl())
                 + " = sext "
