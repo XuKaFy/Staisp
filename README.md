@@ -142,9 +142,15 @@ sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
 可以编译的版本是：
 
 ```
+// windows
 cmake version 3.28.3
 GNU Make 4.4.1（为 x86_64-pc-cygwin 编译）
 g++ (GCC) 11.4.0（cygwin）
+
+// linux
+cmake version 3.27.4
+GNU Make 4.3（为 aarch64-unknown-linux-gnu 编译）
+g++ (Ubuntu 13.2.0-4ubuntu3) 13.2.0
 ```
 
 编译指令：

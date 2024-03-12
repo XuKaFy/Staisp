@@ -1,6 +1,6 @@
 # gcd program
 
-DEFFUNC i32:gcd ( i32:b i32:a ) BLOCK {
+DEFFUNC i32:gcd ( i32 CONST:b i32 CONST:a ) BLOCK {
     IF EQ b a 
         RETURN a
     IF GT a b # sub
