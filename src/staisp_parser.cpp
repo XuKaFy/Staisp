@@ -244,13 +244,13 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     switch(gBuildinSymType.find(sym)->second) {
     case BUILDIN_IF: {
         auto a1 = parse_value();
-        auto a2 = parse_value();
+        auto a2 = parse_statement(false);
         return Ast::new_opr_node(token, OPR_IF, { a1, a2 } );
     }
     case BUILDIN_IFE: {
         auto a1 = parse_value();
-        auto a2 = parse_value();
-        auto a3 = parse_value();
+        auto a2 = parse_statement(false);
+        auto a3 = parse_statement(false);
         return Ast::new_opr_node(token, OPR_IF, { a1, a2, a3 } );
     }
     case BUILDIN_ASSIGN: {
@@ -264,7 +264,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     }
     case BUILDIN_WHILE: {
         auto a1 = parse_value();
-        auto a2 = parse_value();
+        auto a2 = parse_statement(false);
         return Ast::new_opr_node(token, OPR_WHILE, { a1, a2 } );
     }
     case BUILDIN_DEFVAR: {
