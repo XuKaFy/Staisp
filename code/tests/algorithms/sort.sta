@@ -9,7 +9,7 @@ DEFFUNC i32:minElement(i32[10]:a i32:size) {
     DEFVAR i32:i ADD size 1
     DEFVAR i32:ans size
     WHILE LT i 10 {
-        IF LE DEREF ITEM a [i]
+        IF LT DEREF ITEM a [i]
               DEREF ITEM a [ans] {
             ASSIGN ans i
         }
@@ -18,21 +18,9 @@ DEFFUNC i32:minElement(i32[10]:a i32:size) {
     RETURN ans
 }
 
-DEFFUNC i32:sort(i32[10]:a i32[10]:b) {
-    DEFVAR i32:i 0
-    WHILE LE i 10 {
-        IF NE DEREF ITEM a [i] 
-              DEREF ITEM b [i] {
-            RETURN i
-        }
-        ASSIGN i ADD i 1
-    }
-    RETURN 0
-}
-
 DEFFUNC i32:equal(i32[10]:a i32[10]:b) {
     DEFVAR i32:i 0
-    WHILE LE i 10 {
+    WHILE LT i 10 {
         IF NE DEREF ITEM a [i] 
               DEREF ITEM b [i] {
             RETURN i
