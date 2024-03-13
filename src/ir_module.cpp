@@ -4,6 +4,7 @@ namespace Ir {
 
 void Module::add_func(pFuncDefined f)
 {
+    f->shrink();
     funsDefined.push_back(f);
 }
 

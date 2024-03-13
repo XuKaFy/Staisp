@@ -61,6 +61,15 @@ pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types)
     return pFuncDefined(new FuncDefined(var, arg_types));
 }
 
+void FuncDefined::shrink()
+{
+    Vector<pBlock> n;
+    for(auto i : body)
+        if(i->instrs.size() > 1)
+            n.push_back(i);
+    body = n;
+}
+
 pBlock FuncDefined::current_block() const
 {
     return body.back();

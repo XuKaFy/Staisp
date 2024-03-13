@@ -17,6 +17,8 @@ struct FuncDefined : public Func {
     void add_block(pBlock block);
     pInstr add_instr(pInstr ir);
 
+    void shrink();
+
     Vector<pBlock> body;
     Vector<pInstr> args_value;
 };

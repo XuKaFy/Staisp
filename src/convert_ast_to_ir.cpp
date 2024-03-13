@@ -205,6 +205,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
             throw_error(root, -1, "\"RET\" opr has not 1 args - impossible");
         auto a = analyze_value(root->ch.front(), func);
         func->add_instr(Ir::make_ret_instr(func->var.tr, cast_to_type(root->ch.front(), a, func->var.tr, func)));
+        auto nextBlock = Ir::make_block();
+        func->add_block(nextBlock);
         return Ir::make_empty_instr();
     }
     case OPR_CALL: {
@@ -235,8 +237,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         
         auto r = Ir::make_br_instr(loop_env()->loop_end->label());
         func->add_instr(r);
-        // auto nextBlock = Ir::make_block();
-        // func->add_block(nextBlock);
+        auto nextBlock = Ir::make_block();
+        func->add_block(nextBlock);
         return Ir::make_empty_instr();
     }
     case OPR_CONTINUE: {
@@ -248,8 +250,8 @@ Ir::pInstr Convertor::analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined f
         
         auto r = Ir::make_br_instr(loop_env()->loop_begin->label());
         func->add_instr(r);
-        // auto nextBlock = Ir::make_block();
-        // func->add_block(nextBlock);
+        auto nextBlock = Ir::make_block();
+        func->add_block(nextBlock);
         return Ir::make_empty_instr();
     }
     default:

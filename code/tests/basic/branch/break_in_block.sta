@@ -1,0 +1,10 @@
+DEFFUNC i32:main() {
+    DEFVAR i32:i 0
+    DEFVAR i32:ans 0
+    WHILE LT i 10 BLOCK {
+        ASSIGN ans 10
+        BREAK
+        ASSIGN i ADD i 1
+    }
+    RETURN ans
+}
