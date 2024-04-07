@@ -75,12 +75,13 @@ DEFFUNC i32:main ( ) {
 每一个句子的开头都是一个谓词，表示本句的动作。除自定义函数，句子后面直接跟上相等数量的参数，无需括号。自定义函数需要跟上不定长列表。
 
 ```
-program -> *statement
-statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
+program : statement
+        | statement program;
+statement  : "DEFFUNC"          typed_sym   typed_sym_list  statement
            | "DEFCONSTFUNC"     typed_sym   typed_sym_list  statement
            | stat_list
            | "BLOCK"     stat_list
-           | "DEFVAR"    typed_sym   vaimage.pnglue
+           | "DEFVAR"    typed_sym   value
            | "ASSIGN"    left_value  value
            | "IF"        value       statement
            | "IFE"       value       statement       statement
@@ -91,50 +92,55 @@ statement -> "DEFFUNC"          typed_sym   typed_sym_list  statement
            | "CALL"      function
            | "BREAK"
            | "CONTINUE"
-           | function
-function -> basic_function
-          | defined_function    value_list
-basic_function -> unary_func    value
-               -> binary_func   value   value
-               -> triple        value   value   value
-basic_function_const -> unary_func    const_val
-                     -> binary_func   const_val   const_val
-                     -> triple        const_val   const_val   const_val
-typed_sym   -> type:sym
-type        -> num_type
-             | type CONST
-             | type*
-             | type[value]
-num_type    -> i64|i32|i16|i8|i1|u64|u32|u16|u8|u1|f64|f32
-value_list  -> ( value_list_inner )
-value_list_inner  ->
-                   | value, value_list_inne
-typed_sym_list -> ( typed_sym_list_inner )
-typed_sym_list_inner -> 
-                      | typed_sym, typed_sym_list_inner
-stat_list -> { stat_list_inner }
-stat_list_inner -> 
-                 | statement, stat_list_inner
-left_value -> sym
-            | "DEREF"   value
-            | "ITEM"    value       array_def
-value -> function
-       | const_val
-       | variant
-       | "CAST"   type        value
-       | "REF"  left_value
-const_val -> basic_function_const
-           | integer
-array_def -> [ const_val ]
-           | [ const_val, array_def ]
-variant -> sym
-unary_func  -> ......
-binary_func -> ......
-triple_func -> ......
-defined_function -> sym
+           | function;
+function : basic_function
+         | defined_function    value_list;
+basic_function : unary_func    value
+               | binary_func   value   value
+               | triple        value   value   value;
+basic_function_const : unary_func    const_val
+                     | binary_func   const_val   const_val
+                     | triple_func   const_val   const_val   const_val;
+typed_sym   : type ':' sym;
+type        : num_type
+            | type CONST
+            | type '*'
+            | type[value];
 
-interger    -> 0 | (1|2|3|4|5|6|7|8|9)*(0|1|2|3|4|5|6|7|8|9)
-sym         -> [a-zA-Z_]*[a-zA-Z_0-9]
+value_list : '(' value_list_inner ')'
+           | '(' ')';
+value_list_inner : value
+                 | value ',' value_list_inne;
+typed_sym_list : '(' typed_sym_list_inner ')'
+               | '(' ')';
+typed_sym_list_inner : typed_sym
+                     | typed_sym ',' typed_sym_list_inner;
+stat_list : '{' stat_list_inner '}'
+          | '{' '}';
+stat_list_inner : statement
+                | statement ',' stat_list_inner;
+left_value : sym
+           | "DEREF"   value
+           | "ITEM"    value       array_def;
+value : function
+      | const_val
+      | variant
+      | "CAST"   type        value
+      | "REF"    left_value;
+const_val : basic_function_const
+          | integer;
+array_def : '[' const_val ']'
+          | '[' const_val ',' array_def ']';
+variant : sym;
+defined_function : sym;
+
+unary_func  : "NOT";
+binary_func : "ADD"|"SUB"|"MUL"|"DIV"|"MOD"|"EQ"|"NEQ"|"LE"|"GE"|"LT"|"GT"
+triple_func : "SIF"
+
+num_type    : "i64"|"i32"|"i16"|"i8"|"i1"|"u64"|"u32"|"u16"|"u8"|"u1"|"f64"|"f32";
+interger    : "0"|[1-9]*[0-9]
+sym         : [a-zA-Z_]*[a-zA-Z_0-9]
 ```
 
 ## 编译
