@@ -5,44 +5,40 @@ namespace Ir {
 Symbol AllocInstr::instr_print_impl() const
 {
     return to_symbol(
-        String(print_impl())
+        String(name())
         + " = alloca "
-        + to_pointed_type(tr)->type_name()
+        + to_pointed_type(ty)->type_name()
     );
 }
 
 Symbol LoadInstr::instr_print_impl() const
 {
     return to_symbol(
-        String(print_impl())
+        String(name())
         + " = load "
-        + tr->type_name()
+        + ty->type_name()
         + ", "
-        + from->tr->type_name()
+        + operand(0)->usee->ty->type_name()
         + " "
-        + from->print()
+        + operand(0)->usee->name()
     );
 }
 
 Symbol StoreInstr::instr_print_impl() const
 {
+    auto &to = operand(0)->usee;
+    auto &val = operand(1)->usee;
+    auto real_ty = to_pointed_type(to->ty);
     return to_symbol(
         String("store ")
-        + tr->type_name()
+        + real_ty->type_name()
         + " "
-        + val->print()
+        + val->name()
         + ", "
-        + to->tr->type_name()
+        + to->ty->type_name()
         + " "
-        + to->print()
+        + to->name()
     );
-}
-
-Symbol SymInstr::print_impl() const
-{
-    if(from == SYM_LOCAL)
-        return to_symbol(String("%") + sym);
-    return to_symbol(String("@") + sym);
 }
 
 pInstr make_alloc_instr(pType tr)
@@ -50,20 +46,14 @@ pInstr make_alloc_instr(pType tr)
     return pInstr(new AllocInstr(tr));
 }
 
-pInstr make_load_instr(pInstr from)
+pInstr make_load_instr(pVal from)
 {
     return pInstr(new LoadInstr(from));
 }
 
-pInstr make_store_instr(pInstr to, pVal val)
+pInstr make_store_instr(pVal to, pVal val)
 {
     return pInstr(new StoreInstr(to, val));
-}
-
-pInstr make_sym_instr(TypedSym val, SymFrom from)
-{
-    val.tr = make_pointer_type(val.tr, false);
-    return pInstr(new SymInstr(val, from));
 }
 
 } // namespace ir

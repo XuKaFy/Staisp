@@ -4,26 +4,26 @@ namespace Ir {
 
 Symbol CallInstr::instr_print_impl() const
 {
-    String res = String(print_impl())
+    String res = String(name())
         + " = call "
-        + tr->type_name()
+        + func_ty->ret_type->type_name()
         + " @"
-        + func->print()
+        + operand(0)->usee->name()
         + "("; // %1 = call @fun(i32 1, i64 2)
     
-    my_assert(args.size() == func->args.size(), "Error: size of arguments unequal to the inputs");
+    my_assert(func_ty->arg_type.size() + 1 == operand_size(), "Error: size of arguments unequal to the inputs");
     
-    if(args.empty()) goto INSTR_PRINT_IMPL_END;
+    if(func_ty->arg_type.empty()) goto INSTR_PRINT_IMPL_END;
 
-    res += func->args[0].tr->type_name();
+    res += operand(1)->usee->ty->type_name();
     res += " ";
-    res += args[0]->print();
+    res += operand(1)->usee->name();
     
-    for(size_t i=1; i<args.size(); ++i) {
+    for(size_t i=1; i<func_ty->arg_type.size(); ++i) {
         res += ", ";
-        res += func->args[i].tr->type_name();
+        res += operand(i+1)->usee->ty->type_name();
         res += " ";
-        res += args[i]->print();
+        res += operand(i+1)->usee->name();
     }
 
 INSTR_PRINT_IMPL_END:
@@ -33,21 +33,24 @@ INSTR_PRINT_IMPL_END:
 
 Symbol RetInstr::instr_print_impl() const
 {
-    return to_symbol(
-        String("ret ")
-        + tr->type_name()
-        + " "
-        + ret->print());
+    if(operand_size()) {
+        return to_symbol(
+            String("ret ")
+            + operand(0)->usee->ty->type_name()
+            + " "
+            + operand(0)->usee->name());
+    }
+    return to_symbol("ret");
 }
 
-pInstr make_call_instr(pFunc func, Vector<pInstr> args)
+pInstr make_call_instr(pFunc func, Vector<pVal> args)
 {
     return pInstr(new CallInstr(func, args));
 }
 
-pInstr make_ret_instr(pType tr, pInstr oprd)
+pInstr make_ret_instr(pVal oprd)
 {
-    return pInstr(new RetInstr(tr, oprd));
+    return pInstr(new RetInstr(oprd));
 }
 
 } // namespace Ir

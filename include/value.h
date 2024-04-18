@@ -12,7 +12,10 @@ struct PointerValue {
     pValue v;
 };
 
-typedef Vector<pValue> ArrayValue;
+struct ArrayValue {
+    Vector<pValue> arr;
+    pType ty;
+};
 
 struct ElemValue;
 
@@ -27,15 +30,15 @@ enum ValueType {
 
 struct Value {
     Value()
-        : val() { }
+        : val(), ty(make_void_type()) { }
     Value(ImmValue v)
-        : val(v) { }
+        : val(v), ty(make_basic_type(v.ty)) { }
     Value(PointerValue v)
-        : val(v) { }
+        : val(v), ty(make_pointer_type(v.v->ty)) { }
     Value(ArrayValue v)
-        : val(v) { }
-    Value(StructValue v)
-        : val(v) { }
+        : val(v), ty(make_array_type(v.ty, v.arr.size())) { }
+    //Value(StructValue v)
+    //    : val(v), ty(make_struct_type(v.v->ty)) { }
 
     void reset_value(Value v) { val = v.val; }
 
@@ -44,6 +47,8 @@ struct Value {
     }
 
     operator bool() const;
+
+    Symbol to_string() const;
 
     ImmValue& imm_value() { return std::get<ImmValue>(val); }
     PointerValue& pointer_value() { return std::get<PointerValue>(val); }
@@ -57,8 +62,8 @@ struct Value {
 
     bool is_static() const;
 
-private:
     std::variant<ImmValue, PointerValue, ArrayValue, StructValue> val;
+    pType ty;
 };
 
 typedef Opt<pValue> LValueOrVoid;

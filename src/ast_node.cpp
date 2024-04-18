@@ -12,7 +12,7 @@ pNode new_sym_node(pToken t, Symbol str)
     return pNode(new SymNode(t, str));
 }
 
-pNode new_opr_node(pToken t, OprType type, AstProg ch)
+pNode new_opr_node(pToken t, OprType type, Vector<pNode> ch)
 {
     return pNode(new OprNode(t, type, ch));
 }
@@ -27,9 +27,9 @@ pNode new_var_def_node(pToken t, TypedSym var, pNode val)
     return pNode(new VarDefNode(t, var, val));
 }
 
-pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body, bool is_const)
+pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body)
 {
-    return pNode(new FuncDefNode(t, var, args, body, is_const));
+    return pNode(new FuncDefNode(t, var, args, body));
 }
 
 pNode new_block_node(pToken t, AstProg body)
@@ -60,6 +60,35 @@ pNode new_deref_node(pToken t, pNode val)
 pNode new_item_node(pToken t, Symbol v, Vector<pNode> index)
 {
     return pNode(new ItemNode(t, v, index));
+}
+
+pNode new_if_node(pToken t, pNode cond, pNode body, pNode elsed)
+{
+    return pNode(new IfNode(t, cond, body, elsed));
+}
+
+pNode new_while_node(pToken t, pNode cond, pNode body)
+{
+    return pNode(new WhileNode(t, cond, body));
+}
+pNode new_break_node(pToken t)
+{
+    return pNode(new BreakNode(t));
+}
+
+pNode new_return_node(pToken t, pNode ret)
+{
+    return pNode(new ReturnNode(t, ret));
+}
+
+pNode new_continue_node(pToken t)
+{
+    return pNode(new ContinueNode(t));
+}
+
+pNode new_call_node(pToken t, Symbol name, Vector<pNode> ch)
+{
+    return pNode(new CallNode(t, name, ch));
 }
 
 }  // namespace ast

@@ -9,13 +9,14 @@ namespace Ir {
 
 struct Block;
 typedef Pointer<Block> pBlock;
+typedef Vector<pBlock> Blocks;
 
-struct Block : public Val {
+/* struct Block : public Val {
     Block() {
         add_instr(make_label_instr());
     }
 
-    virtual Symbol print_impl() const override;
+    virtual Symbol name() const override;
     
     Symbol print_block() const;
     void generate_line(size_t &line) const;
@@ -24,8 +25,8 @@ struct Block : public Val {
     pInstr add_instr(pInstr instr);
     void finish_block_with_jump(pBlock b);
     Vector<pInstr> instrs;
-};
+}; */
 
-pBlock make_block();
+// pBlock make_block();
 
 } // namespace Ir

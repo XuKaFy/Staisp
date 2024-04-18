@@ -7,7 +7,7 @@ Staisp（STAtic lISP），即静态语法表，用于用一种相比于 IR 更�
 ```
 DEFVAR i32:n 1
 
-DEFFUNC i32:fib ( i32 CONST:n ) BLOCK {
+DEFFUNC i32:fib ( i32:n ) BLOCK {
     IF OR EQ n 1
           EQ n 2
         RETURN 1
@@ -56,12 +56,6 @@ DEFFUNC i32:main ( ) {
 * `DEFFUNC`
 * `BLOCK`
 
-#### D 组：常量表达式
-
-* `CONST`
-* `CONSTEXPR`
-* `DEFCONSTFUNC`
-
 #### E 组：指针与数组
 
 * `DEFPTR`
@@ -78,7 +72,6 @@ DEFFUNC i32:main ( ) {
 program : statement
         | statement program;
 statement  : "DEFFUNC"          typed_sym   typed_sym_list  statement
-           | "DEFCONSTFUNC"     typed_sym   typed_sym_list  statement
            | stat_list
            | "BLOCK"     stat_list
            | "DEFVAR"    typed_sym   value
@@ -103,7 +96,6 @@ basic_function_const : unary_func    const_val
                      | triple_func   const_val   const_val   const_val;
 typed_sym   : type ':' sym;
 type        : num_type
-            | type CONST
             | type '*'
             | type[value];
 
@@ -196,11 +188,11 @@ compiler [file_name]
 7. `[Parser] error 7: definition existed`：尝试重定义变量或函数
 8. `[Parser] error 8: function nested`：尝试在函数内定义函数
 9. `[Parser] error 9: beginning of a statement must be a symbol`：不能以非名称作为语句开头，例如使用数字
-10. `[Parser] error 10: beginning of a statement cannot be a type`：不能以数据类型作为开头，例如 CONST
-11. `[Parser] error 11: too many CONSTs`：输入了太多 CONST
+10. ~~`[Parser] error 10: beginning of a statement cannot be a type`：不能以数据类型作为开头，例如 CONST~~
+11. ~~`[Parser] error 11: too many CONSTs`：输入了太多 CONST~~
 12. `[Parser] error 12: expected to be a left-value`：此处应为左值
 13. `[Parser] error 13: type of index should be integer`：数组长度必须是整型
-14. `[Parser] error 14: CONST of array type is meaningless`：数组无需 CONST 修饰
+14. ~~`[Parser] error 14: CONST of array type is meaningless`：数组无需 CONST 修饰~~
 
 ### Convertor 语义错误
 
@@ -215,8 +207,8 @@ compiler [file_name]
 7. `[Convertor] error 7: comparasion operation conversion from ast to ir not implemented`：该比较操作未被 IR 实现
 8. `[Convertor] error 8: wrong count of arguments`：函数参数列表长度不同
 9. `[Convertor] error 9: no outer loops`：BREAK 或 CONTINUE 外层无循环
-10. `[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值
-11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值
+10. ~~`[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值~~
+11. ~~`[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值~~
 12. `[Convertor] error 12: expected to be a left-value`：此处应为左值
 13. `[Convertor] error 13: not castable`：隐式转换失败
 14. `[Convertor] error 14: type of index should be integer`：寻址的参数必须是整型
@@ -225,10 +217,11 @@ compiler [file_name]
 17. `[Convertor] error 17: list doesn't match the expected value`：列表中的值类型与数组不符
 18. `[Convertor] error 18: type has no joined type`：两类型不可计算
 19. `[Convertor] error 19: try to dereference a non-pointer value`：DEREF 只能用于指针
+20. `[Convertor] error 20: function not found`：未找到函数
 
 ### Executor 运行时报错
 
-1. `[Executor] error 1: function is not declared as DEFCONSTFUNC`：尝试执行非常数函数的函数
+1. ~~`[Executor] error 1: function is not declared as DEFCONSTFUNC`：尝试执行非常数函数的函数~~
 2. `[Executor] error 2: function not found`：找不到函数
 3. `[Executor] error 3: variant not found`：找不到变量
 4. `[Executor] error 4: wrong count of arguments`：函数参数列表长度不同

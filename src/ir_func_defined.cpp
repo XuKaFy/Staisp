@@ -2,92 +2,82 @@
 
 namespace Ir {
 
-FuncDefined::FuncDefined(TypedSym var, Vector<TypedSym> arg_types)
+FuncDefined::FuncDefined(TypedSym var, Vector<pType> arg_types, Vector<Symbol> arg_name)
     : Func(var, arg_types) {
-    pBlock first_block = make_block();
-    
-    for(auto i : arg_types) {
-        if(is_const_type(i.tr)) {
-            args_value.push_back(make_const_arg(i));
-        } else {
-            pInstr tmp = first_block->add_instr(make_alloc_instr(i.tr));
-            first_block->add_instr(make_store_instr(tmp, make_sym_instr(i)));
-            args_value.push_back(tmp);
-        }
+    this->arg_name = arg_name;
+    size_t length = arg_types.size();
+    add_body(make_label_instr());
+    for(size_t i=0; i<length; ++i) {
+        pInstr alloced = make_alloc_instr(arg_types[i]);
+        pInstr stored = make_store_instr(alloced, make_sym_instr(TypedSym(to_symbol(String("%") + arg_name[i]), arg_types[i])));
+        add_body(alloced);
+        add_body(stored);
+        args.push_back(alloced);
     }
-    
-    body.push_back(first_block);
+}
+
+void FuncDefined::add_body(pInstr instr)
+{
+    body.push_back(instr);
 }
 
 Symbol FuncDefined::print_func() const
 {
-    size_t line_count = 0;
-    for(size_t i=0; i<body.size(); ++i) {
-        body[i]->generate_line(line_count);
-    }
-
     String whole_function = String("define ") 
-        + var.tr->type_name() + " @" + var.sym + "("; // functions are all global
+        + ty->type_name() + " @" + name() + "("; // functions are all global
 
     my_assert(!body.empty(), "Error: function has no block");
+    
+    auto func_ty = functon_type();
 
     if(args.empty()) goto PRINT_IMPL_END;
-    
-    whole_function += args[0].tr->type_name();
+
+    whole_function += func_ty->arg_type[0]->type_name();
     whole_function += " %";
-    whole_function += args[0].sym;
+    whole_function += arg_name[0];
     
     for(size_t i=1; i<args.size(); ++i) {
         whole_function += ", ";
-        whole_function += args[i].tr->type_name();
+        whole_function += func_ty->arg_type[i]->type_name();
         whole_function += " %";
-        whole_function += args[i].sym;
+        whole_function += arg_name[i];
     }
 
 PRINT_IMPL_END:
     whole_function += ")";
 
+    LineGenerator g;
+
     whole_function += " {\n";
     for(size_t i=0; i<body.size(); ++i) {
-        whole_function += body[i]->print_block();
+        if(!body[i]->has_name()) {
+            switch(body[i]->ty->type_type()) {
+            case TYPE_VOID_TYPE:
+            case TYPE_RETURN_TYPE:
+                break;
+            case TYPE_LABEL_TYPE:
+                body[i]->set_name(String("L") + g.label());    
+                break;
+            case TYPE_BASIC_TYPE:
+            case TYPE_COMPOUND_TYPE:
+                body[i]->set_name(String("%") + std::to_string(g.line()));    
+                break;
+            }
+        }
+    }
+
+    for(size_t i=0; i<body.size(); ++i) {
+        whole_function += body[i]->instr_print();
+        whole_function += "\n";
     }
     whole_function += "}\n";
 
     return to_symbol(whole_function);
 }
 
-pFuncDefined make_func_defined(TypedSym var, Vector<TypedSym> arg_types)
+pFuncDefined make_func_defined(TypedSym var, Vector<pType> arg_types, Vector<Symbol> syms)
 {
-    return pFuncDefined(new FuncDefined(var, arg_types));
-}
-
-void FuncDefined::shrink()
-{
-    Vector<pBlock> n;
-    for(auto i : body)
-        if(i->instrs.size() > 1)
-            n.push_back(i);
-    body = n;
-}
-
-pBlock FuncDefined::current_block() const
-{
-    return body.back();
-}
-
-void FuncDefined::add_block(pBlock block)
-{
-    body.push_back(block);
-}
-
-pInstr FuncDefined::add_instr(pInstr ir)
-{
-    return body.back()->add_instr(ir);
-}
-
-Symbol FuncDefined::print_impl() const
-{
-    return var.sym;
+    return pFuncDefined(new FuncDefined(var, arg_types, syms));
 }
 
 }

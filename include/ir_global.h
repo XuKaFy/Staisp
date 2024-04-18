@@ -2,7 +2,6 @@
 
 #include "type.h"
 #include "ir_val.h"
-#include "ir_sym.h"
 #include "ir_constant.h"
 
 namespace Ir
@@ -10,12 +9,12 @@ namespace Ir
 
 struct Global : public Val {
     Global(TypedSym val, Const con)
-        : val(val), con(con) {}
+        : Val(make_pointer_type(val.ty)), con(con) {
+        set_name(String("@") + val.sym);
+    }
     
-    virtual Symbol print_impl() const override;
     Symbol print_global() const;
 
-    TypedSym val;
     Const con;
 };
 

@@ -6,39 +6,39 @@ namespace Ir
 Symbol UnaryInstr::instr_print_impl() const
 {
     return to_symbol(
-        String(print_impl())
+        String(name())
         + " = "
         + gUnaryInstrName[unaryType]
         + " " 
-        + tr->type_name()
+        + ty->type_name()
         + " "
-        + oprd->print());
+        + operand(0)->usee->name());
 }
 
 Symbol BinInstr::instr_print_impl() const
 {
     return to_symbol(
-        String(print_impl())
+        String(name())
         + " = "
-        + (is_float(tr) ? "f" : 
-            (binType == INSTR_DIV ? (is_signed_type(tr) ? "s" : "u") : "")) 
+        + (is_float(ty) ? "f" : 
+            (binType == INSTR_DIV ? (is_signed_type(ty) ? "s" : "u") : "")) 
         + gBinInstrName[binType] 
         + " " 
-        + tr->type_name()
+        + ty->type_name()
         + " "
-        + oprd[0]->print()
+        + operand(0)->usee->name()
         + ", "
-        + oprd[1]->print());
+        + operand(1)->usee->name());
 }
 
-pInstr make_unary_instr(UnaryInstrType type, pType tr, pVal oprd)
+pInstr make_unary_instr(UnaryInstrType type, pVal oprd)
 {
-    return pInstr(new UnaryInstr(type, tr, oprd));
+    return pInstr(new UnaryInstr(type, oprd));
 }
 
-pInstr make_binary_instr(BinInstrType type, pType tr, pVal oprd1, pVal oprd2)
+pInstr make_binary_instr(BinInstrType type, pVal oprd1, pVal oprd2)
 {
-    return pInstr(new BinInstr(type, tr, oprd1, oprd2));
+    return pInstr(new BinInstr(type, oprd1, oprd2));
 }
 
 } // namespace ir

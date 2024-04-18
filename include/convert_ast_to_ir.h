@@ -4,7 +4,6 @@
 #include "env.h"
 #include "imm.h"
 
-#include "ast_exec.h"
 #include "ast_node.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
@@ -13,14 +12,16 @@
 #include "ir_cast_instr.h"
 #include "ir_ptr_instr.h"
 
+#include "value.h"
+
 namespace AstToIr {
 
 struct LoopEnv;
 typedef Pointer<LoopEnv> pLoopEnv;
 
 struct LoopEnv {
-    Ir::pBlock loop_begin;
-    Ir::pBlock loop_end;
+    Ir::pInstr loop_begin;
+    Ir::pInstr loop_end;
 };
 
 typedef Stack<pLoopEnv> LoopEnvStack;
@@ -28,6 +29,7 @@ typedef Stack<pLoopEnv> LoopEnvStack;
 class Convertor {
 public:
     Ir::pModule generate(AstProg asts);
+    
     static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::OprNode> root);
     static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root, pType tr);
 
@@ -37,16 +39,18 @@ private:
     void generate_single(pNode root);
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);
-    void analyze_statement_node(pNode root, Ir::pFuncDefined func);
-    void copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pInstr> indexs, Ir::pFuncDefined func);
-    Ir::pInstr analyze_value(pNode root, Ir::pFuncDefined func);
-    Ir::pInstr analyze_opr(Pointer<Ast::OprNode> root, Ir::pFuncDefined func);
-    Ir::pInstr find_value(Pointer<Ast::SymNode> root, Ir::pFuncDefined func);
-    Ir::pInstr find_left_value(pNode root, pNode lv, Ir::pFuncDefined func);
-    Ir::pInstr find_left_value(pNode root, Symbol name, Ir::pFuncDefined func);
-    Ir::pInstr cast_to_type(pNode root, Ir::pInstr val, pType tr, Ir::pFuncDefined func);
+    void analyze_statement_node(pNode root);
+    void copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pVal> indexs = {});
+    Ir::pVal analyze_value(pNode root);
+    Ir::pVal analyze_opr(Pointer<Ast::OprNode> root);
+    Ir::pVal find_value(Pointer<Ast::SymNode> root);
+    Ir::pVal find_left_value(pNode lv);
+    Ir::pVal find_left_value(pNode root, Symbol sym);
+    Ir::pVal cast_to_type(pNode root, Ir::pVal val, pType tr);
 
     Ir::pModule module() const;
+
+    Ir::pInstr add_instr(Ir::pInstr instr);
 
     EnvWrapper<Ir::pInstr> _env;
     
@@ -57,13 +61,14 @@ private:
     Map<String, Ir::pFunc> _func_map;
 
     pLoopEnv loop_env();
-    void push_loop_env(pLoopEnv env);
+    void push_loop_env(Ir::pInstr begin, Ir::pInstr end);
     bool has_loop_env() const;
     void end_loop_env();
     void clear_loop_env();
 
     LoopEnvStack _loop_env_stack;
     Ir::pModule _mod;
+    Ir::pFuncDefined _cur_func;
     AstProg _prog;
 };
 

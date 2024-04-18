@@ -17,14 +17,34 @@ Symbol ArrayType::type_name() const
     return to_symbol(String(tmp));
 }
 
-pType make_basic_type(ImmType ty, bool is_const)
+pType make_void_type()
 {
-    return pType(new BasicType(ty, is_const));
+    return pType(new Type());
 }
 
-pType make_pointer_type(pType ty, bool is_const)
+pType make_label_type()
 {
-    return pType(new PointerType(ty, is_const));
+    return pType(new LabelType());
+}
+
+pType make_return_type()
+{
+    return pType(new ReturnType());
+}
+
+pType make_basic_type(ImmType ty)
+{
+    return pType(new BasicType(ty));
+}
+
+pType make_function_type(pType ret_type, Vector<pType> arg_type)
+{
+    return pType(new FunctionType(ret_type, arg_type));
+}
+
+pType make_pointer_type(pType ty)
+{
+    return pType(new PointerType(ty));
 }
 
 pType make_array_type(pType ty, size_t count)
@@ -35,12 +55,14 @@ pType make_array_type(pType ty, size_t count)
 pType join_type(pType a1, pType a2)
 {
     my_assert(a1 && a2, "how");
+    if(is_same_type(a1, a2))
+        return a1;
     // 指针可以和基本整型进行运算，并且最后的结果是 ARCH_USED_POINTER_TYPE
     // 一般来说，会变成 IMM_U64
     if(is_pointer(a1) && is_basic_type(a2) && is_imm_integer(to_basic_type(a2)->ty))
-        return make_basic_type(ARCH_USED_POINTER_TYPE, false);
+        return make_basic_type(ARCH_USED_POINTER_TYPE);
     if(is_pointer(a2) && is_basic_type(a1) && is_imm_integer(to_basic_type(a1)->ty))
-        return make_basic_type(ARCH_USED_POINTER_TYPE, false);
+        return make_basic_type(ARCH_USED_POINTER_TYPE);
     // 其他情况下，认为结构体和数组和基本类型和指针之间不可运算
     if(a1->type_type() != a2->type_type()) {
         return pType();
@@ -48,7 +70,7 @@ pType join_type(pType a1, pType a2)
     switch(a1->type_type()) {
     case TYPE_BASIC_TYPE:
         return make_basic_type(join_imm_type(to_basic_type(a1)->ty,
-                to_basic_type(a2)->ty), false);
+                to_basic_type(a2)->ty));
     default: break;
     }
     return pType();
@@ -105,48 +127,39 @@ bool is_basic_type(pType p)
     return p->type_type() == TYPE_BASIC_TYPE;
 }
 
-bool is_const_type(pType p)
+bool is_signed_type(pType ty)
 {
-    if(is_basic_type(p))
-        return to_basic_type(p)->is_const;
-    if(is_pointer(p))
-        return to_pointer_type(p)->is_const;
+    if(ty->type_type() == TYPE_BASIC_TYPE)
+        return is_imm_signed(to_basic_type(ty)->ty);
     return false;
 }
 
-bool is_signed_type(pType tr)
+bool is_float(pType ty)
 {
-    if(tr->type_type() == TYPE_BASIC_TYPE)
-        return is_imm_signed(to_basic_type(tr)->ty);
+    if(ty->type_type() == TYPE_BASIC_TYPE)
+        return is_imm_float(to_basic_type(ty)->ty);
     return false;
 }
 
-bool is_float(pType tr)
+bool is_integer(pType ty)
 {
-    if(tr->type_type() == TYPE_BASIC_TYPE)
-        return is_imm_float(to_basic_type(tr)->ty);
+    if(ty->type_type() == TYPE_BASIC_TYPE)
+        return is_imm_integer(to_basic_type(ty)->ty);
     return false;
 }
 
-bool is_integer(pType tr)
+size_t bytes_of_type(pType ty)
 {
-    if(tr->type_type() == TYPE_BASIC_TYPE)
-        return is_imm_integer(to_basic_type(tr)->ty);
-    return false;
-}
-
-size_t bytes_of_type(pType tr)
-{
-    switch(tr->type_type()) {
+    switch(ty->type_type()) {
     case TYPE_BASIC_TYPE:
-        return bytes_of_imm_type(to_basic_type(tr)->ty);
+        return bytes_of_imm_type(to_basic_type(ty)->ty);
     case TYPE_COMPOUND_TYPE:
-        if(is_struct(tr))
-            return to_struct_type(tr)->length();
-        if(is_pointer(tr))
-            return to_pointer_type(tr)->length();
-        if(is_array(tr))
-            return to_array_type(tr)->length();
+        if(is_struct(ty))
+            return to_struct_type(ty)->length();
+        if(is_pointer(ty))
+            return to_pointer_type(ty)->length();
+        if(is_array(ty))
+            return to_array_type(ty)->length();
        //  my_assert(false, "how");
     default: break;
     }
@@ -194,3 +207,12 @@ Pointer<BasicType> to_basic_type(pType p)
         throw Exception(1, "to_basic_type", "not castable");
     return j;
 }
+
+Pointer<FunctionType> to_function_type(pType p)
+{
+    auto j = std::static_pointer_cast<FunctionType>(p);
+    if(!j)
+        throw Exception(1, "to_function_type", "not castable");
+    return j;
+}
+

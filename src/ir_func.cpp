@@ -2,13 +2,12 @@
 
 namespace Ir {
 
-Symbol Func::print_impl() const
+pFunctionType Func::functon_type() const
 {
-    // functions are all global
-    return var.sym;
+    return to_function_type(ty);
 }
 
-pFunc make_func(TypedSym var, Vector<TypedSym> arg_types)
+pFunc make_func(TypedSym var, Vector<pType> arg_types)
 {
     return pFunc(new Func(var, arg_types));
 }

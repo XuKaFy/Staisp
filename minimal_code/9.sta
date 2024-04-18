@@ -1,0 +1,6 @@
+DEFFUNC i32:main() {
+    DEFVAR i32:a 0
+    WHILE LT a 10
+        ASSIGN a ADD a 1
+    RETURN a
+}

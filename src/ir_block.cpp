@@ -2,6 +2,8 @@
 
 namespace Ir {
 
+/*
+
 void Block::generate_line(size_t &line) const
 {
     String s;
@@ -25,7 +27,7 @@ Symbol Block::print_block() const
     return to_symbol(s);
 }
 
-Symbol Block::print_impl() const
+Symbol Block::name() const
 {
     return to_symbol("[block]");
 }
@@ -52,5 +54,7 @@ pBlock make_block()
 {
     return pBlock(new Block());
 }
+
+*/
 
 } // namespace ir

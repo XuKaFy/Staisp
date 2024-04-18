@@ -6,15 +6,14 @@ namespace Ir
 {
 
 struct CastInstr : public Instr {
-    CastInstr(pType tr, pInstr a1)
-        : Instr(INSTR_TYPE_NEED_REG, tr), val(a1) { }
+    CastInstr(pType tr, pVal a1)
+        : Instr(tr) {
+        add_operand(a1);
+    }
 
     virtual Symbol instr_print_impl() const override;
-    virtual bool is_end_of_block() const { return false; }
-
-    pInstr val;
 };
 
-pInstr make_cast_instr(pType tr, pInstr a1);
+pInstr make_cast_instr(pType tr, pVal a1);
 
 } // namespace ir

@@ -5,20 +5,20 @@ namespace Ir {
 Symbol CmpInstr::instr_print_impl() const
 {
     return to_symbol(
-        String(print_impl())
-        + (is_float(cmp_val_type) ? " = fcmp " : " = icmp ")
+        String(name())
+        + (is_float(operand(0)->usee->ty) ? " = fcmp " : " = icmp ")
         + gCmpInstrName[cmp_type]
         + " " 
-        + ch[0]->tr->type_name()
+        + operand(0)->usee->ty->type_name()
         + " "
-        + ch[0]->print()
+        + operand(0)->usee->name()
         + ", "
-        + ch[1]->print());
+        + operand(1)->usee->name());
 }
 
-pInstr make_cmp_instr(CmpType cmp_type, pType tr, pInstr a1, pInstr a2)
+pInstr make_cmp_instr(CmpType cmp_type, pVal a1, pVal a2)
 {
-    return pInstr(new CmpInstr(cmp_type, tr, a1, a2 ));
+    return pInstr(new CmpInstr(cmp_type, a1, a2));
 }
 
 } // namespace ir

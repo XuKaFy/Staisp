@@ -14,12 +14,17 @@ enum NodeType
 {
     NODE_IMM,
     NODE_OPR,
+    NODE_CALL,
     NODE_SYM,
     NODE_ASSIGN,
     NODE_DEF_VAR,
     NODE_DEF_FUNC,
-    NODE_DEF_CONST_FUNC,
     NODE_BLOCK,
+    NODE_RETURN,
+    NODE_BREAK,
+    NODE_CONTINUE,
+    NODE_IF,
+    NODE_WHILE,
     NODE_CAST,
     NODE_REF,
     NODE_DEREF,
@@ -44,24 +49,11 @@ enum NodeType
     ENTRY(LT, <) \
     ENTRY(LE, <=)
 
-// 一种是不可计算的
-#define OPR_TABLE_UNCALCULATABLE \
-    ENTRY(IF) \
-    ENTRY(RET) \
-    ENTRY(WHILE) \
-    ENTRY(BREAK) \
-    ENTRY(CONTINUE)
-
-
 enum OprType
 {
 #define ENTRY(x, y) OPR_##x,
     OPR_TABLE_CALCULATABLE
 #undef ENTRY
-#define ENTRY(x) OPR_##x,
-    OPR_TABLE_UNCALCULATABLE
-#undef ENTRY
-    OPR_CALL,
 };
 
 struct Node

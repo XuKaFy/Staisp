@@ -6,27 +6,28 @@
 namespace Ir {
 
 struct CallInstr : public Instr {
-    CallInstr(pFunc func, Vector<pInstr> args)
-        : Instr(INSTR_TYPE_NEED_REG, func->var.tr), func(func), args(args) { }
+    CallInstr(pFunc func, Vector<pVal> args)
+        : Instr(to_function_type(func->ty)->ret_type), func_ty(to_function_type(func->ty)) {
+        add_operand(func);
+        for(auto i : args)
+            add_operand(i);
+    }
     
     virtual Symbol instr_print_impl() const override;
-    virtual bool is_end_of_block() const { return false; }
-
-    pFunc func;
-    Vector<pInstr> args;
+    pFunctionType func_ty;
 };
 
 struct RetInstr : public Instr {
-    RetInstr(pType tr, pInstr oprd)
-        : Instr(INSTR_TYPE_NO_REG, tr), ret(oprd) { }
-    
-    virtual bool is_end_of_block() const { return true; }
+    RetInstr(pVal oprd = {})
+        : Instr(make_return_type()) {
+        if(oprd)
+            add_operand(oprd);
+    }
 
     virtual Symbol instr_print_impl() const override;
-    pInstr ret;
 };
 
-pInstr make_call_instr(pFunc func, Vector<pInstr> args);
-pInstr make_ret_instr(pType tr, pInstr oprd);
+pInstr make_call_instr(pFunc func, Vector<pVal> args);
+pInstr make_ret_instr(pVal oprd = {});
 
 } // namespace Ir

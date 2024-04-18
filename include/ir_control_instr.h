@@ -7,32 +7,29 @@ namespace Ir {
 struct LabelInstr : public Instr
 {
     LabelInstr()
-        : Instr(INSTR_TYPE_LABEL, make_basic_type(IMM_I1, false)) { }
+        : Instr(make_label_type()) { }
 
     virtual Symbol instr_print_impl() const override;
-    virtual bool is_end_of_block() const { return false; }
 };
 
 struct BrInstr : public Instr {
     BrInstr(pInstr to)
-        : Instr(INSTR_TYPE_NO_REG, make_basic_type(IMM_I1, false)), to(to) {}
+        : Instr(make_void_type()) {
+        add_operand(to);
+    }
 
     virtual Symbol instr_print_impl() const override;
-    virtual bool is_end_of_block() const { return true; }
-
-    pInstr to;
 };
 
 struct BrCondInstr : public Instr {
-    BrCondInstr(pInstr cond, pInstr trueTo, pInstr falseTo)
-        : Instr(INSTR_TYPE_NO_REG, cond->tr), cond(cond), trueTo(trueTo), falseTo(falseTo) {}
+    BrCondInstr(pVal cond, pInstr trueTo, pInstr falseTo)
+        : Instr(make_void_type()) {
+        add_operand(cond);
+        add_operand(trueTo);
+        add_operand(falseTo);
+    }
 
     virtual Symbol instr_print_impl() const override;
-    virtual bool is_end_of_block() const { return true; }
-
-    pInstr cond;
-    pInstr trueTo;
-    pInstr falseTo;
 };
 
 typedef Pointer<LabelInstr> pLabel;
@@ -41,6 +38,6 @@ typedef Pointer<BrCondInstr> pBrCondInstr;
 
 pInstr make_label_instr();
 pInstr make_br_instr(pInstr to);
-pInstr make_br_cond_instr(pInstr cond, pInstr trueTo, pInstr falseTo);
+pInstr make_br_cond_instr(pVal cond, pInstr trueTo, pInstr falseTo);
 
 } // namespace ir

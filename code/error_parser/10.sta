@@ -2,7 +2,7 @@
 
 DEFVAR i32:n 1
 
-DEFFUNC i32:fib(i32 CONST:n) BLOCK {
+DEFFUNC i32:fib(i32:n) BLOCK {
     IF OR EQ n 1
           EQ n 2
         RETURN 1

@@ -4,17 +4,12 @@ namespace Ir {
 
 Symbol Global::print_global() const
 {
-    String ans = print_impl();
+    String ans = name();
     ans += " = global ";
-    ans += val.tr->type_name();
+    ans += to_pointed_type(ty)->type_name();
     ans += " ";
-    ans += con.print_impl();
+    ans += con.name();
     return to_symbol(ans);
-}
-
-Symbol Global::print_impl() const
-{
-    return to_symbol(String("@") + val.sym);
 }
 
 pGlobal make_global(TypedSym val, Const con)

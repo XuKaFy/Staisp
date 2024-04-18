@@ -8,43 +8,21 @@
 
 namespace Ir {
 
-enum InstrType {
-    INSTR_TYPE_NEED_REG,
-    INSTR_TYPE_NO_REG,
-    INSTR_TYPE_LABEL,
-    INSTR_TYPE_HIDE,
-    INSTR_TYPE_ALLOC,
-};
+struct Instr : public User {
+    Instr(pType ty)
+        : User(ty) { }
 
-struct Instr : public Val {
-    Instr(InstrType instrType, pType tr)
-        : instrType(instrType), tr(tr) { }
-    
     Symbol instr_print();
     virtual Symbol instr_print_impl() const;
-    virtual Symbol print_impl() const override;
 
-    virtual bool is_end_of_block() const = 0;
-
-    InstrType instrType;
-    pType tr;
-
+private:
     Symbol instr_str_form { nullptr };
-    int line;
 };
 
 typedef Pointer<Instr> pInstr;
-
-struct ConstArgInstr : public Instr {
-    ConstArgInstr(TypedSym sym);
-    virtual Symbol instr_print_impl() const override;
-    virtual Symbol print_impl() const override;
-    virtual bool is_end_of_block() const override;
-
-    Symbol sym;
-};
+typedef Vector<pInstr> Instrs;
 
 pInstr make_empty_instr();
-pInstr make_const_arg(TypedSym sym);
+pInstr make_sym_instr(TypedSym sym);
 
 } // namespace Ir

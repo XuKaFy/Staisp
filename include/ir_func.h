@@ -1,22 +1,20 @@
 #pragma once
 
 #include "ir_instr.h"
-#include "ir_sym.h"
 
 namespace Ir {
 
-struct Func : public Val {
-    Func(TypedSym var, Vector<TypedSym> arg_types)
-        : var(var), args(arg_types) { }
+struct Func : public User {
+    Func(TypedSym var, Vector<pType> arg_types)
+        : User(make_function_type(var.ty, arg_types)) {
+        set_name(var.sym);
+    }
 
-    virtual Symbol print_impl() const override;
-
-    TypedSym var;
-    Vector<TypedSym> args;
+    pFunctionType functon_type() const;
 };
 
 typedef Pointer<Func> pFunc;
 
-pFunc make_func(TypedSym var, Vector<TypedSym> arg_types);
+pFunc make_func(TypedSym var, Vector<pType> arg_types);
 
 } // namespace ir

@@ -1,5 +1,0 @@
-DEFVAR i32:n CONSTEXPR ADD MUL 3 4 5
-
-DEFFUNC i32:main() {
-    RETURN n
-}

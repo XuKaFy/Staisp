@@ -1,8 +1,5 @@
 // Staisp 前端的 Parser，将 TokenList 转化为 AstProg
 // 将 Token 转化为 Ast 的文法已经写在 README.md
-//
-// 需要特别说明的是，在计算数组大小时，要求数组大小在编译器可计算出
-// 计算任务交由 Executor 实现
 
 #pragma once
 
@@ -13,7 +10,6 @@
 
 #include "staisp_lexer.h"
 #include "ast_node.h"
-#include "ast_exec.h"
 
 namespace Staisp {
 
@@ -26,11 +22,8 @@ namespace Staisp {
     ENTRY(WHILE) \
     ENTRY(DEFVAR) \
     ENTRY(DEFFUNC) \
-    ENTRY(DEFCONSTFUNC) \
     ENTRY(BREAK) \
     ENTRY(CONTINUE) \
-    ENTRY(CONSTEXPR) \
-    ENTRY(CONST) \
     ENTRY(CAST) \
     ENTRY(REF) \
     ENTRY(DEREF) \
@@ -116,7 +109,7 @@ private:
     void consume_token(TokenType t);
     bool has_token() const;
     
-    pNode parse_buildin_sym(Symbol sym, bool in_global);
+    pNode parse_buildin_sym(Symbol sym, bool in_global = false);
     pNode parse_function_call(Symbol sym);
     pNode parse_block();
     pNode parse_statement(bool in_global);
@@ -129,11 +122,10 @@ private:
     pType parse_type();
     ImmValue parse_single_value_list();
     
-    bool is_const_symbol() const;
     bool is_type_ended() const;
 
     Vector<TypedSym> parse_typed_sym_list();
-    AstProg parse_value_list();
+    Vector<pNode> parse_value_list();
 
     // 用于验证标识符可达性的栈环境
     // 注意，只检查一个标识符是函数还是值
