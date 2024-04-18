@@ -41,6 +41,6 @@ DEFFUNC i32:main() {
             swap(ITEM a [i] ITEM a [pos])
         ASSIGN i ADD i 1
     }
-    RETURN equal(a b)
+    RETURN NE equal(a b) 10
 }
 

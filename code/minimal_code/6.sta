@@ -3,5 +3,5 @@ DEFFUNC i32:hello () {
 }
 
 DEFFUNC i32:main() {
-    RETURN hello ( )
+    RETURN NE hello ( ) 1
 }

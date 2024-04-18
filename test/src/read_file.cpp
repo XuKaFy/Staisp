@@ -2,7 +2,7 @@
 
 pCode read_test_file(Symbol file_suffix)
 {
-    String file = String("../../code/") + file_suffix;
+    String file = String("../code/") + file_suffix;
     std::ifstream in;
     in.open(file, std::fstream::in);
     EXPECT_TRUE(in.is_open());

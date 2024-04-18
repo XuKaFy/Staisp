@@ -27,8 +27,8 @@ int main(int argc, char *argv[])
         out.open(String(argv[1]) + ".ll", std::fstream::out);
         out << mod->print_module();
         out.close();
-    } catch (Exception) {
-        puts("Exception Catched.");
+    } catch (Exception e) {
+        printf("Exception Catched: [%s] error %lu: %s\n", e.object, e.id, e.message);
     }
     return 0;
 }

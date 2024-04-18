@@ -2,5 +2,5 @@ DEFFUNC i32:main() {
     DEFVAR u32:a 1
     DEFVAR i32:c 1
     DEFVAR f32:b 1
-    RETURN ADD ADD a c b
+    RETURN NE ADD ADD a c b 3.0
 }

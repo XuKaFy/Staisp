@@ -7,5 +7,5 @@ DEFFUNC i32:main() {
     DEFVAR i32:a 1
     DEFVAR i32*:b REF a
     fun(b) 
-    RETURN a
+    RETURN NE a 2
 }

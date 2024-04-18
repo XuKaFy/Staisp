@@ -354,10 +354,16 @@ void Convertor::analyze_statement_node(pNode root)
         break;
     }
     case NODE_BREAK:
+        if(!has_loop_env()) {
+            throw_error(root, 9, "no outer loops");
+        }
         add_instr(Ir::make_br_instr(loop_env()->loop_end));
         add_instr(Ir::make_label_instr());
         break;
     case NODE_CONTINUE:
+        if(!has_loop_env()) {
+            throw_error(root, 9, "no outer loops");
+        }
         add_instr(Ir::make_br_instr(loop_env()->loop_begin));
         add_instr(Ir::make_label_instr());
         break;
@@ -502,8 +508,6 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, pType ty)
 }
 
 pLoopEnv Convertor::loop_env() {
-    if(_loop_env_stack.empty())
-        return _loop_env_stack.top();
     return _loop_env_stack.top();
 }
 

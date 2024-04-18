@@ -1,4 +1,4 @@
-DEFCONSTFUNC i32:CALC() {
+DEFFUNC i32:CALC() {
     DEFVAR i32:ans 0
     DEFVAR i32*:pans REF ans
     ASSIGN DEREF ans 2

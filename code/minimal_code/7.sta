@@ -1,5 +1,5 @@
 DEFFUNC i32:main() {
     DEFVAR i32:a 0
     ASSIGN a ADD a 1
-    RETURN a
+    RETURN NE a 1
 }

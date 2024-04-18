@@ -7,5 +7,5 @@ DEFFUNC i32:main() BLOCK {
         IF EQ i 6 BREAK
         ASSIGN ans ADD ans i
     }
-    RETURN ans
+    RETURN NE ans 12
 }
