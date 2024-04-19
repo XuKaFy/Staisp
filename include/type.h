@@ -9,6 +9,9 @@
 // 
 // 复合类型的本质是对基本类型或另一已知的复合类型进行一次包装
 // 在使用时进行解包
+//
+// 还有一类特殊类型 IrType，用于当某个 Ir 没有代表某个寄存器（也就是没有类型）时
+// 它是哪种 Ir
 
 #pragma once
 
@@ -17,10 +20,12 @@
 
 // 类型的“类型”
 // 即该类型是基本类型还是复合类型
+// 为了便于 IR 的书写
+// 这里为 IR 准备了一个 Type
+// * IR_TYPE
 enum TypeType {
     TYPE_VOID_TYPE,
-    TYPE_LABEL_TYPE,
-    TYPE_RETURN_TYPE,
+    TYPE_IR_TYPE,
     TYPE_BASIC_TYPE,
     TYPE_COMPOUND_TYPE,
 };
@@ -51,26 +56,23 @@ struct TypedSym
     pType ty;
 };
 
-// 专门给 Label 用的 Type
-struct LabelType : public Type
-{
-    LabelType()
-        : Type() {}
-
-    virtual TypeType type_type() const override { return TYPE_LABEL_TYPE; }
-    virtual Symbol type_name() const override { return "label"; }
-    virtual size_t length() const override { return 0; }
+enum VoidIrType {
+    IR_STORE,
+    IR_BR,
+    IR_RET,
+    IR_LABEL,
 };
 
-// 专门给 Return 用的 Type
-struct ReturnType : public Type
-{
-    ReturnType()
-        : Type() {}
+// 为表达 Ir 指令类型所准备的类
+struct IrType : public Type {
+    IrType(VoidIrType ty)
+        : Type(), ir_ty(ty) { }
 
-    virtual TypeType type_type() const override { return TYPE_RETURN_TYPE; }
-    virtual Symbol type_name() const override { return "return"; }
+    virtual TypeType type_type() const override { return TYPE_IR_TYPE; }
+    virtual Symbol type_name() const override { return "ir"; }
     virtual size_t length() const override { return 0; }
+
+    VoidIrType ir_ty;
 };
 
 // 基础类型 ImmType 的封装
@@ -156,8 +158,7 @@ struct ArrayType : public CompoundType {
 
 // 创建类型类型的 helper
 pType make_void_type();
-pType make_label_type();
-pType make_return_type();
+pType make_ir_type(VoidIrType ir_ty);
 pType make_basic_type(ImmType ty);
 pType make_function_type(pType ret_type, Vector<pType> arg_type);
 pType make_array_type(pType ty, size_t count);
@@ -186,3 +187,6 @@ pType to_elem_type(pType p);
 Pointer<StructType> to_struct_type(pType p);
 Pointer<BasicType> to_basic_type(pType p);
 Pointer<FunctionType> to_function_type(pType p);
+VoidIrType to_ir_type(pType p);
+
+bool is_ir_type(pType p, VoidIrType ty);

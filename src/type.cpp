@@ -22,14 +22,9 @@ pType make_void_type()
     return pType(new Type());
 }
 
-pType make_label_type()
+pType make_ir_type(VoidIrType ir_ty)
 {
-    return pType(new LabelType());
-}
-
-pType make_return_type()
-{
-    return pType(new ReturnType());
+    return pType(new IrType(ir_ty));
 }
 
 pType make_basic_type(ImmType ty)
@@ -216,3 +211,17 @@ Pointer<FunctionType> to_function_type(pType p)
     return j;
 }
 
+VoidIrType to_ir_type(pType p)
+{
+    auto j = std::static_pointer_cast<IrType>(p);
+    if(!j)
+        throw Exception(1, "to_ir_type", "not castable");
+    return j->ir_ty;
+}
+
+bool is_ir_type(pType p, VoidIrType ty)
+{
+    auto j = std::static_pointer_cast<IrType>(p);
+    if(!j) return false;
+    return j->ir_ty == ty;
+}

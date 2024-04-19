@@ -7,14 +7,14 @@ namespace Ir {
 struct LabelInstr : public Instr
 {
     LabelInstr()
-        : Instr(make_label_type()) { }
+        : Instr(make_ir_type(IR_LABEL)) { }
 
     virtual Symbol instr_print_impl() const override;
 };
 
 struct BrInstr : public Instr {
     BrInstr(pInstr to)
-        : Instr(make_void_type()) {
+        : Instr(make_ir_type(IR_BR)) {
         add_operand(to);
     }
 
@@ -23,7 +23,7 @@ struct BrInstr : public Instr {
 
 struct BrCondInstr : public Instr {
     BrCondInstr(pVal cond, pInstr trueTo, pInstr falseTo)
-        : Instr(make_void_type()) {
+        : Instr(make_ir_type(IR_BR)) {
         add_operand(cond);
         add_operand(trueTo);
         add_operand(falseTo);

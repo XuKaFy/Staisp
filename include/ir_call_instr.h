@@ -19,7 +19,7 @@ struct CallInstr : public Instr {
 
 struct RetInstr : public Instr {
     RetInstr(pVal oprd = {})
-        : Instr(make_return_type()) {
+        : Instr(make_ir_type(IR_RET)) {
         if(oprd)
             add_operand(oprd);
     }

@@ -23,7 +23,7 @@ struct LoadInstr : public Instr {
 
 struct StoreInstr : public Instr {
     StoreInstr(pVal to, pVal val)
-        : Instr(make_void_type()) {
+        : Instr(make_ir_type(IR_STORE)) {
         add_operand(to);
         add_operand(val);
     }

@@ -297,12 +297,12 @@ void Convertor::analyze_statement_node(pNode root)
             add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if(_cur_func->body.size() && _cur_func->body.back()->ty->type_type() != TYPE_RETURN_TYPE) {
+            if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
                 add_instr(Ir::make_br_instr(if_else_end));
             }
             add_instr(if_end);
             analyze_statement_node(r->elsed);
-            if(_cur_func->body.size() && _cur_func->body.back()->ty->type_type() != TYPE_RETURN_TYPE) {
+            if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
                 add_instr(Ir::make_br_instr(if_else_end));
             }
             add_instr(if_else_end);
@@ -317,7 +317,7 @@ void Convertor::analyze_statement_node(pNode root)
             add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if(_cur_func->body.size() && _cur_func->body.back()->ty->type_type() != TYPE_RETURN_TYPE) {
+            if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
                 add_instr(Ir::make_br_instr(if_end));
             }
             add_instr(if_end);
@@ -346,7 +346,7 @@ void Convertor::analyze_statement_node(pNode root)
         push_loop_env(while_cond, while_end);
         analyze_statement_node(r->body);
         // add_instr(Ir::make_br_instr(while_cond));
-        if(_cur_func->body.size() && _cur_func->body.back()->ty->type_type() != TYPE_RETURN_TYPE) {
+        if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
             add_instr(Ir::make_br_instr(while_cond)); // who will write "while(xxx) return 0"?
         }
         add_instr(while_end);
