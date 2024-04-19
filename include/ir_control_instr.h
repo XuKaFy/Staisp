@@ -23,7 +23,7 @@ struct BrInstr : public Instr {
 
 struct BrCondInstr : public Instr {
     BrCondInstr(pVal cond, pInstr trueTo, pInstr falseTo)
-        : Instr(make_ir_type(IR_BR)) {
+        : Instr(make_ir_type(IR_BR_COND)) {
         add_operand(cond);
         add_operand(trueTo);
         add_operand(falseTo);

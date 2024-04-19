@@ -4,29 +4,42 @@
 
 #include "ir_instr.h"
 #include "ir_control_instr.h"
+#include "ir_call_instr.h"
+#include "ir_line_generator.h"
 
 namespace Ir {
 
 struct Block;
 typedef Pointer<Block> pBlock;
+typedef WeakPointer<Block> pwBlock;
 typedef Vector<pBlock> Blocks;
 
-/* struct Block : public Val {
-    Block() {
-        add_instr(make_label_instr());
-    }
+struct Block : public Val {
+    Block()
+        : Val(make_void_type()) { }
 
-    virtual Symbol name() const override;
-    
     Symbol print_block() const;
-    void generate_line(size_t &line) const;
-
+    
     pInstr label() const;
-    pInstr add_instr(pInstr instr);
-    void finish_block_with_jump(pBlock b);
-    Vector<pInstr> instrs;
-}; */
+    pInstr back() const;
 
-// pBlock make_block();
+    void push_back(pInstr instr);
+    void connect(Block* next);
+
+    Instrs body;
+
+    Vector<Block*> in_block;
+    Vector<Block*> out_block;
+};
+
+struct BlockedProgram
+{
+    void from_instrs(const Instrs &instrs);
+    void push_back(pInstr instr);
+
+    Blocks blocks;
+};
+
+pBlock make_block();
 
 } // namespace Ir

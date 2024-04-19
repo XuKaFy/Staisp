@@ -59,6 +59,7 @@ struct TypedSym
 enum VoidIrType {
     IR_STORE,
     IR_BR,
+    IR_BR_COND,
     IR_RET,
     IR_LABEL,
 };

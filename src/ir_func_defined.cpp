@@ -46,36 +46,12 @@ Symbol FuncDefined::print_func() const
 PRINT_IMPL_END:
     whole_function += ")";
 
-    LineGenerator g;
+    BlockedProgram p;
+    p.from_instrs(body);
 
     whole_function += " {\n";
-    for(size_t i=0; i<body.size(); ++i) {
-        if(!body[i]->has_name()) {
-            switch(body[i]->ty->type_type()) {
-            case TYPE_IR_TYPE: {
-                switch(to_ir_type(body[i]->ty)) {
-                case IR_LABEL:
-                    body[i]->set_name(String("L") + g.label());    
-                case IR_BR:
-                case IR_STORE:
-                case IR_RET:
-                    break; // no need to alloc an id
-                }
-                break;
-            }
-            case TYPE_BASIC_TYPE:
-            case TYPE_COMPOUND_TYPE:
-                body[i]->set_name(String("%") + std::to_string(g.line()));    
-                break;
-            case TYPE_VOID_TYPE:
-                throw Exception(1, "FuncDefined::print_func", "void instruction");
-            }
-        }
-    }
-
-    for(size_t i=0; i<body.size(); ++i) {
-        whole_function += body[i]->instr_print();
-        whole_function += "\n";
+    for(auto i : p.blocks) {
+        whole_function += i->print_block();
     }
     whole_function += "}\n";
 

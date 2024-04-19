@@ -14,6 +14,8 @@ public:
     int line();
     Symbol label();
 
+    void generate(const Instrs &body);
+
 private:
     int _line;
     int _label_line;
