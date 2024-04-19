@@ -107,4 +107,17 @@ void BlockedProgram::from_instrs(const Instrs &instrs)
     }
 }
 
+Instrs BlockedProgram::re_generate() const
+{
+    Instrs instrs;
+    for(auto i : blocks) {
+        for(auto j : i->body) {
+            instrs.push_back(j);
+        }
+    }
+    LineGenerator g;
+    g.generate(instrs);
+    return instrs;
+}
+
 } // namespace ir

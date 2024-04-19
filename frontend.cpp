@@ -3,6 +3,8 @@
 #include "convert_ast_to_ir.h"
 #include "staisp_parser.h"
 
+#include "opt.h"
+
 #include <fstream>
 
 int main(int argc, char *argv[])
@@ -23,6 +25,10 @@ int main(int argc, char *argv[])
     try {
         AstProg root = Staisp::Parser().parse(p_code);
         Ir::pModule mod = AstToIr::Convertor().generate(root);
+
+        // optimize
+        Optimize::optimize(mod);
+
         std::ofstream out;
         out.open(String(argv[1]) + ".ll", std::fstream::out);
         out << mod->print_module();

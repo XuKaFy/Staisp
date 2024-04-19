@@ -36,6 +36,7 @@ struct BlockedProgram
 {
     void from_instrs(const Instrs &instrs);
     void push_back(pInstr instr);
+    Instrs re_generate() const;
 
     Blocks blocks;
 };
