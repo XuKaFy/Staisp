@@ -14,7 +14,13 @@ namespace Ir {
     ENTRY(SGT, sgt) \
     ENTRY(SGE, sge) \
     ENTRY(SLT, slt) \
-    ENTRY(SLE, sle) 
+    ENTRY(SLE, sle) \
+    ENTRY(OEQ, oeq) \
+    ENTRY(ONE, one) \
+    ENTRY(OGT, ogt) \
+    ENTRY(OGE, oge) \
+    ENTRY(OLT, olt) \
+    ENTRY(OLE, ole) \
 
 #define ENTRY(x, y) CMP_##x,
 enum CmpType {

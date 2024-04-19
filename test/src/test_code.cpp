@@ -28,7 +28,7 @@ TEST_A_FILE(basic_branch, brk_ctn)
 
 TEST_A_FILE(basic_env, env)
 
-// TEST_A_FILE(basic_type, diff_type_calc)
-// TEST_A_FILE(basic_type, float)
+TEST_A_FILE(basic_type, diff_type_calc)
+TEST_A_FILE(basic_type, float)
 
 TEST_A_FILE(pointer, ptr)

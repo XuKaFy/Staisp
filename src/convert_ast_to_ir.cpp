@@ -482,14 +482,23 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
 Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, pType ty)
 {
     bool is_signed = is_signed_type(ty);
-#define SELECT(x) case OPR_##x: return Ir::CMP_##x;
+    bool is_flt = is_float(ty);
     switch(root->type) {
+#define SELECT(x) \
+    case OPR_##x: { \
+        if(is_flt) { \
+            return Ir::CMP_O##x; \
+        } \
+        return Ir::CMP_##x; \
+    }
     SELECT(EQ)
     SELECT(NE)
 #undef SELECT
 #define SELECT_US(x) \
     case OPR_##x: { \
-        if(is_signed) { \
+        if(is_flt) { \
+            return Ir::CMP_S##x; \
+        } else if(is_signed) { \
             return Ir::CMP_S##x; \
         } else { \
             return Ir::CMP_U##x; \

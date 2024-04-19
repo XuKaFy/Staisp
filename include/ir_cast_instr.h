@@ -12,6 +12,9 @@ struct CastInstr : public Instr {
     }
 
     virtual Symbol instr_print_impl() const override;
+
+private:
+    Symbol use(Symbol inst) const;
 };
 
 pInstr make_cast_instr(pType tr, pVal a1);
