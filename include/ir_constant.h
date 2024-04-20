@@ -15,6 +15,10 @@ struct Const : public Val {
         set_name(var.to_string());
     }
     
+    virtual ValType type() const {
+        return VAL_CONST;
+    }
+
     Value v;
 };
 

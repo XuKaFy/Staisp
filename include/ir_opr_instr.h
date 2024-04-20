@@ -15,14 +15,8 @@ namespace Ir {
     ENTRY(MUL, mul) \
     ENTRY(DIV, div) \
     ENTRY(REM, rem) \
-    ENTRY(CALL, call) \
     ENTRY(AND, and) \
-    ENTRY(OR, or) \
-    ENTRY(ALLOC, alloc) \
-    ENTRY(LOAD, load) \
-    ENTRY(STORE, store) \
-    ENTRY(BR, br) \
-    ENTRY(RET, ret)
+    ENTRY(OR, or)
 
 #define ENTRY(x, y) INSTR_##x,
 enum UnaryInstrType {
@@ -45,25 +39,37 @@ const Symbol gBinInstrName[] = {
 #undef UNARY_INSTR_TABLE
 #undef BIN_INSTR_TABLE
 
-struct UnaryInstr : public Instr {
+struct UnaryInstr : public CalculatableInstr {
     UnaryInstr(UnaryInstrType unaryType, pVal oprd)
-        : Instr(oprd->ty), unaryType(unaryType) {
+        : CalculatableInstr(oprd->ty), unaryType(unaryType) {
         add_operand(oprd);
     }
 
     virtual Symbol instr_print_impl() const override;
 
+    virtual InstrType instr_type() const override {
+        return INSTR_UNARY;
+    }
+
+    virtual ImmValue calculate(Vector<ImmValue> v) const override;
+
     UnaryInstrType unaryType;
 };
 
-struct BinInstr : public Instr {
+struct BinInstr : public CalculatableInstr {
     BinInstr(BinInstrType binType, pVal oprd1, pVal oprd2)
-        : Instr(oprd1->ty), binType(binType) {
+        : CalculatableInstr(oprd1->ty), binType(binType) {
         add_operand(oprd1);
         add_operand(oprd2);
     }
 
     virtual Symbol instr_print_impl() const override;
+
+    virtual ImmValue calculate(Vector<ImmValue> v) const override;
+
+    virtual InstrType instr_type() const override {
+        return INSTR_BINARY;
+    }
 
     BinInstrType binType;
 };

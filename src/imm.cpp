@@ -292,3 +292,28 @@ Symbol ImmValue::print() const
     }
     return to_symbol(String(buf));
 }
+
+ImmValue ImmValue::operator ! () const
+{
+    switch(ty) {
+    case IMM_I1:
+    case IMM_I8:
+    case IMM_I16:
+    case IMM_I32:
+    case IMM_I64:
+        return !val.ival;
+    case IMM_U1:
+    case IMM_U8:
+    case IMM_U16:
+    case IMM_U32:
+    case IMM_U64:
+        return !val.uval;
+    case IMM_F32:
+        return !val.f32val;
+    case IMM_F64:
+        return !val.f64val;
+    }
+    throw Exception(1, "ImmValue::operator !()", "?");
+    return 0;
+}
+

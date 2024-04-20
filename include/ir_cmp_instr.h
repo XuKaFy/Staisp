@@ -37,15 +37,22 @@ const Symbol gCmpInstrName[] = {
 #undef CMP_INSTR_TABLE
 
 // 默认所有的操作数的类型都一致
-struct CmpInstr : public Instr
+struct CmpInstr : public CalculatableInstr
 {
     CmpInstr(CmpType cmp_type, pVal a1, pVal a2)
-        : Instr(make_basic_type(IMM_I1)), cmp_type(cmp_type) {
+        : CalculatableInstr(make_basic_type(IMM_I1)), cmp_type(cmp_type) {
         add_operand(a1);
         add_operand(a2);
     }
+
+    virtual InstrType instr_type() const override {
+        return INSTR_CMP;
+    }
     
     virtual Symbol instr_print_impl() const override;
+
+    virtual ImmValue calculate(Vector<ImmValue> v) const override;
+
     CmpType cmp_type;
 };
 

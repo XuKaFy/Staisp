@@ -15,6 +15,10 @@ struct Global : public Val {
     
     Symbol print_global() const;
 
+    virtual ValType type() const {
+        return VAL_GLOBAL;
+    }
+
     Const con;
 };
 

@@ -10,6 +10,10 @@ struct ItemInstr : public Instr {
 
     virtual Symbol instr_print_impl() const override;
 
+    virtual InstrType instr_type() const override {
+        return INSTR_ITEM;
+    }
+
     Vector<pVal> index;
 };
 

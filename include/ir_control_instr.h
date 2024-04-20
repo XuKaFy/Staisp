@@ -9,6 +9,10 @@ struct LabelInstr : public Instr
     LabelInstr()
         : Instr(make_ir_type(IR_LABEL)) { }
 
+    virtual InstrType instr_type() const override {
+        return INSTR_LABEL;
+    }
+
     virtual Symbol instr_print_impl() const override;
 };
 
@@ -16,6 +20,10 @@ struct BrInstr : public Instr {
     BrInstr(pInstr to)
         : Instr(make_ir_type(IR_BR)) {
         add_operand(to);
+    }
+
+    virtual InstrType instr_type() const override {
+        return INSTR_BR;
     }
 
     virtual Symbol instr_print_impl() const override;
@@ -27,6 +35,10 @@ struct BrCondInstr : public Instr {
         add_operand(cond);
         add_operand(trueTo);
         add_operand(falseTo);
+    }
+
+    virtual InstrType instr_type() const override {
+        return INSTR_BR_COND;
     }
 
     virtual Symbol instr_print_impl() const override;

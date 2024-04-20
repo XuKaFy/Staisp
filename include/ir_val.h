@@ -9,6 +9,14 @@ namespace Ir {
 struct Use;
 typedef Pointer<Use> pUse;
 
+enum ValType {
+    VAL_CONST,
+    VAL_GLOBAL,
+    VAL_INSTR,
+    VAL_BLOCK,
+    VAL_FUNC,
+};
+
 struct Val {
     Val(pType ty)
         : ty(ty) { }
@@ -20,6 +28,8 @@ struct Val {
 
     Vector<pUse> users;
     pType ty;
+
+    virtual ValType type() const = 0;
 
 private:
     Symbol _name { nullptr };

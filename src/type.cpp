@@ -225,3 +225,10 @@ bool is_ir_type(pType p, VoidIrType ty)
     if(!j) return false;
     return j->ir_ty == ty;
 }
+
+bool is_ir_type(pType p)
+{
+    auto j = std::static_pointer_cast<IrType>(p);
+    if(!j) return false;
+    return true;
+}

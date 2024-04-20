@@ -28,6 +28,10 @@ struct Block : public Val {
 
     Instrs body;
 
+    virtual ValType type() const {
+        return VAL_BLOCK;
+    }
+
     Vector<Block*> in_block;
     Vector<Block*> out_block;
 };

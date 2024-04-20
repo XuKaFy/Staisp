@@ -56,6 +56,7 @@ void BlockedProgram::from_instrs(const Instrs &instrs)
             case IR_LABEL: {
                 auto b = make_block();
                 blocks.push_back(b);
+                b->set_name(i->name());
                 labelToBlock[i->name()] = b.get();
                 // printf("saving %s\n", i->name());
                 break;

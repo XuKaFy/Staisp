@@ -191,3 +191,4 @@ Pointer<FunctionType> to_function_type(pType p);
 VoidIrType to_ir_type(pType p);
 
 bool is_ir_type(pType p, VoidIrType ty);
+bool is_ir_type(pType p);

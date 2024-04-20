@@ -31,6 +31,47 @@ Symbol BinInstr::instr_print_impl() const
         + operand(1)->usee->name());
 }
 
+ImmValue BinInstr::calculate(Vector<ImmValue> v) const
+{
+    my_assert(v.size() == 2, "?");
+    ImmValue &a0 = v[0];
+    ImmValue &a1 = v[1];
+
+    switch(binType) {
+    case INSTR_ADD:
+        return a0 + a1;
+    case INSTR_SUB:
+        return a0 - a1;
+    case INSTR_MUL:
+        return a0 * a1;
+    case INSTR_DIV:
+        return a0 / a1;
+    case INSTR_REM:
+        return a0 % a1;
+    case INSTR_AND:
+        return a0 & a1;
+    case INSTR_OR:
+        return a0 | a1;
+    }
+    throw Exception(1, "BinInstr::calculate", "?");
+    return 0;
+}
+
+ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const
+{
+    my_assert(v.size() == 1, "?");
+    ImmValue &a0 = v[0];
+    
+    switch(unaryType) {
+    case INSTR_NOT:
+        return !a0;
+    case INSTR_NEG:
+        return -a0;
+    }
+    throw Exception(1, "UnaryInstr::calculate", "?");
+    return 0;
+}
+
 pInstr make_unary_instr(UnaryInstrType type, pVal oprd)
 {
     return pInstr(new UnaryInstr(type, oprd));

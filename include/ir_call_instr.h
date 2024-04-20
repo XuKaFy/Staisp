@@ -12,8 +12,13 @@ struct CallInstr : public Instr {
         for(auto i : args)
             add_operand(i);
     }
+
+    virtual InstrType instr_type() const override {
+        return INSTR_CALL;
+    }
     
     virtual Symbol instr_print_impl() const override;
+
     pFunctionType func_ty;
 };
 
@@ -22,6 +27,10 @@ struct RetInstr : public Instr {
         : Instr(make_ir_type(IR_RET)) {
         if(oprd)
             add_operand(oprd);
+    }
+
+    virtual InstrType instr_type() const override {
+        return INSTR_RET;
     }
 
     virtual Symbol instr_print_impl() const override;

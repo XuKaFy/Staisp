@@ -10,6 +10,10 @@ struct Func : public User {
         set_name(var.sym);
     }
 
+    virtual ValType type() const {
+        return VAL_FUNC;
+    }
+
     pFunctionType functon_type() const;
 };
 

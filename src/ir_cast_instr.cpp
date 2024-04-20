@@ -71,6 +71,14 @@ Symbol CastInstr::use(Symbol inst) const
         + tdest->type_name());
 }
 
+ImmValue CastInstr::calculate(Vector<ImmValue> v) const
+{
+    my_assert(v.size() == 1, "?");
+    ImmValue &from = v[0];
+
+    return from.cast_to(to_basic_type(ty)->ty);
+}
+
 pInstr make_cast_instr(pType ty, pVal a1)
 {
     return pInstr(new CastInstr(ty, a1));
