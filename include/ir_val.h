@@ -21,6 +21,10 @@ struct Val {
     Val(pType ty)
         : ty(ty) { }
 
+    virtual ~Val() {
+        users.clear();
+    }
+
     bool has_name();
     void set_name(Symbol name);
     void set_name(String name);
@@ -42,7 +46,12 @@ struct User : public Val {
     User(pType ty)
         : Val(ty) { }
 
+    virtual ~User() {
+        operands.clear();
+    }
+
     void add_operand(pVal val);
+    void add_operand(Val* val);
     pUse operand(size_t index) const;
     size_t operand_size() const;
 

@@ -11,9 +11,11 @@ void must_analysis(Ir::BlockedProgram &p);
 void optimize(Ir::pModule mod)
 {
     for(auto i : mod->funsDefined) {
-        for(size_t cnt = 0; cnt < 1; ++cnt) {
+        for(size_t cnt = 0; cnt < 2; ++cnt) {
             may_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+            remove_dead_code(i->p);
             remove_empty_block(i->p);
+            i->p.join_blocks();
         }
         i->p.re_generate();
     }
@@ -27,6 +29,57 @@ void remove_empty_block(Ir::BlockedProgram &p)
             i = p.blocks.erase(i);
         } else ++i;
     }
+}
+
+bool can_be_removed(Ir::InstrType t)
+{
+    switch(t) {
+    case Ir::INSTR_RET:
+    case Ir::INSTR_BR:
+    case Ir::INSTR_BR_COND:
+    case Ir::INSTR_STORE:
+    case Ir::INSTR_ALLOCA:
+        return false;
+    default:
+        return true;
+    }
+    return true;
+}
+
+void remove_dead_code(Ir::BlockedProgram &p)
+{
+    my_assert(p.blocks.size(), "?");
+    for(auto i : p.blocks) {
+        for(auto j = i->body.begin()+1; j!=i->body.end(); ) {
+            if((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
+                j = i->body.erase(j);
+            } else {
+                ++j;
+            }
+        }
+    }
+    bool flag = false;
+    for(auto i : p.blocks) {
+        if(i->body.size() <= 1) continue;
+        auto end = i->body.back();
+        if(end->instr_type() == Ir::INSTR_BR_COND) {
+            auto cond = end->operand(0)->usee;
+            if(cond->type() == Ir::VAL_CONST) {
+                auto con = static_cast<Ir::Const*>(cond);
+                if(con->v.type() == VALUE_IMM) {
+                    bool selected = (bool)con->v.imm_value();
+                    // 0->trueTo
+                    // 1->falseTo
+                    auto new_br = std::static_pointer_cast<Ir::BrCondInstr>(end)->select(1-selected);
+                    i->body.pop_back();
+                    i->body.push_back(new_br);
+                    flag = true;
+                }
+            }
+        }
+    }
+    if(flag)
+        p.generate_cfg(); // some br might be changed
 }
 
 template<typename BlockValue, typename Utils>

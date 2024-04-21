@@ -50,7 +50,6 @@ void BlockedProgram::push_back(pInstr instr)
 
 void BlockedProgram::from_instrs(Instrs &instrs)
 {
-    Map<String, Block*> labelToBlock;
     LineGenerator g;
     g.generate(instrs);
 
@@ -62,8 +61,6 @@ void BlockedProgram::from_instrs(Instrs &instrs)
                 auto b = make_block();
                 blocks.push_back(b);
                 b->set_name(i->name());
-                labelToBlock[i->name()] = b.get();
-                // printf("saving %s\n", i->name());
                 break;
             }
             default:
@@ -76,6 +73,27 @@ void BlockedProgram::from_instrs(Instrs &instrs)
         push_back(std::move(i));
     }
     instrs.clear();
+
+    generate_cfg();
+}
+
+void BlockedProgram::re_generate() const
+{
+    LineGenerator g;
+    for(auto i : blocks) {
+        g.generate(i->body);
+    }
+}
+
+void BlockedProgram::generate_cfg() const
+{
+    Map<String, Block*> labelToBlock;
+
+    for(auto i : blocks) {
+        labelToBlock[i->label()->name()] = i.get();
+        i->in_block.clear();
+        i->out_block.clear();
+    }  
 
     for(auto i : blocks) {
         auto end = i->back();
@@ -114,11 +132,27 @@ void BlockedProgram::from_instrs(Instrs &instrs)
     }
 }
 
-void BlockedProgram::re_generate() const
+void BlockedProgram::join_blocks()
 {
-    LineGenerator g;
-    for(auto i : blocks) {
-        g.generate(i->body);
+    bool found = true;
+    while(found) {
+        found = false;
+        for(auto i = blocks.begin(); i!=blocks.end(); ++i) {
+            if((*i)->in_block.size() == 1 && (*i)->in_block[0]->out_block.size() == 1) {
+                auto next_block = (*i)->in_block[0];
+                next_block->body.pop_back();
+                for(auto j = (*i)->body.begin()+1; j!=(*i)->body.end(); ++j) {
+                    next_block->body.push_back(std::move(*j));
+                }
+                for(auto j : (*i)->imms) {
+                    next_block->add_imm(j);
+                }
+                i = blocks.erase(i);
+                found = true;
+                generate_cfg();
+                break;
+            }
+        }
     }
 }
 

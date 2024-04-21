@@ -24,11 +24,20 @@ void Val::replace_self(Val* val)
         // printf("replace %s(%llx) val %s with %s\n", i->user->name(), i->user, i->usee->name(), val->name());
         i->usee = val;
     }
+    users.clear();
 }
 
 Symbol Val::name() const
 {
     return _name;
+}
+
+void User::add_operand(Val* val)
+{
+    pUse use = pUse(new Use { this, val });
+    // printf("OPERAND %llx, %s(%llx)\n", this, val->name(), val.get());
+    operands.push_back(use);
+    val->users.push_back(use);
 }
 
 void User::add_operand(pVal val)

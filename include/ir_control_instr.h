@@ -22,6 +22,11 @@ struct BrInstr : public Instr {
         add_operand(to);
     }
 
+    BrInstr(Instr* to)
+        : Instr(make_ir_type(IR_BR)) {
+        add_operand(to);
+    }
+
     virtual InstrType instr_type() const override {
         return INSTR_BR;
     }
@@ -37,6 +42,8 @@ struct BrCondInstr : public Instr {
         add_operand(falseTo);
     }
 
+    pInstr select(bool cond);
+
     virtual InstrType instr_type() const override {
         return INSTR_BR_COND;
     }
@@ -50,6 +57,7 @@ typedef Pointer<BrCondInstr> pBrCondInstr;
 
 pInstr make_label_instr();
 pInstr make_br_instr(pInstr to);
+pInstr make_br_instr(Instr* to);
 pInstr make_br_cond_instr(pVal cond, pInstr trueTo, pInstr falseTo);
 
 } // namespace ir

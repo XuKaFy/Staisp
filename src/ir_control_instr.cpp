@@ -30,12 +30,22 @@ Symbol BrCondInstr::instr_print_impl() const
     return to_symbol(ans);
 }
 
+pInstr BrCondInstr::select(bool cond)
+{
+    return make_br_instr(static_cast<Instr*>(operand(cond+1)->usee));
+}
+
 pInstr make_label_instr()
 {
     return pInstr(new LabelInstr());
 }
 
 pInstr make_br_instr(pInstr to)
+{
+    return pInstr(new BrInstr(to));
+}
+
+pInstr make_br_instr(Instr* to)
 {
     return pInstr(new BrInstr(to));
 }

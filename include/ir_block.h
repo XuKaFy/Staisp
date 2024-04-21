@@ -44,6 +44,9 @@ struct BlockedProgram
     void from_instrs(Instrs &instrs);
     void push_back(pInstr instr);
     void re_generate() const;
+    void generate_cfg() const;
+
+    void join_blocks();
 
     Blocks blocks;
 };
