@@ -11,7 +11,7 @@ void must_analysis(Ir::BlockedProgram &p);
 void optimize(Ir::pModule mod)
 {
     for(auto i : mod->funsDefined) {
-        for(size_t cnt = 0; cnt < 2; ++cnt) {
+        for(size_t cnt = 0; cnt < 5; ++cnt) {
             may_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
             remove_dead_code(i->p);
             remove_empty_block(i->p);
