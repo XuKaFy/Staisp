@@ -30,7 +30,9 @@ Ir::pVal Convertor::find_left_value(pNode root, Symbol sym)
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->name()+1, sym) == 0) {
-                return Ir::make_sym_instr(TypedSym(to_symbol(String("@") + sym), i->ty));
+                auto sym_node = Ir::make_sym_instr(TypedSym(to_symbol(String("@") + sym), i->ty));
+                _cur_func->add_imm(sym_node);
+                return sym_node;
             }
         }
     }
@@ -72,6 +74,7 @@ Ir::pVal Convertor::find_value(Pointer<Ast::SymNode> root)
         for(auto i : module()->globs) {
             if(strcmp(i->name()+1, root->sym) == 0) { // global name: "@xxx"
                 auto from = Ir::make_sym_instr(TypedSym(to_symbol(String("@") + root->sym), i->ty));
+                _cur_func->add_imm(from);
                 return add_instr(Ir::make_load_instr(from));
             }
         }
@@ -155,6 +158,7 @@ Ir::pVal Convertor::analyze_value(pNode root)
     case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
         auto res = Ir::make_constant(r->imm);
+        _cur_func->add_imm(res);
         return res;
     }
     case NODE_SYM: {
@@ -422,6 +426,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
     }
     _cur_func = func;
     analyze_statement_node(root->body);
+    func->end_function();
     module()->add_func(func);
     _env.end_env();
 }

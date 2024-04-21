@@ -3,6 +3,8 @@
 #include "staisp_parser.h"
 #include "convert_ast_to_ir.h"
 
+#include "opt.h"
+
 #define TEST_A_FILE(x) \
 TEST(test_minimal_code, code_##x) { \
     pCode p_code = read_test_file("minimal_code/" #x ".sta"); \
@@ -13,6 +15,11 @@ TEST(test_minimal_code, code_##x) { \
     out << mod->print_module(); \
     out.close(); \
     EXPECT_EQ(system("lli test.ll"), 0); \
+    Optimize::optimize(mod); \
+    out.open("test.opt.ll", std::fstream::out); \
+    out << mod->print_module(); \
+    out.close(); \
+    EXPECT_EQ(system("lli test.opt.ll"), 0); \
 }
 
 TEST_A_FILE(1)
@@ -28,3 +35,4 @@ TEST_A_FILE(10)
 TEST_A_FILE(11)
 TEST_A_FILE(12)
 TEST_A_FILE(13)
+TEST_A_FILE(14)

@@ -23,13 +23,20 @@ void BlockValue::cup(const BlockValue &v)
         if(!val.count(i.first)) {
             val[i.first] = i.second;
         } else {
-            val.erase(i.first);
+            if(i.second.ty == Val::NAC || val[i.first].ty == Val::NAC) {
+                val[i.first] = Val(); // one NAC, all NAC
+            } else {
+                if(i.second != val[i.first]) { // different constant
+                    val.erase(i.first);
+                }
+            }
         }
     }
 }
 
-void Utils::operator () (Ir::pBlock p, BlockValue &v)
+void Utils::operator () (Ir::Block* p, BlockValue &v)
 {
+    // printf("Start Block %s\n", p->name());
     for(auto i : p->body) {
         switch(i->instr_type()) {
         case Ir::INSTR_STORE: {
@@ -38,9 +45,9 @@ void Utils::operator () (Ir::pBlock p, BlockValue &v)
             auto val = r->operand(1)->usee;
             switch(val->type()) {
             case Ir::VAL_CONST: {
-                auto con = std::static_pointer_cast<Ir::Const>(val);
+                auto con = static_cast<Ir::Const*>(val);
                 if(con->v.type() == VALUE_IMM) {
-                    v.val[to->name()] = con->v.imm_value();
+                    v.val[to->name()] = Val(con->v.imm_value());
                 } else {
                     v.val[to->name()] = Val(); // NAC
                 }
@@ -64,6 +71,7 @@ void Utils::operator () (Ir::pBlock p, BlockValue &v)
             auto r = std::static_pointer_cast<Ir::LoadInstr>(i);
             auto from = r->operand(0)->usee;
             v.val[i->name()] = v.val[from->name()];
+            v.val[i->name()].ir = i;
             // printf("LOAD %s, ty = %d\n", i->name(), v.val[i->name()].ty);
             break;
         }
@@ -86,7 +94,7 @@ void Utils::operator () (Ir::pBlock p, BlockValue &v)
                         goto End;
                     }
                 } else {
-                    if(std::static_pointer_cast<Ir::Const>(oprd)->v.type() != VALUE_IMM) {
+                    if(static_cast<Ir::Const*>(oprd)->v.type() != VALUE_IMM) {
                         v.val[i->name()] = Val();
                         goto End;    
                     }
@@ -97,10 +105,11 @@ void Utils::operator () (Ir::pBlock p, BlockValue &v)
                 if(oprd->type() == Ir::VAL_INSTR) {
                     vv.push_back(v.val[oprd->name()].v);
                 } else {
-                    vv.push_back(std::static_pointer_cast<Ir::Const>(oprd)->v.imm_value());
+                    vv.push_back(static_cast<Ir::Const*>(oprd)->v.imm_value());
                 }
             }
-            v.val[i->name()] = std::static_pointer_cast<Ir::CalculatableInstr>(i)->calculate(vv);
+            v.val[i->name()] = Val(std::static_pointer_cast<Ir::CalculatableInstr>(i)->calculate(vv));
+            v.val[i->name()].ir = i;
 End:
             // printf("CALCULATABLE %s, ty = %d\n", i->name(), v.val[i->name()].ty);
             break;
@@ -109,12 +118,27 @@ End:
             break;
         }
     }
-    /*
-    printf("In Block %s\n", p->name());
+    /* printf("In Block %s\n", p->name());
     for(auto i : v.val) {
-        printf("    constant %s = %s\n", i.first.c_str(), i.second.v.print());
+        if(i.second.ty == Val::VALUE && i.second.ir) { // has value, is a constant
+            // printf("    instr: %s\n", i.second.ir->instr_print());
+            printf("    constant %s = %s\n", i.first.c_str(), i.second.v.print());
+        }
+    } */
+}
+
+void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT)
+{
+    // printf("In Block %s\n", p->name());
+    for(auto i : OUT.val) {
+        if(i.second.ty == Val::VALUE && i.second.ir) { // has value, is a constant
+            // printf("    instr: %s\n", i.second.ir->instr_print());
+            // printf("    constant %s = %s\n", i.first.c_str(), i.second.v.print());
+            auto imm = Ir::make_constant(i.second.v);
+            p->add_imm(imm);
+            i.second.ir->replace_self(imm.get());
+        }
     }
-    */
 }
 
 }; // namespace Opt1

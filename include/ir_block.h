@@ -23,6 +23,8 @@ struct Block : public Val {
     pInstr label() const;
     pInstr back() const;
 
+    void add_imm(pVal imm);
+
     void push_back(pInstr instr);
     void connect(Block* next);
 
@@ -34,13 +36,14 @@ struct Block : public Val {
 
     Vector<Block*> in_block;
     Vector<Block*> out_block;
+    Vector<pVal> imms;
 };
 
 struct BlockedProgram
 {
-    void from_instrs(const Instrs &instrs);
+    void from_instrs(Instrs &instrs);
     void push_back(pInstr instr);
-    Instrs re_generate() const;
+    void re_generate() const;
 
     Blocks blocks;
 };

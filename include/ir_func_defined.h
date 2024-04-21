@@ -14,10 +14,16 @@ struct FuncDefined : public Func {
     Symbol print_func() const;
 
     void add_body(pInstr instr);
+    void add_imm(pVal val);
+
+    void end_function();
 
     Vector<Symbol> arg_name;
+    Vector<pVal> imms;
     Instrs args;
     Instrs body;
+
+    BlockedProgram p;
 };
 
 typedef Pointer<FuncDefined> pFuncDefined;

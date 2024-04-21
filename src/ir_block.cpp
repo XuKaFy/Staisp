@@ -12,6 +12,11 @@ pInstr Block::back() const
     return body.back();
 }
 
+void Block::add_imm(pVal imm)
+{
+    imms.push_back(imm);
+}
+
 Symbol Block::print_block() const
 {
     String whole_block;
@@ -43,7 +48,7 @@ void BlockedProgram::push_back(pInstr instr)
     blocks.back()->push_back(instr);
 }
 
-void BlockedProgram::from_instrs(const Instrs &instrs)
+void BlockedProgram::from_instrs(Instrs &instrs)
 {
     Map<String, Block*> labelToBlock;
     LineGenerator g;
@@ -68,8 +73,9 @@ void BlockedProgram::from_instrs(const Instrs &instrs)
         default:
             break;
         }
-        push_back(i);
+        push_back(std::move(i));
     }
+    instrs.clear();
 
     for(auto i : blocks) {
         auto end = i->back();
@@ -81,15 +87,15 @@ void BlockedProgram::from_instrs(const Instrs &instrs)
         }
         case IR_BR: {
             auto r = std::static_pointer_cast<BrInstr>(end);
-            auto dest = std::static_pointer_cast<Instr>(r->operand(0)->usee);
+            auto dest = static_cast<Instr*>(r->operand(0)->usee);
             // printf("finding %s\n", dest->name());
             i->connect(labelToBlock[dest->name()]);
             break;
         }
         case IR_BR_COND: {
             auto r = std::static_pointer_cast<BrCondInstr>(end);
-            auto dest1 = std::static_pointer_cast<Instr>(r->operand(1)->usee);
-            auto dest2 = std::static_pointer_cast<Instr>(r->operand(2)->usee);
+            auto dest1 = static_cast<Instr*>(r->operand(1)->usee);
+            auto dest2 = static_cast<Instr*>(r->operand(2)->usee);
             // printf("finding %s\n", dest1->name());
             i->connect(labelToBlock[dest1->name()]);
             // printf("finding %s\n", dest2->name());
@@ -108,17 +114,12 @@ void BlockedProgram::from_instrs(const Instrs &instrs)
     }
 }
 
-Instrs BlockedProgram::re_generate() const
+void BlockedProgram::re_generate() const
 {
-    Instrs instrs;
-    for(auto i : blocks) {
-        for(auto j : i->body) {
-            instrs.push_back(j);
-        }
-    }
     LineGenerator g;
-    g.generate(instrs);
-    return instrs;
+    for(auto i : blocks) {
+        g.generate(i->body);
+    }
 }
 
 } // namespace ir

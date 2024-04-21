@@ -29,6 +29,8 @@ struct Val {
     Vector<pUse> users;
     pType ty;
 
+    void replace_self(Val* val);
+
     virtual ValType type() const = 0;
 
 private:
@@ -50,11 +52,11 @@ private:
 typedef Pointer<User> pUser;
 
 struct Use {
-    Use(pUser user, pVal val)
+    Use(User* user, Val* val)
         : user(user), usee(val) { }
 
-    pUser user;
-    pVal usee;
+    User* user;
+    Val* usee;
 };
 
 } // namespace ir

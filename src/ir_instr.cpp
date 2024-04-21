@@ -4,10 +4,10 @@ namespace Ir {
 
 Symbol Instr::instr_print()
 {
-    if(instr_str_form == nullptr) {
+    // if(instr_str_form == nullptr) {
         return instr_str_form = instr_print_impl();
-    }
-    return instr_str_form;
+    // }
+    // return instr_str_form;
 }
 
 Symbol Instr::instr_print_impl() const
