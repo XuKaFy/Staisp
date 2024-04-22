@@ -29,8 +29,8 @@ Symbol Block::print_block() const
 
 void Block::connect(Block* next)
 {
-    next->in_block.push_back(this);
-    out_block.push_back(next);
+    next->in_block.insert(this);
+    out_block.insert(next);
 }
 
 void Block::push_back(pInstr instr)
@@ -138,20 +138,36 @@ void BlockedProgram::join_blocks()
     while(found) {
         found = false;
         for(auto i = blocks.begin(); i!=blocks.end(); ++i) {
-            if((*i)->in_block.size() == 1 && (*i)->in_block[0]->out_block.size() == 1) {
-                auto next_block = (*i)->in_block[0];
-                next_block->body.pop_back();
-                for(auto j = (*i)->body.begin()+1; j!=(*i)->body.end(); ++j) {
-                    next_block->body.push_back(std::move(*j));
-                }
-                for(auto j : (*i)->imms) {
-                    next_block->add_imm(j);
-                }
-                i = blocks.erase(i);
-                found = true;
-                generate_cfg();
-                break;
+            /*
+            \     |     /
+             [next_block]
+                  |
+             [cur_block]
+              /   |   \
+            */
+            auto cur_block = *i;
+            if(cur_block->in_block.size() != 1) continue;
+            
+            auto next_block = *cur_block->in_block.begin();
+            if(next_block->out_block.size() != 1) continue;
+            
+            next_block->body.pop_back();
+            for(auto j = cur_block->body.begin()+1; j!=cur_block->body.end(); ++j) {
+                next_block->body.push_back(std::move(*j));
             }
+            for(auto j : cur_block->imms) {
+                next_block->add_imm(j);
+            }
+
+            next_block->out_block.clear();
+            for(auto j : cur_block->out_block) {
+                j->in_block.erase(i->get());
+                j->in_block.insert(next_block);
+                next_block->out_block.insert(j);
+            }
+            i = blocks.erase(i);
+            found = true;
+            break;
         }
     }
 }

@@ -4,6 +4,7 @@
 #include "ir_module.h"
 
 #include "opt_1.h"
+#include "opt_2.h"
 
 namespace Optimize {
 

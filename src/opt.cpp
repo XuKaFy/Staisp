@@ -13,6 +13,7 @@ void optimize(Ir::pModule mod)
     for(auto i : mod->funsDefined) {
         for(size_t cnt = 0; cnt < 5; ++cnt) {
             may_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+            // must_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             remove_dead_code(i->p);
             remove_empty_block(i->p);
             i->p.join_blocks();
@@ -137,19 +138,19 @@ void must_analysis(Ir::BlockedProgram &p)
         Ir::Block* b = blist.front();
         blist.pop_front();
 
-        BlockValue old_OUT = OUTs[b];
+        BlockValue old_IN = INs[b];
         BlockValue& IN = INs[b];
         BlockValue& OUT = OUTs[b];
 
-        IN.clear();
+        OUT.clear();
         for(auto i : b->in_block) {
-            IN.cap(OUTs[i]);
+            OUT.cap(INs[i]);
         }
 
-        OUT = IN;
-        util(b, OUT); // transfer function
+        IN = OUT;
+        util(b, IN); // transfer function
      
-        if(old_OUT != OUT) {
+        if(old_IN != IN) {
             for(auto i : b->out_block) {
                 blist.push_back(i);
             }

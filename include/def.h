@@ -7,6 +7,7 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <set>
 #include <memory>
 #include <cstring>
 #include <cassert>
@@ -38,6 +39,9 @@ using List = std::list<T>;
 
 template<typename T>
 using Vector = std::vector<T>;
+
+template<typename T>
+using Set = std::set<T>;
 
 template<typename T>
 using Stack = std::stack<T>;

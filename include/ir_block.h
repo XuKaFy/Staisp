@@ -34,8 +34,8 @@ struct Block : public Val {
         return VAL_BLOCK;
     }
 
-    Vector<Block*> in_block;
-    Vector<Block*> out_block;
+    Set<Block*> in_block;
+    Set<Block*> out_block;
     Vector<pVal> imms;
 };
 
