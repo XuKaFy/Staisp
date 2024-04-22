@@ -3,16 +3,16 @@
 namespace Optimize {
 
 template<typename BlockValue, typename Utils>
-void may_analysis(Ir::BlockedProgram &p);
+void from_top_analysis(Ir::BlockedProgram &p);
 
 template<typename BlockValue, typename Utils>
-void must_analysis(Ir::BlockedProgram &p);
+void from_button_analysis(Ir::BlockedProgram &p);
 
 void optimize(Ir::pModule mod)
 {
     for(auto i : mod->funsDefined) {
         for(size_t cnt = 0; cnt < 5; ++cnt) {
-            may_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+            from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
             // must_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             remove_dead_code(i->p);
             remove_empty_block(i->p);
@@ -84,20 +84,22 @@ void remove_dead_code(Ir::BlockedProgram &p)
 }
 
 template<typename BlockValue, typename Utils>
-void may_analysis(Ir::BlockedProgram &p)
+void from_top_analysis(Ir::BlockedProgram &p)
 {
-    List<Ir::Block*> blist;
     Map<Ir::Block*, BlockValue> INs;
     Map<Ir::Block*, BlockValue> OUTs;
+    Set<Ir::Block*> blist;
     Utils util;
-    blist.push_back(p.blocks.front().get());
+    // blist.push_back(p.blocks.front().get());
     for(auto i : p.blocks) {
         INs[i.get()] = BlockValue();
         OUTs[i.get()] = BlockValue();
+        blist.insert(i.get());
     }
     while(blist.size()) {
-        Ir::Block* b = blist.front();
-        blist.pop_front();
+        Ir::Block* b = *blist.begin();
+        blist.erase(blist.begin());
+        // printf("in block %s\n", b->name());
 
         BlockValue old_OUT = OUTs[b];
         BlockValue& IN = INs[b];
@@ -113,7 +115,7 @@ void may_analysis(Ir::BlockedProgram &p)
      
         if(old_OUT != OUT) {
             for(auto i : b->out_block) {
-                blist.push_back(i);
+                blist.insert(i);
             }
         }
     }
@@ -123,20 +125,20 @@ void may_analysis(Ir::BlockedProgram &p)
 }
 
 template<typename BlockValue, typename Utils>
-void must_analysis(Ir::BlockedProgram &p)
+void from_button_analysis(Ir::BlockedProgram &p)
 {
-    List<Ir::Block*> blist;
+    Set<Ir::Block*> blist;
     Map<Ir::Block*, BlockValue> INs;
     Map<Ir::Block*, BlockValue> OUTs;
     Utils util;
-    blist.push_back(p.blocks.front().get());
     for(auto i : p.blocks) {
         INs[i.get()] = BlockValue();
         OUTs[i.get()] = BlockValue();
+        blist.insert(i.get());
     }
     while(blist.size()) {
-        Ir::Block* b = blist.front();
-        blist.pop_front();
+        Ir::Block* b = *blist.begin();
+        blist.erase(blist.begin());
 
         BlockValue old_IN = INs[b];
         BlockValue& IN = INs[b];
@@ -144,7 +146,7 @@ void must_analysis(Ir::BlockedProgram &p)
 
         OUT.clear();
         for(auto i : b->in_block) {
-            OUT.cap(INs[i]);
+            OUT.cup(INs[i]);
         }
 
         IN = OUT;
@@ -152,7 +154,7 @@ void must_analysis(Ir::BlockedProgram &p)
      
         if(old_IN != IN) {
             for(auto i : b->out_block) {
-                blist.push_back(i);
+                blist.insert(i);
             }
         }
     }
