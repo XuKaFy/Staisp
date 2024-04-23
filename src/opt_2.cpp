@@ -49,7 +49,7 @@ void Utils::operator () (Ir::Block* p, BlockValue &v)
                 auto to = r->operand(0)->usee;
                 if(to->type() == Ir::VAL_INSTR) {
                     auto to_instr = static_cast<Ir::Instr*>(to);
-                    if(to_instr->instr_type() == Ir::INSTR_ITEM) {
+                    if(to_instr->instr_type() != Ir::INSTR_ALLOCA) {
                         break; // shouldn't be killed
                     }
                 }
@@ -97,7 +97,7 @@ void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &O
                 auto to = r->operand(0)->usee;
                 if(to->type() == Ir::VAL_INSTR) {
                     auto to_instr = static_cast<Ir::Instr*>(to);
-                    if(to_instr->instr_type() == Ir::INSTR_ITEM) {
+                    if(to_instr->instr_type() != Ir::INSTR_ALLOCA) {
                         break; // shouldn't be killed
                     }
                 }
