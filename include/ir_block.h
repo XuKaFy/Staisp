@@ -30,6 +30,8 @@ struct Block : public Val {
 
     Instrs body;
 
+    void replace_out(Block* before, Block* out);
+
     virtual ValType type() const {
         return VAL_BLOCK;
     }

@@ -43,6 +43,34 @@ pBlock make_block()
     return pBlock(new Block());
 }
 
+void Block::replace_out(Block* before, Block* out)
+{
+    auto back = body.back();
+    switch(back->instr_type()) {
+    case INSTR_BR: {
+        back->operand(0)->usee = out->label().get();
+        break;
+    }
+    case INSTR_BR_COND: {
+        bool flag = false;
+        for(size_t i=1; i<=2; ++i) {
+            if(back->operand(i)->usee == before->label().get()) {
+                back->operand(i)->usee = out->label().get();
+                flag = true;
+            }
+        }
+        if(!flag) {
+            throw Exception(2, "Block::replace_out", "not replaced");
+        }
+        break;
+    }
+    default:
+        throw Exception(1, "Block::replace_out", "not a br block");
+    }
+    out_block.erase(before);
+    out_block.insert(out);
+}
+
 void BlockedProgram::push_back(pInstr instr)
 {
     blocks.back()->push_back(instr);

@@ -11,7 +11,7 @@ void from_button_analysis(Ir::BlockedProgram &p);
 void optimize(Ir::pModule mod)
 {
     for(auto i : mod->funsDefined) {
-        for(size_t cnt = 0; cnt < 1; ++cnt) {
+        for(size_t cnt = 0; cnt < 5; ++cnt) {
             from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
             remove_dead_code(i->p);
             remove_empty_block(i->p);
@@ -38,7 +38,19 @@ void remove_empty_block(Ir::BlockedProgram &p)
             i = p.blocks.erase(i);
         } else ++i;
     }
-} 
+    for(auto i = p.blocks.begin() + 1; i != p.blocks.end();) {
+        if((*i)->out_block.size() == 1 && (*i)->body.size() == 2) {
+            // printf("Remove Empty Br Block %s\n", (*i)->name());
+            auto out = *(*i)->out_block.begin();
+            for(auto j : (*i)->in_block) {
+                j->replace_out(i->get(), out);
+                out->in_block.insert(j);
+            }
+            out->in_block.erase(i->get());
+            i = p.blocks.erase(i);
+        } else ++i;
+    }
+}
 
 bool can_be_removed(Ir::InstrType t)
 {
@@ -47,7 +59,6 @@ bool can_be_removed(Ir::InstrType t)
     case Ir::INSTR_BR:
     case Ir::INSTR_BR_COND:
     case Ir::INSTR_STORE:
-    case Ir::INSTR_ALLOCA:
         return false;
     default:
         return true;
