@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     std::ifstream in;
     in.open(argv[1], std::fstream::in);
     if(!in.is_open()) {
-        printf("Error: cannot open file \"%s\".", argv[1]);
+        printf("Error: cannot open file \"%s\".\n", argv[1]);
         return 1;
     }
     String code((std::istreambuf_iterator<char>(in)),  

@@ -45,8 +45,21 @@ void Utils::operator () (Ir::Block* p, BlockValue &v)
             }
             case Ir::INSTR_STORE: {
                 auto r = std::static_pointer_cast<Ir::StoreInstr>(cur_instr);
-                v.uses.erase(r->operand(0)->usee->name());
+                // judge whether operand is from GEP
+                auto to = r->operand(0)->usee;
+                if(to->type() == Ir::VAL_INSTR) {
+                    auto to_instr = static_cast<Ir::Instr*>(to);
+                    if(to_instr->instr_type() == Ir::INSTR_ITEM) {
+                        break; // shouldn't be killed
+                    }
+                }
+                v.uses.erase(to->name());
                 // printf("    LOCAL def = %s\n", r->operand(0)->usee->name());
+                break;
+            }
+            case Ir::INSTR_ITEM: {
+                auto r = std::static_pointer_cast<Ir::ItemInstr>(cur_instr);
+                v.uses.insert(r->operand(0)->usee->name());
                 break;
             }
             default:
@@ -81,6 +94,13 @@ void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &O
             case Ir::INSTR_STORE: {
                 auto r = std::static_pointer_cast<Ir::StoreInstr>(cur_instr);
                 auto name = r->operand(0)->usee->name();
+                auto to = r->operand(0)->usee;
+                if(to->type() == Ir::VAL_INSTR) {
+                    auto to_instr = static_cast<Ir::Instr*>(to);
+                    if(to_instr->instr_type() == Ir::INSTR_ITEM) {
+                        break; // shouldn't be killed
+                    }
+                }
                 if(!uses.count(name)) { // this def is useless
                     // printf("    Not used def %s\n", r->instr_print());
                     j = p->body.erase(j);

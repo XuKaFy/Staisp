@@ -13,8 +13,6 @@ struct ItemInstr : public Instr {
     virtual InstrType instr_type() const override {
         return INSTR_ITEM;
     }
-
-    Vector<pVal> index;
 };
 
 pInstr make_item_instr(pVal val, Vector<pVal> index);

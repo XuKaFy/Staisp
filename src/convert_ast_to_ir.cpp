@@ -237,6 +237,7 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vecto
             if(nums[i]->type != NODE_ARRAY_VAL)
                 throw_error(root, 17, "list doesn't match the expected value");
             auto index = Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32));
+            _cur_func->add_imm(index);
             indexs.push_back(index);
             copy_to_array(root, addr, subarray_type, std::static_pointer_cast<Ast::ArrayDefNode>(nums[i])->nums, indexs);
             indexs.pop_back();
@@ -246,6 +247,7 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vecto
     for(size_t i=0; i<valid_size; ++i) {
         auto index = Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32));
         indexs.push_back(index);
+        _cur_func->add_imm(index);
         auto item = Ir::make_item_instr(addr, indexs);
         
         add_instr(item);

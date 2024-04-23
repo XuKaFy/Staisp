@@ -13,11 +13,12 @@ Symbol ItemInstr::instr_print_impl() const
         + " "
         + operand(0)->usee->name()
         + ", i32 0";
-    for(auto i : index)
+    for(size_t i=1; i<operand_size(); ++i) {
         ans += String(", ")
-            + i->ty->type_name()
+            + operand(i)->usee->ty->type_name()
             + " "
-            + i->name();
+            + operand(i)->usee->name();
+    }
     return to_symbol(ans);
 }
 
@@ -31,9 +32,20 @@ pType ex_shell(pType t, size_t count)
 }
 
 ItemInstr::ItemInstr(pVal val, Vector<pVal> index)
-    :  Instr(ex_shell(val->ty, index.size())), index(index)
+    :  Instr(ex_shell(val->ty, index.size()))
 {
     add_operand(val);
+    // set_name("%%");
+    // val->set_name("%%%%");
+    // printf("%s", val->name());
+    for(auto j : index) {
+        // printf("[%s]", j->name());
+        add_operand(j);
+    }
+    // puts("");
+    // printf("generated: %s\n", instr_print());
+    // val->set_name(nullptr);
+    // set_name(nullptr);
 }
 
 pInstr make_item_instr(pVal val, Vector<pVal> index)

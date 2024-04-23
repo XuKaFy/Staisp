@@ -3,6 +3,8 @@
 #include "ir_block.h"
 #include "ir_module.h"
 
+#include "ir_ptr_instr.h"
+
 namespace Opt2 {
 
 struct BlockValue {
