@@ -132,6 +132,19 @@ void BlockedProgram::generate_cfg() const
     }
 }
 
+void BlockedProgram::print_cfg() const
+{
+    for(auto i : blocks) {
+        printf("CFG: Block %s\n", i->name());
+        for(auto j : i->in_block) {
+            printf("    In Block %s\n", j->name());
+        }
+        for(auto j : i->out_block) {
+            printf("    Out Block %s\n", j->name());
+        }
+    }
+}
+
 void BlockedProgram::join_blocks()
 {
     bool found = true;
@@ -145,12 +158,14 @@ void BlockedProgram::join_blocks()
              [cur_block]
               /   |   \
             */
-            auto cur_block = *i;
+            auto cur_block = i->get();
             if(cur_block->in_block.size() != 1) continue;
             
             auto next_block = *cur_block->in_block.begin();
             if(next_block->out_block.size() != 1) continue;
             
+            // printf("Will remove %s\n", cur_block->name());
+
             next_block->body.pop_back();
             for(auto j = cur_block->body.begin()+1; j!=cur_block->body.end(); ++j) {
                 next_block->body.push_back(std::move(*j));
@@ -161,7 +176,7 @@ void BlockedProgram::join_blocks()
 
             next_block->out_block.clear();
             for(auto j : cur_block->out_block) {
-                j->in_block.erase(i->get());
+                j->in_block.erase(cur_block);
                 j->in_block.insert(next_block);
                 next_block->out_block.insert(j);
             }

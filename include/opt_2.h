@@ -12,6 +12,8 @@ struct BlockValue {
     void cup(const BlockValue &v);
 
     void clear();
+
+    Set<String> uses;
 };
 
 struct Utils {

@@ -11,12 +11,17 @@ void from_button_analysis(Ir::BlockedProgram &p);
 void optimize(Ir::pModule mod)
 {
     for(auto i : mod->funsDefined) {
-        for(size_t cnt = 0; cnt < 5; ++cnt) {
+        for(size_t cnt = 0; cnt < 1; ++cnt) {
             from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
-            // must_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             remove_dead_code(i->p);
             remove_empty_block(i->p);
             i->p.join_blocks();
+            // i->p.print_cfg();
+            from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
+            remove_dead_code(i->p);
+            remove_empty_block(i->p);
+            i->p.join_blocks();
+            // i->p.print_cfg();
         }
         i->p.re_generate();
     }
@@ -27,10 +32,13 @@ void remove_empty_block(Ir::BlockedProgram &p)
     my_assert(p.blocks.size(), "?");
     for(auto i = p.blocks.begin() + 1; i != p.blocks.end();) {
         if((*i)->in_block.size() == 0) {
+            for(auto j : (*i)->out_block) {
+                j->in_block.erase(i->get());
+            }
             i = p.blocks.erase(i);
         } else ++i;
     }
-}
+} 
 
 bool can_be_removed(Ir::InstrType t)
 {
@@ -89,17 +97,22 @@ void from_top_analysis(Ir::BlockedProgram &p)
     Map<Ir::Block*, BlockValue> INs;
     Map<Ir::Block*, BlockValue> OUTs;
     Set<Ir::Block*> blist;
+    List<Ir::Block*> blist_seq;
     Utils util;
-    // blist.push_back(p.blocks.front().get());
     for(auto i : p.blocks) {
         INs[i.get()] = BlockValue();
         OUTs[i.get()] = BlockValue();
         blist.insert(i.get());
+        blist_seq.push_back(i.get());
     }
     while(blist.size()) {
-        Ir::Block* b = *blist.begin();
-        blist.erase(blist.begin());
-        // printf("in block %s\n", b->name());
+        Ir::Block* b = *blist_seq.begin();
+        blist_seq.pop_front();
+        if(blist.count(b)) {
+            blist.erase(b);
+        } else {
+            continue;
+        }
 
         BlockValue old_OUT = OUTs[b];
         BlockValue& IN = INs[b];
@@ -116,6 +129,7 @@ void from_top_analysis(Ir::BlockedProgram &p)
         if(old_OUT != OUT) {
             for(auto i : b->out_block) {
                 blist.insert(i);
+                blist_seq.push_back(i);
             }
         }
     }
@@ -127,25 +141,32 @@ void from_top_analysis(Ir::BlockedProgram &p)
 template<typename BlockValue, typename Utils>
 void from_button_analysis(Ir::BlockedProgram &p)
 {
-    Set<Ir::Block*> blist;
     Map<Ir::Block*, BlockValue> INs;
     Map<Ir::Block*, BlockValue> OUTs;
+    Set<Ir::Block*> blist;
+    List<Ir::Block*> blist_seq;
     Utils util;
     for(auto i : p.blocks) {
         INs[i.get()] = BlockValue();
         OUTs[i.get()] = BlockValue();
         blist.insert(i.get());
+        blist_seq.push_back(i.get());
     }
     while(blist.size()) {
-        Ir::Block* b = *blist.begin();
-        blist.erase(blist.begin());
+        Ir::Block* b = *blist_seq.begin();
+        blist_seq.pop_front();
+        if(blist.count(b)) {
+            blist.erase(b);
+        } else {
+            continue;
+        }
 
         BlockValue old_IN = INs[b];
         BlockValue& IN = INs[b];
         BlockValue& OUT = OUTs[b];
 
         OUT.clear();
-        for(auto i : b->in_block) {
+        for(auto i : b->out_block) {
             OUT.cup(INs[i]);
         }
 
@@ -153,8 +174,11 @@ void from_button_analysis(Ir::BlockedProgram &p)
         util(b, IN); // transfer function
      
         if(old_IN != IN) {
-            for(auto i : b->out_block) {
+            // printf("Block %s changed\n", (b)->name());
+            for(auto i : b->in_block) {
                 blist.insert(i);
+                blist_seq.push_back(i);
+                // printf("    Updating %s\n", i->name());
             }
         }
     }

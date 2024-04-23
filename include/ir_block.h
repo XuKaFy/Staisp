@@ -46,6 +46,8 @@ struct BlockedProgram
     void re_generate() const;
     void generate_cfg() const;
 
+    void print_cfg() const;
+
     void join_blocks();
 
     Blocks blocks;

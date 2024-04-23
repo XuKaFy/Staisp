@@ -27,7 +27,7 @@ void BlockValue::cup(const BlockValue &v)
                 val[i.first] = Val(); // one NAC, all NAC
             } else {
                 if(i.second != val[i.first]) { // different constant
-                    val.erase(i.first);
+                    val[i.first] = Val();
                 }
             }
         }
