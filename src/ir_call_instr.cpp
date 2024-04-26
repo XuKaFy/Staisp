@@ -4,8 +4,10 @@ namespace Ir {
 
 Symbol CallInstr::instr_print_impl() const
 {
-    String res = String(name())
-        + " = call "
+    String res;
+    if(ty->type_type() != TYPE_VOID_TYPE)
+        res = String(name()) + " = ";
+    res += String("call ")
         + func_ty->ret_type->type_name()
         + " @"
         + operand(0)->usee->name()
@@ -40,7 +42,7 @@ Symbol RetInstr::instr_print_impl() const
             + " "
             + operand(0)->usee->name());
     }
-    return to_symbol("ret");
+    return to_symbol("ret void");
 }
 
 pInstr make_call_instr(pFunc func, Vector<pVal> args)

@@ -111,7 +111,7 @@ pToken Lexer::lexer_sym(String::value_type head)
     String sym = "";
     sym += head;
     while(has_char() && !isspace(peek())) {
-        if(!isalnum(peek())) break;
+        if(!isalnum(peek()) && peek() != '_') break;
         sym += get_char();
     }
     return pToken(new StaispToken(to_symbol(sym), _p_code, _begin, _current, _line_count));

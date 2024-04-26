@@ -47,6 +47,7 @@ DEFFUNC i32:main ( ) {
 * `IFE`
 * `WHILE`
 * `RETURN`
+* `RET_VOID`
 * `CONTINUE`
 * `BREAK`
 

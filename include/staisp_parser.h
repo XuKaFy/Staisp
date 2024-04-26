@@ -19,6 +19,7 @@ namespace Staisp {
     ENTRY(IFE) \
     ENTRY(ASSIGN) \
     ENTRY(RETURN) \
+    ENTRY(RET_VOID) \
     ENTRY(WHILE) \
     ENTRY(DEFVAR) \
     ENTRY(DEFFUNC) \

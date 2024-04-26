@@ -34,10 +34,13 @@ void LineGenerator::generate(const Instrs &body)
                 body[i]->set_name(String("%") + std::to_string(line()));    
                 break;
             case TYPE_VOID_TYPE:
-                throw Exception(1, "LineGenerator::generate", "void instruction");
+                // throw Exception(1, "LineGenerator::generate", "void instruction");
+                break;
             }
         }
+        // printf("%s\n", body[i]->instr_print());
     }
+    // puts("--");
 }
 
 };

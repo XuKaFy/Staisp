@@ -81,6 +81,11 @@ pNode new_return_node(pToken t, pNode ret)
     return pNode(new ReturnNode(t, ret));
 }
 
+pNode new_return_node(pToken t)
+{
+    return pNode(new ReturnNode(t));
+}
+
 pNode new_continue_node(pToken t)
 {
     return pNode(new ContinueNode(t));

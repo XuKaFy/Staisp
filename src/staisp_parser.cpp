@@ -98,6 +98,9 @@ pType Parser::parse_type() {
     if(current_token().t != TOKEN_SYM) {
         throw_error(3, "not a type");
     }
+    if(strcmp(current_token().sym, "void") == 0) {
+        return make_void_type();
+    }
     if(gSymToImmType.count(current_token().sym) == 0) {
         throw_error(3, "not a type");
     }
@@ -235,6 +238,9 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     case BUILDIN_RETURN: {
         auto a1 = parse_value();
         return Ast::new_return_node(token, a1);
+    }
+    case BUILDIN_RET_VOID: {
+        return Ast::new_return_node(token);
     }
     case BUILDIN_WHILE: {
         auto a1 = parse_value();
