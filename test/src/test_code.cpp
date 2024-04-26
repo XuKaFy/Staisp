@@ -11,15 +11,15 @@ TEST(test_code_##x, code_##y) { \
     AstProg root = Staisp::Parser().parse(p_code); \
     Ir::pModule mod = AstToIr::Convertor().generate(root); \
     std::ofstream out; \
-    out.open("test.ll", std::fstream::out); \
+    out.open("../../code/tests/" #x "/" #y ".sta.ll", std::fstream::out); \
     out << mod->print_module(); \
     out.close(); \
-    EXPECT_EQ(system("lli test.ll"), 0); \
+    EXPECT_EQ(system("lli ../../code/tests/" #x "/" #y ".sta.ll"), 0); \
     Optimize::optimize(mod); \
-    out.open("test.opt.ll", std::fstream::out); \
+    out.open("../../code/tests/" #x "/" #y ".sta.opt.ll", std::fstream::out); \
     out << mod->print_module(); \
     out.close(); \
-    EXPECT_EQ(system("lli test.opt.ll"), 0); \
+    EXPECT_EQ(system("lli ../../code/tests/" #x "/" #y ".sta.opt.ll"), 0); \
 }
 
 TEST_A_FILE(algorithms, fib)

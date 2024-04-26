@@ -7,19 +7,19 @@
 
 #define TEST_A_FILE(x) \
 TEST(test_minimal_code, code_##x) { \
-    pCode p_code = read_test_file("minimal_code/" #x ".sta"); \
+    pCode p_code = read_test_file("./minimal_code/" #x ".sta"); \
     AstProg root = Staisp::Parser().parse(p_code); \
     Ir::pModule mod = AstToIr::Convertor().generate(root); \
     std::ofstream out; \
-    out.open("test.ll", std::fstream::out); \
+    out.open("../../code/minimal_code/" #x ".sta.ll", std::fstream::out); \
     out << mod->print_module(); \
     out.close(); \
-    EXPECT_EQ(system("lli test.ll"), 0); \
+    EXPECT_EQ(system("lli ../../code/minimal_code/" #x ".sta.ll"), 0); \
     Optimize::optimize(mod); \
-    out.open("test.opt.ll", std::fstream::out); \
+    out.open("../../code/minimal_code/" #x ".sta.opt.ll", std::fstream::out); \
     out << mod->print_module(); \
     out.close(); \
-    EXPECT_EQ(system("lli test.opt.ll"), 0); \
+    EXPECT_EQ(system("lli ../../code/minimal_code/" #x ".sta.opt.ll"), 0); \
 }
 
 TEST_A_FILE(1)
