@@ -213,6 +213,7 @@ Ir::pVal Convertor::analyze_value(pNode root)
     case NODE_DEF_VAR:
     case NODE_IF:
     case NODE_WHILE:
+    case NODE_FOR:
     case NODE_CONTINUE:
     case NODE_BREAK:
     case NODE_RETURN:
@@ -359,6 +360,44 @@ void Convertor::analyze_statement_node(pNode root)
         end_loop_env();
         break;
     }
+    case NODE_FOR: {
+        /*
+                some_init...
+                br for_cond
+            for_cond:
+                some_program...
+                br ... LABEL for_body, LABEL for_end
+            for_body:
+                some_program...
+                br for_exec
+            for_exec:
+                some_exec...
+                br for_cond
+            for_end:
+        */
+        auto r = std::static_pointer_cast<Ast::ForNode>(root);
+        auto for_cond = Ir::make_label_instr();
+        auto for_body = Ir::make_label_instr();
+        auto for_exec = Ir::make_label_instr();
+        auto for_end = Ir::make_label_instr();
+        _env.push_env();
+        push_loop_env(for_exec, for_end); // continue start from for_exec
+        analyze_statement_node(r->init);
+        add_instr(Ir::make_br_instr(for_cond));
+        add_instr(for_cond);
+        auto cond = analyze_value(r->cond);
+        add_instr(Ir::make_br_cond_instr(cond, for_body, for_end));
+        add_instr(for_body);
+        analyze_statement_node(r->body);
+        add_instr(Ir::make_br_instr(for_exec));
+        add_instr(for_exec);
+        analyze_statement_node(r->exec);
+        add_instr(Ir::make_br_instr(for_cond));
+        add_instr(for_end);
+        end_loop_env();
+        _env.end_env();
+        break;
+    }
     case NODE_BREAK:
         if(!has_loop_env()) {
             throw_error(root, 9, "no outer loops");
@@ -437,7 +476,8 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
 {
     _env.push_env();
     if(root->val->type == NODE_IMM) {
-        module()->add_global(Ir::make_global(root->var, Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm)));
+        module()->add_global(Ir::make_global(root->var, 
+            Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm)));
     }
     _env.end_env();
 }

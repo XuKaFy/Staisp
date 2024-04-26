@@ -16,6 +16,7 @@ TEST(test_convertor, convertor_error_##x) { \
     } \
 }
 
+TEST_A_FILE(1)
 TEST_A_FILE(3)
 TEST_A_FILE(5)
 TEST_A_FILE(8)

@@ -87,6 +87,16 @@ struct WhileNode : public Node
     pNode body;
 };
 
+struct ForNode : public Node
+{
+    ForNode(pToken t, pNode init, pNode cond, pNode exec, pNode body)
+        : Node(t, NODE_FOR), init(init), cond(cond), exec(exec), body(body) { }
+    pNode init;
+    pNode cond;
+    pNode exec;
+    pNode body;
+};
+
 struct BreakNode : public Node
 {
     BreakNode(pToken t)
@@ -162,6 +172,7 @@ pNode new_array_def_node(pToken t, Vector<pNode> nums);
 pNode new_assign_node(pToken t, pNode lv, pNode val);
 pNode new_if_node(pToken t, pNode cond, pNode body, pNode elsed = {});
 pNode new_while_node(pToken t, pNode cond, pNode body);
+pNode new_for_node(pToken t, pNode init, pNode cond, pNode exec, pNode body);
 pNode new_break_node(pToken t);
 pNode new_return_node(pToken t, pNode ret = {});
 pNode new_continue_node(pToken t);

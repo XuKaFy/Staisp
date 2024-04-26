@@ -25,6 +25,7 @@ enum NodeType
     NODE_CONTINUE,
     NODE_IF,
     NODE_WHILE,
+    NODE_FOR,
     NODE_CAST,
     NODE_REF,
     NODE_DEREF,

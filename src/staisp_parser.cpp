@@ -247,6 +247,18 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         auto a2 = parse_statement(false);
         return Ast::new_while_node(token, a1, a2);
     }
+    case BUILDIN_FOR: {
+        // FOR (DEFVAR i32:i 0
+        //      LT i 10)
+        //      ASSIGN i ADD i 1)
+        consume_token(TOKEN_LB_S);
+        auto a1 = parse_statement(false);
+        auto a2 = parse_value();
+        auto a3 = parse_statement(false);
+        consume_token(TOKEN_RB_S);
+        auto a4 = parse_statement(false);
+        return Ast::new_for_node(token, a1, a2, a3, a4);
+    }
     case BUILDIN_DEFVAR: {
         auto a1 = parse_typed_sym();
         auto a2 = parse_value();

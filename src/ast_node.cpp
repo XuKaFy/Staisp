@@ -71,6 +71,12 @@ pNode new_while_node(pToken t, pNode cond, pNode body)
 {
     return pNode(new WhileNode(t, cond, body));
 }
+
+pNode new_for_node(pToken t, pNode init, pNode cond, pNode exec, pNode body)
+{
+    return pNode(new ForNode(t, init, cond, exec, body));
+}
+
 pNode new_break_node(pToken t)
 {
     return pNode(new BreakNode(t));

@@ -1,0 +1,13 @@
+DEFFUNC i32:main() {
+    DEFVAR i32:ans 0
+    FOR (
+        DEFVAR i32:i 1
+        LT i 10
+        ASSIGN i ADD i 1) {
+        IF EQ i 1 CONTINUE
+        IF EQ i 8 BREAK
+        ASSIGN ans ADD ans i
+    }
+    ASSIGN i 0
+    RETURN NE ans 27
+}

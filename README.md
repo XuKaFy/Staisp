@@ -46,6 +46,7 @@ DEFFUNC i32:main ( ) {
 * `IF`
 * `IFE`
 * `WHILE`
+* `FOR`
 * `RETURN`
 * `RET_VOID`
 * `CONTINUE`
@@ -80,7 +81,10 @@ statement  : "DEFFUNC"          typed_sym   typed_sym_list  statement
            | "IF"        value       statement
            | "IFE"       value       statement       statement
            | "WHILE"     value       statement
+           | "FOR"       '('         statement       value      statement       ')'
+              statement
            | "RETURN"    value
+           | "RET_VOID"
            | "DEFPTR"    typed_sym
            | "DEFARRAY"  typed_sym   array_def
            | "CALL"      function

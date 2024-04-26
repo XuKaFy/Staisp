@@ -32,6 +32,7 @@ TEST_A_FILE(array, arr3)
 
 TEST_A_FILE(basic_branch, break_in_block)
 TEST_A_FILE(basic_branch, brk_ctn)
+TEST_A_FILE(basic_branch, for)
 
 TEST_A_FILE(basic_env, env)
 

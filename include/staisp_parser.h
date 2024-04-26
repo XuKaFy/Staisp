@@ -21,6 +21,7 @@ namespace Staisp {
     ENTRY(RETURN) \
     ENTRY(RET_VOID) \
     ENTRY(WHILE) \
+    ENTRY(FOR) \
     ENTRY(DEFVAR) \
     ENTRY(DEFFUNC) \
     ENTRY(BREAK) \
