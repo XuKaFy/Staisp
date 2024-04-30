@@ -9,6 +9,12 @@ namespace Ir {
 struct Use;
 typedef Pointer<Use> pUse;
 
+struct Val;
+struct User;
+
+void val_release(Val* val);
+void user_release(User* user);
+
 enum ValType {
     VAL_CONST,
     VAL_GLOBAL,
@@ -22,7 +28,7 @@ struct Val {
         : ty(ty) { }
 
     virtual ~Val() {
-        users.clear();
+        val_release(this);
     }
 
     bool has_name();
@@ -47,7 +53,7 @@ struct User : public Val {
         : Val(ty) { }
 
     virtual ~User() {
-        operands.clear();
+        user_release(this);
     }
 
     void add_operand(pVal val);
@@ -55,7 +61,6 @@ struct User : public Val {
     pUse operand(size_t index) const;
     size_t operand_size() const;
 
-private:
     Vector<pUse> operands;
 };
 typedef Pointer<User> pUser;

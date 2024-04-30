@@ -11,7 +11,6 @@ namespace Ir {
 
 struct Block;
 typedef Pointer<Block> pBlock;
-typedef WeakPointer<Block> pwBlock;
 typedef Vector<pBlock> Blocks;
 
 struct Block : public Val {

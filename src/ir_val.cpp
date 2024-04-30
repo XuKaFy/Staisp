@@ -2,6 +2,28 @@
 
 namespace Ir {
 
+void user_release_use(User *user, pUse i)
+{
+    for(auto j = user->operands.begin(); j!=user->operands.end(); ) {
+        if(*j == i) {
+            j = user->operands.erase(j);
+        } else {
+            ++j;
+        }
+    }
+}
+
+void val_release_use(Val *usee, pUse i)
+{
+    for(auto j = usee->users.begin(); j!=usee->users.end(); ) {
+        if(*j == i) {
+            j = usee->users.erase(j);
+        } else {
+            ++j;
+        }
+    }
+}
+
 bool Val::has_name()
 {
     return _name;
@@ -23,6 +45,7 @@ void Val::replace_self(Val* val)
     for(auto i : users) {
         // printf("replace %s(%llx) val %s with %s\n", i->user->name(), i->user, i->usee->name(), val->name());
         i->usee = val;
+        val->users.push_back(i);
     }
     users.clear();
 }
@@ -56,6 +79,24 @@ size_t User::operand_size() const
 pUse User::operand(size_t index) const
 {
     return operands[index];
+}
+
+void val_release(Val* val)
+{
+    for(auto i : val->users) {
+        auto user = i->user;
+        user_release_use(user, i);
+    }
+    val->users.clear();
+}
+
+void user_release(User* user)
+{
+    for(auto i : user->operands) {
+        auto usee = i->usee;
+        val_release_use(usee, i);
+    }
+    user->operands.clear();
 }
 
 } // namespace ir
