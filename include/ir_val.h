@@ -58,6 +58,9 @@ struct User : public Val {
 
     void add_operand(pVal val);
     void add_operand(Val* val);
+    void change_operand(size_t index, Val* val);
+    void change_operand(size_t index, pVal val);
+    
     pUse operand(size_t index) const;
     size_t operand_size() const;
 
@@ -69,7 +72,9 @@ struct Use {
     Use(User* user, Val* val)
         : user(user), usee(val) { }
 
+    // do NOT modify it except "ir_val.cpp"
     User* user;
+    // do NOT modify it except "ir_val.cpp"
     Val* usee;
 };
 

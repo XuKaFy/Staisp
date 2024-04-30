@@ -42,7 +42,7 @@ void Val::set_name(String name)
 
 void Val::replace_self(Val* val)
 {
-    for(auto i : users) {
+    for(auto &i : users) {
         // printf("replace %s(%llx) val %s with %s\n", i->user->name(), i->user, i->usee->name(), val->name());
         i->usee = val;
         val->users.push_back(i);
@@ -65,10 +65,19 @@ void User::add_operand(Val* val)
 
 void User::add_operand(pVal val)
 {
-    pUse use = pUse(new Use { this, val.get() });
-    // printf("OPERAND %llx, %s(%llx)\n", this, val->name(), val.get());
-    operands.push_back(use);
-    val->users.push_back(use);
+    add_operand(val.get());
+}
+
+void User::change_operand(size_t index, Val* val)
+{
+    val_release_use(operands[index]->usee, operands[index]);
+    operands[index]->usee = val;
+    val->users.push_back(operands[index]);
+}
+
+void User::change_operand(size_t index, pVal val)
+{
+    change_operand(index, val.get());
 }
 
 size_t User::operand_size() const

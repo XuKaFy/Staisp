@@ -17,6 +17,15 @@ struct Block : public Val {
     Block()
         : Val(make_void_type()) { }
 
+    virtual ~Block() {
+        for(auto i : in_block) {
+            i->out_block.erase(this);
+        }
+        for(auto i : out_block) {
+            i->in_block.erase(this);
+        }
+    }
+
     Symbol print_block() const;
     
     pInstr label() const;

@@ -48,14 +48,14 @@ void Block::replace_out(Block* before, Block* out)
     auto back = body.back();
     switch(back->instr_type()) {
     case INSTR_BR: {
-        back->operand(0)->usee = out->label().get();
+        back->change_operand(0, out->label());
         break;
     }
     case INSTR_BR_COND: {
         bool flag = false;
         for(size_t i=1; i<=2; ++i) {
             if(back->operand(i)->usee == before->label().get()) {
-                back->operand(i)->usee = out->label().get();
+                back->change_operand(i, out->label());
                 flag = true;
             }
         }
