@@ -32,9 +32,6 @@ void remove_empty_block(Ir::BlockedProgram &p)
     my_assert(p.blocks.size(), "?");
     for(auto i = p.blocks.begin() + 1; i != p.blocks.end();) {
         if((*i)->in_block.size() == 0) {
-            for(auto j : (*i)->out_block) {
-                j->in_block.erase(i->get());
-            }
             i = p.blocks.erase(i);
         } else ++i;
     }

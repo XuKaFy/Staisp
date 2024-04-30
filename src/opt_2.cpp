@@ -102,7 +102,7 @@ void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &O
                     }
                 }
                 if(!uses.count(name)) { // this def is useless
-                    printf("    Not used def %s\n", r->instr_print());
+                    // printf("    Not used def %s\n", r->instr_print());
                     j = p->body.erase(j);
                     goto End;
                 } else {
