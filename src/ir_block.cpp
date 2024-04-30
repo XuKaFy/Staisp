@@ -17,6 +17,34 @@ void Block::add_imm(pVal imm)
     imms.push_back(imm);
 }
 
+void Block::squeeze_out(bool selected)
+{
+    auto end = body.back();
+    // 0->trueTo
+    // 1->falseTo
+    auto will_remove = end->operand(selected+1)->usee;
+    auto new_br = std::static_pointer_cast<Ir::BrCondInstr>(end)->select(1-selected);
+    for(auto i : out_block) {
+        if(i->label().get() == will_remove) {
+            i->in_block.erase(this);
+            out_block.erase(i);
+            break;
+        }
+    }
+    body.pop_back();
+    body.push_back(new_br);
+}
+
+void Block::connect_in_and_out() {
+    my_assert(out_block.size() == 1 && body.size() == 2, "?");
+    auto out = *out_block.begin();
+    for(auto j : in_block) {
+        j->replace_out(this, out);
+        out->in_block.insert(j);
+    }
+    out->in_block.erase(this);
+}
+
 Symbol Block::print_block() const
 {
     String whole_block;

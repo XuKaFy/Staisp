@@ -38,12 +38,7 @@ void remove_empty_block(Ir::BlockedProgram &p)
     for(auto i = p.blocks.begin() + 1; i != p.blocks.end();) {
         if((*i)->out_block.size() == 1 && (*i)->body.size() == 2) {
             // printf("Remove Empty Br Block %s\n", (*i)->name());
-            auto out = *(*i)->out_block.begin();
-            for(auto j : (*i)->in_block) {
-                j->replace_out(i->get(), out);
-                out->in_block.insert(j);
-            }
-            out->in_block.erase(i->get());
+            (*i)->connect_in_and_out();
             i = p.blocks.erase(i);
         } else ++i;
     }
@@ -76,28 +71,21 @@ void remove_dead_code(Ir::BlockedProgram &p)
             }
         }
     }
-    bool flag = false;
+    
     for(auto i : p.blocks) {
         if(i->body.size() <= 1) continue;
+        
         auto end = i->body.back();
-        if(end->instr_type() == Ir::INSTR_BR_COND) {
-            auto cond = end->operand(0)->usee;
-            if(cond->type() == Ir::VAL_CONST) {
-                auto con = static_cast<Ir::Const*>(cond);
-                if(con->v.type() == VALUE_IMM) {
-                    bool selected = (bool)con->v.imm_value();
-                    // 0->trueTo
-                    // 1->falseTo
-                    auto new_br = std::static_pointer_cast<Ir::BrCondInstr>(end)->select(1-selected);
-                    i->body.pop_back();
-                    i->body.push_back(new_br);
-                    flag = true;
-                }
-            }
+        if(end->instr_type() != Ir::INSTR_BR_COND) continue;
+
+        auto cond = end->operand(0)->usee;
+        if(cond->type() != Ir::VAL_CONST) continue;
+        
+        auto con = static_cast<Ir::Const*>(cond);
+        if(con->v.type() == VALUE_IMM) {
+            i->squeeze_out((bool) con);
         }
     }
-    if(flag)
-        p.generate_cfg(); // some br might be changed
 }
 
 template<typename BlockValue, typename Utils>

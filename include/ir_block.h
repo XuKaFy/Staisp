@@ -26,6 +26,10 @@ struct Block : public Val {
         }
     }
 
+    void connect_in_and_out();
+    void squeeze_out(bool selected);
+    void replace_out(Block* before, Block* out);
+
     Symbol print_block() const;
     
     pInstr label() const;
@@ -37,8 +41,6 @@ struct Block : public Val {
     void connect(Block* next);
 
     Instrs body;
-
-    void replace_out(Block* before, Block* out);
 
     virtual ValType type() const {
         return VAL_BLOCK;
