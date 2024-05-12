@@ -37,4 +37,7 @@
 .VSCodeCounter/*.*
 *.ll
 
+# clangd
+.cache
+
 build
