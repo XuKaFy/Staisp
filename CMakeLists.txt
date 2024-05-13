@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.21)
-set(CMAKE_CXX_FLAGS "-Wall -g" CACHE STRING "Set C++ Compiler Flags" FORCE)
 
 project(Staisp)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g -std=c++17")
 
 enable_testing()
 
