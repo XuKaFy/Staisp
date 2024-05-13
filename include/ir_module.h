@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ir_func.h"
 #include "ir_func_defined.h"
 #include "ir_global.h"
 

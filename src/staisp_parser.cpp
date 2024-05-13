@@ -1,5 +1,7 @@
 #include "staisp_parser.h"
 
+#include "ast_node.h"
+
 namespace Staisp
 {
 

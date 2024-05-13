@@ -1,5 +1,14 @@
 #include "convert_ast_to_ir.h"
 
+#include "ir_call_instr.h"
+#include "ir_cast_instr.h"
+#include "ir_ptr_instr.h"
+#include "ir_control_instr.h"
+#include "ir_mem_instr.h"
+
+#include "imm.h"
+#include "value.h"
+
 namespace AstToIr {
 
 void Convertor::throw_error(pNode root, int id, Symbol msg)

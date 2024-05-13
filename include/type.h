@@ -122,7 +122,7 @@ struct CompoundType : public Type {
 struct StructType : public CompoundType {
     StructType(Vector<TypedSym> elems)
         : CompoundType(), elems(elems) { }
-    virtual CompoundTypeType compound_type_type() const { return COMPOUND_TYPE_STRUCT; }
+    virtual CompoundTypeType compound_type_type() const override { return COMPOUND_TYPE_STRUCT; }
     virtual size_t length() const override {
         size_t ans = 0;
         for(auto i : elems) {
@@ -139,7 +139,7 @@ struct PointerType : public CompoundType {
         : CompoundType(), pointed_type(ty) { }
 
     virtual Symbol type_name() const override;
-    virtual CompoundTypeType compound_type_type() const { return COMPOUND_TYPE_POINTER; }
+    virtual CompoundTypeType compound_type_type() const override { return COMPOUND_TYPE_POINTER; }
     virtual size_t length() const override { return ARCH_BYTES; }
 
     pType pointed_type;
@@ -149,7 +149,7 @@ struct ArrayType : public CompoundType {
     ArrayType(pType elem_type, size_t elem_count)
         : CompoundType(), elem_type(elem_type), elem_count(elem_count) { }
 
-    virtual CompoundTypeType compound_type_type() const { return COMPOUND_TYPE_ARRAY; }
+    virtual CompoundTypeType compound_type_type() const override{ return COMPOUND_TYPE_ARRAY; }
     virtual Symbol type_name() const override;
     virtual size_t length() const override { return elem_type->length() * elem_count; }
     

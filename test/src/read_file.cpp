@@ -1,5 +1,8 @@
 #include "read_file.h"
 
+#include "gtest/gtest.h"
+#include <fstream>
+
 pCode read_test_file(Symbol file_suffix)
 {
     String file = String("../../code/") + file_suffix;

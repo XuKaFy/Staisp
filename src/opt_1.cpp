@@ -1,5 +1,8 @@
 #include "opt_1.h"
 
+#include "ir_mem_instr.h"
+#include "ir_constant.h"
+
 namespace Opt1 {
 
 bool BlockValue::operator == (const BlockValue &b)

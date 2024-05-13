@@ -1,7 +1,5 @@
 #pragma once
 
-#include "def.h"
-#include "imm.h"
 #include "type.h"
 
 #include "ir_val.h"

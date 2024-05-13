@@ -1,5 +1,8 @@
 #include "ir_func_defined.h"
 
+#include "ir_mem_instr.h"
+#include "ir_control_instr.h"
+
 namespace Ir {
 
 FuncDefined::FuncDefined(TypedSym var, Vector<pType> arg_types, Vector<Symbol> arg_name)

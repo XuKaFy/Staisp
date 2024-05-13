@@ -14,10 +14,7 @@
 #include <list>
 #include <utility>
 #include <optional>
-#include <cstdint>
 #include <climits>
-
-#include <variant>
 
 // 目标机的指针长度
 #define ARCH_BYTES 8

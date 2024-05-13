@@ -2,7 +2,7 @@
 #include "staisp_lexer.h"
 #include "read_file.h"
 
-#include <fstream>
+#include "gtest/gtest.h"
 
 TEST(test_staisp_lexer, basic_lexer) {
     Staisp::Lexer lexer;

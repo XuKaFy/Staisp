@@ -9,7 +9,7 @@
 #include "type.h"
 
 #include "staisp_lexer.h"
-#include "ast_node.h"
+#include "common_node.h"
 
 namespace Staisp {
 

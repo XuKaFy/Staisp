@@ -3,9 +3,6 @@
 #include "def.h"
 
 #include "ir_instr.h"
-#include "ir_control_instr.h"
-#include "ir_call_instr.h"
-#include "ir_line_generator.h"
 
 namespace Ir {
 

@@ -2,17 +2,11 @@
 
 #include "def.h"
 #include "env.h"
-#include "imm.h"
 
 #include "ast_node.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
 #include "ir_cmp_instr.h"
-#include "ir_call_instr.h"
-#include "ir_cast_instr.h"
-#include "ir_ptr_instr.h"
-
-#include "value.h"
 
 namespace AstToIr {
 

@@ -38,3 +38,6 @@
 *.ll
 
 build
+.cmake
+.cache
+CMakeFiles

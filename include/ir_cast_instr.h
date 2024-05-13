@@ -2,8 +2,6 @@
 
 #include "ir_instr.h"
 
-#include "ir_constant.h"
-
 namespace Ir
 {
 

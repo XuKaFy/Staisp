@@ -1,9 +1,12 @@
 #include "read_file.h"
 
+#include "gtest/gtest.h"
+
 #include "staisp_parser.h"
 #include "convert_ast_to_ir.h"
 
 #include "opt.h"
+#include <fstream>
 
 #define TEST_A_FILE(x, y) \
 TEST(test_code_##x, code_##y) { \

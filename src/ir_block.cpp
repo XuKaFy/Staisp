@@ -1,5 +1,9 @@
 #include "ir_block.h"
 
+#include "ir_control_instr.h"
+#include "ir_call_instr.h"
+#include "ir_line_generator.h"
+
 namespace Ir {
 
 pInstr Block::label() const

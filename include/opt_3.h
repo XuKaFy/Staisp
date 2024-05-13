@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ir_block.h"
-#include "ir_module.h"
 
 namespace Opt3 {
 

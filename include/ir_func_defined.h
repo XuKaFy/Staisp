@@ -2,9 +2,6 @@
 
 #include "ir_func.h"
 #include "ir_block.h"
-#include "ir_mem_instr.h"
-
-#include "ir_line_generator.h"
 
 namespace Ir {
 

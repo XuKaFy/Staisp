@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ir_instr.h"
+#include "ir_val.h"
 
 namespace Ir {
 

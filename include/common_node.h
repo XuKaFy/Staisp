@@ -7,7 +7,6 @@
 #pragma once
 
 #include "def.h"
-#include "type.h"
 #include "common_token.h"
 
 enum NodeType
