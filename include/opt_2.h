@@ -20,7 +20,7 @@ struct BlockValue {
 struct Utils {
     // transfer function
     void operator () (Ir::Block* p, BlockValue &v);
-    void operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT);
+    int operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT);
 };
 
 } // namespace Optimize

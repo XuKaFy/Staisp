@@ -130,8 +130,9 @@ End:
     } */
 }
 
-void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT)
+int Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT)
 {
+    int ans = 0;
     // printf("In Block %s\n", p->name());
     for(auto i : OUT.val) {
         if(i.second.ty == Val::VALUE && i.second.ir) { // has value, is a constant
@@ -140,8 +141,10 @@ void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &O
             auto imm = Ir::make_constant(i.second.v);
             p->add_imm(imm);
             i.second.ir->replace_self(imm.get());
+            ++ans;
         }
     }
+    return ans;
 }
 
 }; // namespace Opt1

@@ -71,9 +71,10 @@ void Utils::operator () (Ir::Block* p, BlockValue &v)
     }
 }
 
-void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT)
+int Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT)
 {
     Set<String> uses = OUT.uses;
+    int ans = 0;
     /* printf("In block %s\n", p->name());
     for(auto i : uses) {
         printf("    current use: %s\n", i.c_str());
@@ -107,6 +108,7 @@ void Utils::operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &O
                 if(!uses.count(name)) { // this def is useless
                     // printf("    Not used def %s\n", r->instr_print());
                     j = p->body.erase(j);
+                    ++ans;
                     goto End;
                 } else {
                     // printf("    Def %s is used\n", r->instr_print());
@@ -122,6 +124,7 @@ End:
         continue;
     }
     p->body = Ir::Instrs(p->body.rbegin(), p->body.rend());
+    return ans;
 }
 
 } // namespace Optimize
