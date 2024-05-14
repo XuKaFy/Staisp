@@ -6,6 +6,8 @@
 namespace Ir
 {
 
+// 一个程序的集合
+// 包括若干已定义的函数和若干已定义的全局变量
 struct Module {
     Symbol print_module() const;
     void add_func(pFuncDefined f);

@@ -16,78 +16,11 @@ void optimize(Ir::pModule mod)
     for(auto i : mod->funsDefined) {
         for(size_t cnt = 0; cnt < 5; ++cnt) {
             from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
-            remove_dead_code(i->p);
-            remove_empty_block(i->p);
-            i->p.join_blocks();
-            // i->p.print_cfg();
+            i->p.normal_opt();
             from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
-            remove_dead_code(i->p);
-            remove_empty_block(i->p);
-            i->p.join_blocks();
-            // i->p.print_cfg();
+            i->p.normal_opt();
         }
         i->p.re_generate();
-    }
-}
-
-void remove_empty_block(Ir::BlockedProgram &p)
-{
-    my_assert(p.blocks.size(), "?");
-    for(auto i = p.blocks.begin() + 1; i != p.blocks.end();) {
-        if((*i)->in_block.size() == 0) {
-            i = p.blocks.erase(i);
-        } else ++i;
-    }
-    for(auto i = p.blocks.begin() + 1; i != p.blocks.end();) {
-        if((*i)->out_block.size() == 1 && (*i)->body.size() == 2) {
-            // printf("Remove Empty Br Block %s\n", (*i)->name());
-            (*i)->connect_in_and_out();
-            i = p.blocks.erase(i);
-        } else ++i;
-    }
-}
-
-bool can_be_removed(Ir::InstrType t)
-{
-    switch(t) {
-    case Ir::INSTR_RET:
-    case Ir::INSTR_BR:
-    case Ir::INSTR_BR_COND:
-    case Ir::INSTR_STORE:
-    case Ir::INSTR_CALL:
-        return false;
-    default:
-        return true;
-    }
-    return true;
-}
-
-void remove_dead_code(Ir::BlockedProgram &p)
-{
-    my_assert(p.blocks.size(), "?");
-    for(auto i : p.blocks) {
-        for(auto j = i->body.begin()+1; j!=i->body.end(); ) {
-            if((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
-                j = i->body.erase(j);
-            } else {
-                ++j;
-            }
-        }
-    }
-    
-    for(auto i : p.blocks) {
-        if(i->body.size() <= 1) continue;
-        
-        auto end = i->body.back();
-        if(end->instr_type() != Ir::INSTR_BR_COND) continue;
-
-        auto cond = end->operand(0)->usee;
-        if(cond->type() != Ir::VAL_CONST) continue;
-        
-        auto con = static_cast<Ir::Const*>(cond);
-        if(con->v.type() == VALUE_IMM) {
-            i->squeeze_out((bool) con);
-        }
     }
 }
 

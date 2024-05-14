@@ -1,3 +1,5 @@
+// 优化一：常量传播，将常量进行计算和替换
+
 #pragma once
 
 #include "ir_block.h"

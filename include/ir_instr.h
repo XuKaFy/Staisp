@@ -50,10 +50,12 @@ private:
     Symbol instr_str_form { nullptr };
 };
 
+// 所有只要操作数为常量就可以计算出值的操作
 struct CalculatableInstr : public Instr {
     CalculatableInstr(pType ty)
         : Instr(ty) { }
 
+    // 接受同等长度的常量并且计算出结果
     virtual ImmValue calculate(Vector<ImmValue> v) const = 0;
 };
 

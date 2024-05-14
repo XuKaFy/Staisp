@@ -1,3 +1,5 @@
+// 优化二：活跃变量分析，删除无用 store
+
 #pragma once
 
 #include "ir_block.h"

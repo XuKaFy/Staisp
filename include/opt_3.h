@@ -1,3 +1,5 @@
+// 优化三：GVN
+
 #pragma once
 
 #include "ir_block.h"

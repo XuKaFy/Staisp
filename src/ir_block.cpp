@@ -4,6 +4,8 @@
 #include "ir_call_instr.h"
 #include "ir_line_generator.h"
 
+#include "ir_constant.h"
+
 namespace Ir {
 
 pInstr Block::label() const
@@ -205,7 +207,7 @@ void BlockedProgram::print_cfg() const
     }
 }
 
-void BlockedProgram::join_blocks()
+void BlockedProgram::opt_join_blocks()
 {
     bool found = true;
     while(found) {
@@ -245,6 +247,80 @@ void BlockedProgram::join_blocks()
             break;
         }
     }
+}
+
+void BlockedProgram::opt_remove_empty_block()
+{
+    my_assert(blocks.size(), "?");
+    for(auto i = blocks.begin() + 1; i != blocks.end();) {
+        if((*i)->in_block.size() == 0) {
+            i = blocks.erase(i);
+        } else ++i;
+    }
+}
+
+void BlockedProgram::opt_connect_empty_block()
+{
+    my_assert(blocks.size(), "?");
+    for(auto i = blocks.begin() + 1; i != blocks.end();) {
+        if((*i)->out_block.size() == 1 && (*i)->body.size() == 2) {
+            // printf("Remove Empty Br Block %s\n", (*i)->name());
+            (*i)->connect_in_and_out();
+            i = blocks.erase(i);
+        } else ++i;
+    }
+}
+
+bool can_be_removed(Ir::InstrType t)
+{
+    switch(t) {
+    case Ir::INSTR_RET:
+    case Ir::INSTR_BR:
+    case Ir::INSTR_BR_COND:
+    case Ir::INSTR_STORE:
+    case Ir::INSTR_CALL:
+        return false;
+    default:
+        return true;
+    }
+    return true;
+}
+
+void BlockedProgram::opt_remove_dead_code()
+{
+    my_assert(blocks.size(), "?");
+    for(auto i : blocks) {
+        for(auto j = i->body.begin()+1; j!=i->body.end(); ) {
+            if((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
+                j = i->body.erase(j);
+            } else {
+                ++j;
+            }
+        }
+    }
+    
+    for(auto i : blocks) {
+        if(i->body.size() <= 1) continue;
+        
+        auto end = i->body.back();
+        if(end->instr_type() != Ir::INSTR_BR_COND) continue;
+
+        auto cond = end->operand(0)->usee;
+        if(cond->type() != Ir::VAL_CONST) continue;
+        
+        auto con = static_cast<Ir::Const*>(cond);
+        if(con->v.type() == VALUE_IMM) {
+            i->squeeze_out((bool) con);
+        }
+    }
+}
+
+void BlockedProgram::normal_opt()
+{
+    opt_remove_empty_block();
+    opt_connect_empty_block();
+    opt_join_blocks();
+    opt_remove_dead_code();
 }
 
 } // namespace ir
