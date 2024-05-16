@@ -1,6 +1,7 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
+#include "type.h"
 #include <cassert>
 #include <cstdio>
 
@@ -52,15 +53,6 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
 
 void DomTree::print_dom_tree() const {
     for (auto [_, dom_node] : dom_map) {
-        /*
-        printf("CFG: Block %s\n", i->name());
-        for (auto j : i->in_block) {
-            printf("    In Block %s\n", j->name());
-        }
-        for (auto j : i->out_block) {
-            printf("    Out Block %s\n", j->name());
-        }
-        */
         printf("Dominance Tree: Block %s\n", dom_node->basic_block->name());
         printf("Idom: %s", dom_node->idom->basic_block->name());
         printf("Out Block: ");
@@ -88,3 +80,36 @@ Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
 }
 
 } // namespace Alys
+
+namespace Ir {
+Symbol PhiInstr::instr_print_impl() const {
+    /*
+    Phi syntax:
+    %indvar = phi i32 [ 0, %LoopHeader ], [ %nextindvar, %Loop ]
+    <result> = phi [fast-math-flags] <ty> [ <val0>, <label0>],
+    */
+    String ret;
+    my_assert(ty->type_type() != TYPE_VOID_TYPE,
+              "Phi Instruction type must be non-void");
+    ret = String(name()) + " = ";
+
+    ret += String("phi ") + ty->type_name();
+    for (auto [blk, val] : incoming_tuples) {
+        ret += "[ ";
+        ret += val->name();
+        ret += ", ";
+        ret += blk->name();
+        ret += " ]";
+    }
+
+    return to_symbol(ret);
+}
+
+void PhiInstr::add_incoming(pBlock blk, pVal val) {
+    my_assert(val->type() == type(), "rightvalue is same as type of phi node");
+    my_assert(incoming_tuples.find(blk) == incoming_tuples.end(),
+              "block is not in incoming tuples");
+    incoming_tuples.insert({blk, val});
+}
+
+}; // namespace Ir

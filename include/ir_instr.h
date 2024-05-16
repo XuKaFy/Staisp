@@ -29,30 +29,25 @@ enum InstrType {
     INSTR_UNARY,
     INSTR_BINARY,
     INSTR_ITEM,
+    INSTR_PHI
 };
 
 struct Instr : public User {
-    Instr(pType ty)
-        : User(ty) { }
+    Instr(pType ty) : User(ty) {}
 
     Symbol instr_print();
     virtual Symbol instr_print_impl() const;
 
-    virtual ValType type() const {
-        return VAL_INSTR;
-    }
+    virtual ValType type() const { return VAL_INSTR; }
 
-    virtual InstrType instr_type() const {
-        return INSTR_SYM;
-    }
+    virtual InstrType instr_type() const { return INSTR_SYM; }
 
-private:
-    Symbol instr_str_form { nullptr };
+  private:
+    Symbol instr_str_form{nullptr};
 };
 
 struct CalculatableInstr : public Instr {
-    CalculatableInstr(pType ty)
-        : Instr(ty) { }
+    CalculatableInstr(pType ty) : Instr(ty) {}
 
     virtual ImmValue calculate(Vector<ImmValue> v) const = 0;
 };
