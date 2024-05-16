@@ -223,6 +223,7 @@ compiler [file_name]
 18. `[Convertor] error 18: type has no joined type`：两类型不可计算
 19. `[Convertor] error 19: try to dereference a non-pointer value`：DEREF 只能用于指针
 20. `[Convertor] error 20: function not found`：未找到函数
+21. `[Convertor] error 21: neg an non-number`：单目运算符"-"的值类型必须是数字
 
 ### Executor 运行时报错
 

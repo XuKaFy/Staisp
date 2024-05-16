@@ -46,4 +46,7 @@ TEST_A_FILE(shortcut, sh1)
 TEST_A_FILE(shortcut, sh2)
 TEST_A_FILE(shortcut, sh3)
 
+TEST_A_FILE(unary, neg_int)
+TEST_A_FILE(unary, neg_float)
+
 // TEST_A_FILE(pointer, ptr)

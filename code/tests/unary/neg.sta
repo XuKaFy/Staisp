@@ -1,3 +1,0 @@
-DEFFUNC i32:main() {
-	RETURN NE NEG -1 1
-}

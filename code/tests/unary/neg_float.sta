@@ -1,0 +1,3 @@
+DEFFUNC i32:main() {
+	RETURN NE UNARY_NEG SUB 0.0 1.0 1.0
+}

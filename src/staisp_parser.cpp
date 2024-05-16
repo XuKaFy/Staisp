@@ -67,7 +67,8 @@ AstProg Parser::parse(pCode code)
 
 bool Parser::is_buildin_sym(Symbol sym)
 {
-    return gBuildinBinaryOprType.count(sym) || gBuildinSymType.count(sym);
+    return gBuildinBinaryOprType.count(sym) || gBuildinSymType.count(sym) ||
+        (!strcmp(sym, "UNARY_NEG"));
 }
 
 pNode Parser::parse_sym_node()

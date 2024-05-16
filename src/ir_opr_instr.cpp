@@ -1,4 +1,6 @@
 #include "ir_opr_instr.h"
+#include "imm.h"
+#include "type.h"
 
 namespace Ir
 {
@@ -60,7 +62,10 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const
 ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const
 {
     my_assert(v.size() == 1, "?");
-    return -v[0].val.f32val;
+    if(v[0].ty == IMM_F32) {
+        return ImmValue(-v[0].val.f32val);
+    }
+    return ImmValue(-v[0].val.f64val);
 }
 
 pInstr make_unary_instr(pVal oprd)

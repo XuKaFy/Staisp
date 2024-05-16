@@ -1,8 +1,10 @@
 #include "convert_ast_to_ir.h"
 
+#include "common_node.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
 #include "ir_constant.h"
+#include "ir_opr_instr.h"
 #include "ir_ptr_instr.h"
 #include "ir_control_instr.h"
 #include "ir_mem_instr.h"
@@ -216,6 +218,16 @@ Ir::pVal Convertor::analyze_value(pNode root)
     }
     case NODE_UNARY: {
         // TODO 整数 sub 0, x 浮点数 fneg x
+        auto ch = std::static_pointer_cast<Ast::UnaryNode>(root)->ch;
+        auto val = analyze_value(ch);
+        if(is_float(val->ty)) {
+            return add_instr(Ir::make_unary_instr(val));
+        } else if(is_integer(val->ty)) {
+            auto imm = Ir::make_constant(ImmValue(0ll, to_basic_type(val->ty)->ty));
+            _cur_func->add_imm(imm);
+            return add_instr(Ir::make_binary_instr(Ir::INSTR_SUB, imm, val));
+        }
+        throw_error(root, 21, "neg an non-number");
     }
     case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
@@ -494,6 +506,7 @@ void Convertor::analyze_statement_node(pNode root)
         break;
     }
     case NODE_BINARY:
+    case NODE_UNARY:
     case NODE_ITEM:
     case NODE_CAST:
     case NODE_IMM:
