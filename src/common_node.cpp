@@ -7,5 +7,9 @@ Node::Node(pToken t, NodeType type)
 
 void Node::throw_error(int id, Symbol object, Symbol message)
 {
-    token->throw_error(id, object, message);
+    if(token) {
+        token->throw_error(id, object, message);
+    } else {
+        printf("[%s] Error %d: %s\n", object, id, message);
+    }
 }

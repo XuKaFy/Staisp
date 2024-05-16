@@ -40,6 +40,7 @@ DEFFUNC i32:main ( ) {
 
 * `type *`：指针
 * `type [const_number]`：数组
+* `CONST`：const 说明符
 
 #### B 组：控制流
 
@@ -77,6 +78,7 @@ statement  : "DEFFUNC"          typed_sym   typed_sym_list  statement
            | stat_list
            | "BLOCK"     stat_list
            | "DEFVAR"    typed_sym   value
+           | "DEFVAR"    CONST       typed_sym   value
            | "ASSIGN"    left_value  value
            | "IF"        value       statement
            | "IFE"       value       statement       statement
@@ -117,11 +119,14 @@ stat_list : '{' stat_list_inner '}'
 stat_list_inner : statement
                 | statement ',' stat_list_inner;
 left_value : sym
+           | "DEREF"   "ITEM"      sym        array_def
            | "DEREF"   value
            | "ITEM"    value       array_def;
 value : function
       | const_val
       | variant
+      | "DEREF"  "ITEM"      sym        array_def
+      | "DEREF"  value
       | "CAST"   type        value
       | "REF"    left_value;
 const_val : basic_function_const
@@ -212,8 +217,8 @@ compiler [file_name]
 7. `[Convertor] error 7: comparasion operation conversion from ast to ir not implemented`：该比较操作未被 IR 实现
 8. `[Convertor] error 8: wrong count of arguments`：函数参数列表长度不同
 9. `[Convertor] error 9: no outer loops`：BREAK 或 CONTINUE 外层无循环
-10. ~~`[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值~~
-11. ~~`[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值~~
+10. `[Convertor] error 10: assignment to a local const value`：为局部 CONST 变量赋值
+11. `[Convertor] error 11: assignment to a global const value`：为全局 CONST 变量赋值
 12. `[Convertor] error 12: expected to be a left-value`：此处应为左值
 13. `[Convertor] error 13: not castable`：隐式转换失败
 14. `[Convertor] error 14: type of index should be integer`：寻址的参数必须是整型

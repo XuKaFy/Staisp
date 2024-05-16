@@ -27,9 +27,9 @@ pNode new_assign_node(pToken t, pNode lv, pNode val)
     return pNode(new AssignNode(t, lv, val));
 }
 
-pNode new_var_def_node(pToken t, TypedSym var, pNode val)
+pNode new_var_def_node(pToken t, TypedSym var, pNode val, bool is_const)
 {
-    return pNode(new VarDefNode(t, var, val));
+    return pNode(new VarDefNode(t, var, val, is_const));
 }
 
 pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body)

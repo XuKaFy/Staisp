@@ -58,10 +58,11 @@ struct AssignNode : public Node
 
 struct VarDefNode : public Node
 {
-    VarDefNode(pToken t,TypedSym var, pNode val)
-        : Node(t, NODE_DEF_VAR), var(var), val(val) { }
+    VarDefNode(pToken t,TypedSym var, pNode val, bool is_const = false)
+        : Node(t, NODE_DEF_VAR), var(var), val(val), is_const(is_const) { }
     TypedSym var;
     pNode val;
+    bool is_const;
 };
 
 struct FuncDefNode : public Node
@@ -176,7 +177,7 @@ pNode new_ref_node(pToken t, Symbol name);
 pNode new_deref_node(pToken t, pNode val);
 pNode new_item_node(pToken t, Symbol v, Vector<pNode> index);
 
-pNode new_var_def_node(pToken t, TypedSym var, pNode val);
+pNode new_var_def_node(pToken t, TypedSym var, pNode val, bool is_const = false);
 pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body);
 pNode new_array_def_node(pToken t, Vector<pNode> nums);
 

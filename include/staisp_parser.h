@@ -123,6 +123,7 @@ private:
     pNode parse_sym_node();
     pType parse_type();
     ImmValue parse_single_value_list();
+    bool parse_const();
     
     bool is_type_ended() const;
 

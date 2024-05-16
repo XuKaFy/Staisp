@@ -1,0 +1,4 @@
+DEFFUNC i32:main() {
+    DEFVAR CONST i32[2]:a [0 0]
+    RETURN DEREF ITEM a [0]
+}

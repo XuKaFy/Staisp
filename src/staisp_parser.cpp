@@ -1,6 +1,7 @@
 #include "staisp_parser.h"
 
 #include "ast_node.h"
+#include "staisp_lexer.h"
 
 namespace Staisp
 {
@@ -126,6 +127,15 @@ pType Parser::parse_type() {
         }
     }
     return root;
+}
+
+bool Parser::parse_const()
+{
+    if(!strcmp(peek().sym, "CONST")) {
+        consume_token(TOKEN_SYM);
+        return true;
+    }
+    return false;
 }
 
 ImmValue Parser::parse_single_value_list()
@@ -267,13 +277,14 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_for_node(token, a1, a2, a3, a4);
     }
     case BUILDIN_DEFVAR: {
+        bool is_const = parse_const();
         auto a1 = parse_typed_sym();
         auto a2 = parse_value();
         if(_env.env()->count_current(a1.sym)) {
             throw_error(7, "definition existed");
         }
         _env.env()->set(a1.sym, SYM_VAL);
-        return Ast::new_var_def_node(token, a1, a2);
+        return Ast::new_var_def_node(token, a1, a2, is_const);
     }
     case BUILDIN_BREAK:
         return Ast::new_break_node(token);

@@ -1,5 +1,6 @@
 #include "convert_ast_to_ir.h"
 
+#include "ast_node.h"
 #include "common_node.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
@@ -12,6 +13,7 @@
 #include "imm.h"
 #include "type.h"
 #include "value.h"
+#include <memory>
 
 namespace AstToIr {
 
@@ -31,18 +33,20 @@ Ir::pInstr Convertor::add_instr(Ir::pInstr instr)
     return instr;
 }
 
-Ir::pVal Convertor::find_left_value(pNode root, Symbol sym)
+Ir::pVal Convertor::find_left_value(pNode root, Symbol sym, bool request)
 {
     if(_env.env()->count(sym)) { // local
-        Ir::pInstr found = _env.env()->find(sym);
+        MaybeConstInstr found = _env.env()->find(sym);
         // const value is error
-        if(!is_pointer(found->ty))
+        if(!is_pointer(found.instr->ty) || (request && found.is_const))
             throw_error(root, 10, "assignment to a local const value");
         // no-const value should be loaded
-        return found;
+        return found.instr;
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->name()+1, sym) == 0) {
+                if(request && i->is_const)
+                    throw_error(root, 11, "assignment to a global const value");
                 auto sym_node = Ir::make_sym_instr(TypedSym(to_symbol(String("@") + sym), i->ty));
                 _cur_func->add_imm(sym_node);
                 return sym_node;
@@ -80,9 +84,9 @@ Ir::pVal Convertor::find_left_value(pNode lv)
 Ir::pVal Convertor::find_value(Pointer<Ast::SymNode> root)
 {
     if(_env.env()->count(root->sym)) { // local
-        Ir::pInstr found = _env.env()->find(root->sym);
+        MaybeConstInstr found = _env.env()->find(root->sym);
         // in this implement, all local value is stored
-        return add_instr(Ir::make_load_instr(found));
+        return add_instr(Ir::make_load_instr(found.instr));
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->name()+1, root->sym) == 0) { // global name: "@xxx"
@@ -217,7 +221,6 @@ Ir::pVal Convertor::analyze_value(pNode root)
         return ir;
     }
     case NODE_UNARY: {
-        // TODO 整数 sub 0, x 浮点数 fneg x
         auto ch = std::static_pointer_cast<Ast::UnaryNode>(root)->ch;
         auto val = analyze_value(ch);
         if(is_float(val->ty)) {
@@ -245,8 +248,24 @@ Ir::pVal Convertor::analyze_value(pNode root)
         return find_left_value(root, r->name);
     }
     case NODE_DEREF: {
-        auto r = std::static_pointer_cast<Ast::DerefNode>(root);
-        auto res = Ir::make_load_instr(analyze_value(r->val));
+        auto rr = std::static_pointer_cast<Ast::DerefNode>(root);
+        if(rr->val->type == NODE_ITEM) {
+            // 特判 DEREF 的时候作为右值的情况
+            auto r = std::static_pointer_cast<Ast::ItemNode>(rr->val);
+            auto array = find_left_value(r, r->v, false);
+            Vector<Ir::pVal> indexs;
+            for(auto i : r->index) {
+                indexs.push_back(analyze_value(i));
+                if(!is_integer(indexs.back()->ty))
+                    throw_error(i, 14, "type of index should be integer");
+            }
+            auto itemptr = Ir::make_item_instr(array, indexs);
+            add_instr(itemptr);
+            auto res = Ir::make_load_instr(itemptr);
+            add_instr(res);
+            return res;
+        }
+        auto res = Ir::make_load_instr(analyze_value(rr->val));
         add_instr(res);
         return res;
     }
@@ -350,13 +369,13 @@ void Convertor::analyze_statement_node(pNode root)
                 throw_error(r->val, 17, "array should be initialized by a list");
             auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
             add_instr(tmp = Ir::make_alloc_instr(r->var.ty));
-            _env.env()->set(r->var.sym, tmp);
+            _env.env()->set(r->var.sym, {tmp, r->is_const});
             copy_to_array(r, tmp, tmp->ty, rrr->nums);
             break;
         }
         add_instr(tmp = Ir::make_alloc_instr(r->var.ty));
         add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val), r->var.ty)));
-        _env.env()->set(r->var.sym, tmp);
+        _env.env()->set(r->var.sym, {tmp, r->is_const});
         break;
     }
     case NODE_IF: {
@@ -536,7 +555,11 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
         }
         func = Ir::make_func_defined(root->var, types, syms);
         for(size_t i=0; i<root->args.size(); ++i) {
-            _env.env()->set(root->args[i].sym, func->args[i]);
+            /*
+                由于 sysy 语法中函数参数没有 const
+                所以这里一定是 false
+            */
+            _env.env()->set(root->args[i].sym, { func->args[i], false });
         }
         set_func(func->name(), func);
     }
@@ -547,12 +570,40 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
     _env.end_env();
 }
 
+Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType> t)
+{
+    /*TODO*/
+    ArrayValue v;
+    v.ty = t->elem_type;
+    if(is_array(t->elem_type)) {
+        for(size_t i=0; i<t->elem_count; ++i) {
+            if(n && i < n->nums.size()) {
+                v.arr.push_back(make_value(from_array_def(std::static_pointer_cast<Ast::ArrayDefNode>(n->nums[i]), to_array_type(t->elem_type))));
+            } else {
+                v.arr.push_back(make_value(from_array_def(nullptr, to_array_type(t->elem_type))));
+            }
+        }
+        return v;
+    }
+    for(size_t i=0; i<t->elem_count; ++i) {
+        if(n && i < n->nums.size()) {
+            v.arr.push_back(make_value(std::static_pointer_cast<Ast::ImmNode>(n->nums[i])->imm));
+        } else {
+            v.arr.push_back(make_value(ImmValue(to_basic_type(t->elem_type)->ty)));
+        }
+    }
+    return v;
+}
+
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
 {
     _env.push_env();
     if(root->val->type == NODE_IMM) {
         module()->add_global(Ir::make_global(root->var, 
-            Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm)));
+            Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm), root->is_const));
+    } else {
+        module()->add_global(Ir::make_global(root->var, 
+            Value(from_array_def(std::static_pointer_cast<Ast::ArrayDefNode>(root->val), to_array_type(root->var.ty))), root->is_const));
     }
     _env.end_env();
 }

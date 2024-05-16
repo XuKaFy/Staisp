@@ -1,4 +1,5 @@
 #include "value.h"
+#include "def.h"
 
 Value::operator bool() const
 {
@@ -49,11 +50,23 @@ Symbol Value::to_string() const
             if(!i.v.is_static()) return false;
         return true;
     }
-    case VALUE_ARRAY: {
-        for(auto i : array_value().arr)
-            if(!i->is_static()) return false;
-        return true;
     }*/
+    case VALUE_ARRAY: {
+        String s = " [";
+        bool first = true;
+        for(auto i : array_value().arr) {
+            if(first) {
+                first = false;
+            } else {
+                s += ", ";
+            }
+            s += array_value().ty->type_name();
+            s += " ";
+            s += i->to_string();
+        }
+        s += "]";
+        return to_symbol(s);
+    }
     default:
         throw Exception(1, "Value", "not implemented");
     }

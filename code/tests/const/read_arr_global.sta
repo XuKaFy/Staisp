@@ -1,0 +1,5 @@
+DEFVAR CONST i32[2][2][2]:a [[[1]][[2][3]]]
+
+DEFFUNC i32:main() {
+    RETURN DEREF ITEM a [1 1 1]
+}

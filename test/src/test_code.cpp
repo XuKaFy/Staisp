@@ -49,4 +49,11 @@ TEST_A_FILE(shortcut, sh3)
 TEST_A_FILE(unary, neg_int)
 TEST_A_FILE(unary, neg_float)
 
+TEST_A_FILE(const, read_int)
+TEST_A_FILE(const, read_arr)
+
+TEST_A_FILE(const, read_int_global)
+TEST_A_FILE(const, read_arr_global)
+
+
 // TEST_A_FILE(pointer, ptr)

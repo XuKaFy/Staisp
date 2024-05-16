@@ -12,9 +12,9 @@ Symbol Global::print_global() const
     return to_symbol(ans);
 }
 
-pGlobal make_global(TypedSym val, Const con)
+pGlobal make_global(TypedSym val, Const con, bool is_const)
 {
-    return pGlobal(new Global(val, con));
+    return pGlobal(new Global(val, con, is_const));
 }
 
 } // ir
