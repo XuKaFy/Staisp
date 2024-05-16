@@ -42,4 +42,8 @@ TEST_A_FILE(basic_env, env)
 TEST_A_FILE(basic_type, diff_type_calc)
 TEST_A_FILE(basic_type, float)
 
+TEST_A_FILE(shortcut, sh1)
+TEST_A_FILE(shortcut, sh2)
+TEST_A_FILE(shortcut, sh3)
+
 // TEST_A_FILE(pointer, ptr)

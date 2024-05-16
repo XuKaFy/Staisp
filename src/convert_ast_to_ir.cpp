@@ -2,11 +2,13 @@
 
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
+#include "ir_constant.h"
 #include "ir_ptr_instr.h"
 #include "ir_control_instr.h"
 #include "ir_mem_instr.h"
 
 #include "imm.h"
+#include "type.h"
 #include "value.h"
 
 namespace AstToIr {
@@ -112,8 +114,6 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
     case OPR_SUB:
     case OPR_MUL:
     case OPR_DIV:
-    case OPR_AND:
-    case OPR_OR:
     case OPR_REM: {
         if(root->ch.size() != 2)
             throw_error(root, -1, "binary opr has not 2 args - impossible");
@@ -127,6 +127,62 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
         auto ir = Ir::make_binary_instr(fromBinaryOpr(root), cast_to_type(root->ch[0], a1, joined_type), cast_to_type(root->ch[1], a2, joined_type));
         add_instr(ir);
         return ir;
+    }
+    case OPR_AND:
+    case OPR_OR: { // shortcut evaluation
+        /*
+            A and B
+            %1 = alloca i32
+            %2 = A
+            br i32 %2, L2, L1
+            L1:
+                store %1, 0
+                br L3
+            L2:
+                store %1, B 
+                br L3
+            L3:
+        
+            A or B
+            %1 = alloca i32
+            %2 = A
+            br i32 %2, L1, L2
+            L1:
+                store %1, 1 
+                br L3
+            L2:
+                %3 = cast B
+                store %1, %3
+                br L3
+            L3:
+        */
+        if(root->ch.size() != 2)
+            throw_error(root, -1, "binary opr has not 2 args - impossible");
+        auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I32));
+        auto L1 = Ir::make_label_instr();
+        auto L2 = Ir::make_label_instr();
+        auto L3 = Ir::make_label_instr();
+        
+        add_instr(a0);
+        auto a1 = cast_to_type(root->ch[0], analyze_value(root->ch[0]), make_basic_type(IMM_I1));
+        if(root->type == OPR_AND) {
+            add_instr(Ir::make_br_cond_instr(a1, L2, L1));
+        } else {
+            add_instr(Ir::make_br_cond_instr(a1, L1, L2));
+        }
+        add_instr(L1);
+        int num = (root->type == OPR_AND ? 0 : 1);
+        auto constant = Ir::make_constant(ImmValue(num));
+        add_instr(Ir::make_store_instr(a0, constant));
+        _cur_func->add_imm(constant);
+        add_instr(Ir::make_br_instr(L3));
+        add_instr(L2);
+        auto a2 = analyze_value(root->ch[1]);
+        add_instr(Ir::make_store_instr(a0, cast_to_type(root->ch[1], a2, make_basic_type(IMM_I32))));
+        add_instr(Ir::make_br_instr(L3));
+        add_instr(L3);
+
+        return add_instr(Ir::make_load_instr(a0));
     }
     case OPR_EQ:
     case OPR_NE:
