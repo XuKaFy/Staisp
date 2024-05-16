@@ -218,7 +218,11 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
     if(gBuildinBinaryOprType.count(sym)) {
         auto a1 = parse_value();
         auto a2 = parse_value();
-        return Ast::new_opr_node(token, gBuildinBinaryOprType.find(sym)->second, { a1, a2 } );
+        return Ast::new_binary_node(token, gBuildinBinaryOprType.find(sym)->second, a1, a2);
+    }
+    if (!strcmp(sym, "UNARY_NEG")) {
+        auto a = parse_value();
+        return Ast::new_unary_node(token, OPR_NEG, a);
     }
     switch(gBuildinSymType.find(sym)->second) {
     case BUILDIN_IF: {

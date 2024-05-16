@@ -18,16 +18,26 @@ struct ImmNode : public Node
 
 struct SymNode : public Node
 {
-    SymNode(pToken t,Symbol sym) : Node(t, NODE_SYM), sym(sym) { }
+    SymNode(pToken t, Symbol sym) : Node(t, NODE_SYM), sym(sym) { }
     Symbol sym;
 };
 
-struct OprNode : public Node
+struct BinaryNode : public Node
 {
-    OprNode(pToken t, OprType type, Vector<pNode> ch)
-        : Node(t, NODE_OPR), type(type), ch(ch) { }
-    OprType type;
-    Vector<pNode> ch;
+    BinaryNode(pToken t, BinaryType type, pNode lhs, pNode rhs)
+        : Node(t, NODE_BINARY), type(type), lhs(lhs), rhs(rhs) { }
+
+    BinaryType type;
+    pNode lhs, rhs;
+};
+
+struct UnaryNode : Node {
+
+    UnaryNode(pToken t, UnaryType type, pNode ch)
+        : Node(t, NODE_UNARY), type(type), ch(ch) {}
+
+    UnaryType type;
+    pNode ch;
 };
 
 struct CallNode : public Node
@@ -159,7 +169,8 @@ pNode new_sym_node(pToken t, Symbol symbol);
 
 pNode new_block_node(pToken t, AstProg body);
 
-pNode new_opr_node(pToken t, OprType type, Vector<pNode> ch);
+pNode new_binary_node(pToken t, BinaryType type, pNode lhs, pNode rhs);
+pNode new_unary_node(pToken t, UnaryType type, pNode rhs);
 pNode new_cast_node(pToken t, pType ty, pNode val);
 pNode new_ref_node(pToken t, Symbol name);
 pNode new_deref_node(pToken t, pNode val);

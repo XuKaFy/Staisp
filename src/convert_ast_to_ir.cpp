@@ -107,7 +107,7 @@ Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty)
     return r;
 }
 
-Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
+Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
 {
     switch(root->type) {
     case OPR_ADD:
@@ -115,16 +115,14 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
     case OPR_MUL:
     case OPR_DIV:
     case OPR_REM: {
-        if(root->ch.size() != 2)
-            throw_error(root, -1, "binary opr has not 2 args - impossible");
-        auto a1 = analyze_value(root->ch[0]);
-        auto a2 = analyze_value(root->ch[1]);
+        auto a1 = analyze_value(root->lhs);
+        auto a2 = analyze_value(root->rhs);
         auto joined_type = join_type(a1->ty, a2->ty);
         if(!joined_type) {
             printf("Warning: try to join %s and %s.\n", a1->ty->type_name(), a2->ty->type_name());
             throw_error(root, 18, "type has no joined type");
         }
-        auto ir = Ir::make_binary_instr(fromBinaryOpr(root), cast_to_type(root->ch[0], a1, joined_type), cast_to_type(root->ch[1], a2, joined_type));
+        auto ir = Ir::make_binary_instr(fromBinaryOpr(root), cast_to_type(root->lhs, a1, joined_type), cast_to_type(root->rhs, a2, joined_type));
         add_instr(ir);
         return ir;
     }
@@ -139,16 +137,16 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
                 store %1, 0
                 br L3
             L2:
-                store %1, B 
+                store %1, B
                 br L3
             L3:
-        
+
             A or B
             %1 = alloca i32
             %2 = A
             br i32 %2, L1, L2
             L1:
-                store %1, 1 
+                store %1, 1
                 br L3
             L2:
                 %3 = cast B
@@ -156,15 +154,13 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
                 br L3
             L3:
         */
-        if(root->ch.size() != 2)
-            throw_error(root, -1, "binary opr has not 2 args - impossible");
         auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I32));
         auto L1 = Ir::make_label_instr();
         auto L2 = Ir::make_label_instr();
         auto L3 = Ir::make_label_instr();
-        
+
         add_instr(a0);
-        auto a1 = cast_to_type(root->ch[0], analyze_value(root->ch[0]), make_basic_type(IMM_I1));
+        auto a1 = cast_to_type(root->lhs, analyze_value(root->lhs), make_basic_type(IMM_I1));
         if(root->type == OPR_AND) {
             add_instr(Ir::make_br_cond_instr(a1, L2, L1));
         } else {
@@ -177,8 +173,8 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
         _cur_func->add_imm(constant);
         add_instr(Ir::make_br_instr(L3));
         add_instr(L2);
-        auto a2 = analyze_value(root->ch[1]);
-        add_instr(Ir::make_store_instr(a0, cast_to_type(root->ch[1], a2, make_basic_type(IMM_I32))));
+        auto a2 = analyze_value(root->rhs);
+        add_instr(Ir::make_store_instr(a0, cast_to_type(root->rhs, a2, make_basic_type(IMM_I32))));
         add_instr(Ir::make_br_instr(L3));
         add_instr(L3);
 
@@ -190,14 +186,12 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::OprNode> root)
     case OPR_GE:
     case OPR_LT:
     case OPR_LE: {
-        if(root->ch.size() != 2)
-            throw_error(root, -1, "binary opr has not 2 args - impossible");
-        auto a1 = analyze_value(root->ch[0]);
-        auto a2 = analyze_value(root->ch[1]);
+        auto a1 = analyze_value(root->lhs);
+        auto a2 = analyze_value(root->rhs);
         auto ty = join_type(a1->ty, a2->ty);
         if(!ty)
             throw_error(root, 18, "type has no joined type");
-        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), cast_to_type(root->ch[0], a1, ty), cast_to_type(root->ch[1], a2, ty));
+        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), cast_to_type(root->lhs, a1, ty), cast_to_type(root->rhs, a2, ty));
         add_instr(ir);
         return ir;
     }
@@ -216,9 +210,12 @@ Ir::pVal Convertor::analyze_value(pNode root)
         add_instr(res);
         return res;
     }
-    case NODE_OPR: {
-        auto ir = analyze_opr(std::static_pointer_cast<Ast::OprNode>(root));
+    case NODE_BINARY: {
+        auto ir = analyze_opr(std::static_pointer_cast<Ast::BinaryNode>(root));
         return ir;
+    }
+    case NODE_UNARY: {
+        // TODO 整数 sub 0, x 浮点数 fneg x
     }
     case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);
@@ -496,7 +493,7 @@ void Convertor::analyze_statement_node(pNode root)
         _env.end_env();
         break;
     }
-    case NODE_OPR:
+    case NODE_BINARY:
     case NODE_ITEM:
     case NODE_CAST:
     case NODE_IMM:
@@ -573,7 +570,7 @@ Ir::pModule Convertor::generate(AstProg asts)
     return _mod;
 }
 
-Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
+Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root)
 {
 #define SELECT(x) case OPR_##x: return Ir::INSTR_##x;
     switch(root->type) {
@@ -582,8 +579,8 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
     SELECT(MUL)
     SELECT(DIV)
     SELECT(REM)
-    SELECT(AND)
-    SELECT(OR)
+//    SELECT(AND)
+//    SELECT(OR)
     default:
         throw_error(root, -1, "binary operation conversion from ast to ir not implemented");
     }
@@ -591,7 +588,7 @@ Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::OprNode> root)
     return Ir::INSTR_ADD;
 }
 
-Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::OprNode> root, pType ty)
+Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::BinaryNode> root, pType ty)
 {
     bool is_signed = is_signed_type(ty);
     bool is_flt = is_float(ty);

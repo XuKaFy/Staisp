@@ -12,7 +12,8 @@
 enum NodeType
 {
     NODE_IMM,
-    NODE_OPR,
+    NODE_BINARY,
+    NODE_UNARY,
     NODE_CALL,
     NODE_SYM,
     NODE_ASSIGN,
@@ -32,28 +33,27 @@ enum NodeType
     NODE_ARRAY_VAL,
 };
 
-// 谓词分为两种
-// 一种是可计算的
-#define OPR_TABLE_CALCULATABLE \
-    ENTRY(ADD, +) \
-    ENTRY(SUB, -) \
-    ENTRY(MUL, *) \
-    ENTRY(DIV, /) \
-    ENTRY(REM, %) \
-    ENTRY(AND, &&) \
-    ENTRY(OR, ||) \
-    ENTRY(EQ, ==) \
-    ENTRY(NE, !=) \
-    ENTRY(GT, >) \
-    ENTRY(GE, >=) \
-    ENTRY(LT, <) \
-    ENTRY(LE, <=)
-
-enum OprType
+enum BinaryType
 {
-#define ENTRY(x, y) OPR_##x,
-    OPR_TABLE_CALCULATABLE
-#undef ENTRY
+    OPR_ADD,
+    OPR_SUB,
+    OPR_MUL,
+    OPR_DIV,
+    OPR_REM,
+    OPR_AND,
+    OPR_OR,
+    OPR_EQ,
+    OPR_NE,
+    OPR_GT,
+    OPR_GE,
+    OPR_LT,
+    OPR_LE,
+};
+
+enum UnaryType {
+    OPR_POS, // nop
+    OPR_NEG, // 0 - x     fneg
+    OPR_NOT, // xor -1
 };
 
 struct Node

@@ -26,8 +26,8 @@ class Convertor {
 public:
     Ir::pModule generate(AstProg asts);
     
-    static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::OprNode> root);
-    static Ir::CmpType fromCmpOpr(Pointer<Ast::OprNode> root, pType tr);
+    static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root);
+    static Ir::CmpType fromCmpOpr(Pointer<Ast::BinaryNode> root, pType tr);
 
 private:
     static void throw_error(pNode root, int id, Symbol msg);
@@ -38,7 +38,7 @@ private:
     void analyze_statement_node(pNode root);
     void copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pVal> indexs = {});
     Ir::pVal analyze_value(pNode root);
-    Ir::pVal analyze_opr(Pointer<Ast::OprNode> root);
+    Ir::pVal analyze_opr(Pointer<Ast::BinaryNode> root);
     Ir::pVal find_value(Pointer<Ast::SymNode> root);
     Ir::pVal find_left_value(pNode lv);
     Ir::pVal find_left_value(pNode root, Symbol sym);

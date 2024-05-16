@@ -74,7 +74,7 @@ enum BuildinBinaryOprType
 };
 
 // 将二元运算关键字转化为**操作节点**类型
-const Map<String, OprType> gBuildinBinaryOprType {
+const Map<String, BinaryType> gBuildinBinaryOprType {
 #define ENTRY(x, y) { #x, OPR_##x },
     BUILDIN_BINARY_OPR_LIST
 #undef ENTRY

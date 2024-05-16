@@ -8,7 +8,7 @@ Symbol UnaryInstr::instr_print_impl() const
     return to_symbol(
         String(name())
         + " = "
-        + gUnaryInstrName[unaryType]
+        + "fneg"
         + " " 
         + ty->type_name()
         + " "
@@ -60,21 +60,12 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const
 ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const
 {
     my_assert(v.size() == 1, "?");
-    ImmValue &a0 = v[0];
-    
-    switch(unaryType) {
-    case INSTR_NOT:
-        return !a0;
-    case INSTR_NEG:
-        return -a0;
-    }
-    throw Exception(1, "UnaryInstr::calculate", "?");
-    return 0;
+    return -v[0].val.f32val;
 }
 
-pInstr make_unary_instr(UnaryInstrType type, pVal oprd)
+pInstr make_unary_instr(pVal oprd)
 {
-    return pInstr(new UnaryInstr(type, oprd));
+    return pInstr(new UnaryInstr(oprd));
 }
 
 pInstr make_binary_instr(BinInstrType type, pVal oprd1, pVal oprd2)

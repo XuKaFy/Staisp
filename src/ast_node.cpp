@@ -12,9 +12,14 @@ pNode new_sym_node(pToken t, Symbol str)
     return pNode(new SymNode(t, str));
 }
 
-pNode new_opr_node(pToken t, OprType type, Vector<pNode> ch)
+pNode new_binary_node(pToken t, BinaryType type, pNode lhs, pNode rhs)
 {
-    return pNode(new OprNode(t, type, ch));
+    return pNode(new BinaryNode(t, type, lhs, rhs));
+}
+
+pNode new_unary_node(pToken t, UnaryType type, pNode rhs)
+{
+    return pNode(new UnaryNode(t, type, rhs));
 }
 
 pNode new_assign_node(pToken t, pNode lv, pNode val)
