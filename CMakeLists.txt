@@ -8,6 +8,7 @@ enable_testing()
 
 add_subdirectory(third_party/googletest)
 add_subdirectory(test)
+add_subdirectory(frontend)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src STAISP_SRC)
