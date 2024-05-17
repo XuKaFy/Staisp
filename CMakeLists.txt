@@ -12,5 +12,5 @@ add_subdirectory(frontend)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
 aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src STAISP_SRC)
-add_executable(frontend frontend.cpp ${STAISP_SRC})
+add_executable(staisp_frontend frontend.cpp ${STAISP_SRC})
 add_library(staisp ${STAISP_SRC})

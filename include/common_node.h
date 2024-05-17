@@ -61,6 +61,9 @@ struct Node
     Node(pToken t, NodeType type);
 
     void throw_error(int id, Symbol object, Symbol message);
+    virtual void print(size_t tabs = 0) {
+        ;
+    }
 
     pToken token;
     NodeType type;

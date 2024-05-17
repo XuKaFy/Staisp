@@ -10,4 +10,8 @@ int main() {
     setFileName("test.sysy");
     yyparse();
     printf("root elements: %zu\n", root.size());
+    for(auto &&i : root) {
+        i->print();
+        puts("");
+    }
 }
