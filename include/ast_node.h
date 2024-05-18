@@ -310,14 +310,14 @@ struct CastNode : public Node
 
 struct RefNode : public Node
 {
-    RefNode(pToken t, Symbol name)
-        : Node(t, NODE_REF), name(name) { }
+    RefNode(pToken t, pNode v)
+        : Node(t, NODE_REF), v(v) { }
 
     virtual void print(size_t tabs = 0) override {
         printf("&");
     }
 
-    Symbol name;
+    pNode v;
 };
 
 struct DerefNode : public Node
@@ -334,11 +334,17 @@ struct DerefNode : public Node
 
 struct ItemNode : public Node
 {
-    ItemNode(pToken t, Symbol v, Vector<pNode> index)
+    ItemNode(pToken t, pNode v, Vector<pNode> index)
         : Node(t, NODE_ITEM), v(v), index(index) { }
 
     virtual void print(size_t tabs = 0) override {
-        printf("&%s", v);
+        if(v->type == NODE_SYM) {
+            v->print(tabs);
+        } else {
+            printf("(");
+            v->print(tabs);
+            printf(")");
+        }
         for(auto &&i : index) {
             printf("[");
             i->print(tabs);
@@ -346,7 +352,7 @@ struct ItemNode : public Node
         }
     }
 
-    Symbol v;
+    pNode v;
     Vector<pNode> index;
 };
 
@@ -358,9 +364,9 @@ pNode new_block_node(pToken t, AstProg body);
 pNode new_binary_node(pToken t, BinaryType type, pNode lhs, pNode rhs);
 pNode new_unary_node(pToken t, UnaryType type, pNode rhs);
 pNode new_cast_node(pToken t, pType ty, pNode val);
-pNode new_ref_node(pToken t, Symbol name);
+pNode new_ref_node(pToken t, pNode v);
 pNode new_deref_node(pToken t, pNode val);
-pNode new_item_node(pToken t, Symbol v, Vector<pNode> index);
+pNode new_item_node(pToken t, pNode val, Vector<pNode> index);
 
 pNode new_var_def_node(pToken t, TypedSym var, pNode val, bool is_const = false);
 pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body);

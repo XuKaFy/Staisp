@@ -2,9 +2,11 @@
 
 #include "ast_node.h"
 #include "common_node.h"
+#include "def.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
 #include "ir_constant.h"
+#include "ir_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_ptr_instr.h"
 #include "ir_control_instr.h"
@@ -33,77 +35,52 @@ Ir::pInstr Convertor::add_instr(Ir::pInstr instr)
     return instr;
 }
 
-Ir::pVal Convertor::find_left_value(pNode root, Symbol sym, bool request)
+Ir::pVal Convertor::find_left_value(pNode root, Symbol sym, bool request_not_const)
 {
+    Ir::pInstr found_instr;
     if(_env.env()->count(sym)) { // local
         MaybeConstInstr found = _env.env()->find(sym);
         // const value is error
-        if(!is_pointer(found.instr->ty) || (request && found.is_const))
+        if(!is_pointer(found.instr->ty) || (request_not_const && found.is_const))
             throw_error(root, 10, "assignment to a local const value");
         // no-const value should be loaded
-        return found.instr;
+        found_instr = found.instr;
     } else { // global
         for(auto i : module()->globs) {
             if(strcmp(i->name()+1, sym) == 0) {
-                if(request && i->is_const)
+                if(request_not_const && i->is_const)
                     throw_error(root, 11, "assignment to a global const value");
                 auto sym_node = Ir::make_sym_instr(TypedSym(to_symbol(String("@") + sym), i->ty));
                 _cur_func->add_imm(sym_node);
-                return sym_node;
+                found_instr = sym_node;
+                break;
             }
         }
     }
-    printf("Warning: left-value \"%s\" not found.\n", sym);
-    throw_error(root, 1, "left value cannot be found");
-    return Ir::make_empty_instr();
-}
-
-Ir::pVal Convertor::find_left_value(pNode lv)
-{
-    if(lv->type == NODE_DEREF) {
-        auto r = std::static_pointer_cast<Ast::DerefNode>(lv);
-        auto res = analyze_value(r->val);
-        return res;
+    if(!found_instr) {
+        printf("Warning: left-value \"%s\" not found.\n", sym);
+        throw_error(root, 1, "left value cannot be found");
     }
-    if(lv->type == NODE_ITEM) {
-        auto r = std::static_pointer_cast<Ast::ItemNode>(lv);
-        auto array = find_left_value(r, r->v);
-        Vector<Ir::pVal> indexs;
-        for(auto i : r->index)
-            indexs.push_back(analyze_value(i));
-        auto res = Ir::make_item_instr(array, indexs);
-        return add_instr(res);
-    }
-    if(lv->type != NODE_SYM) {
-        throw_error(lv, 12, "expected to be a left-value");
-    }
-    Symbol sym = std::static_pointer_cast<Ast::SymNode>(lv)->sym;
-    return find_left_value(lv, sym);
-}
-
-Ir::pVal Convertor::find_value(Pointer<Ast::SymNode> root)
-{
-    if(_env.env()->count(root->sym)) { // local
-        MaybeConstInstr found = _env.env()->find(root->sym);
-        // in this implement, all local value is stored
-        return add_instr(Ir::make_load_instr(found.instr));
-    } else { // global
-        for(auto i : module()->globs) {
-            if(strcmp(i->name()+1, root->sym) == 0) { // global name: "@xxx"
-                auto from = Ir::make_sym_instr(TypedSym(to_symbol(String("@") + root->sym), i->ty));
-                _cur_func->add_imm(from);
-                return add_instr(Ir::make_load_instr(from));
-            }
-        }
-    }
-    // impossible
-    throw_error(root, -1, "symbol cannot be found - impossible");
-    return Ir::make_empty_instr();
+    // printf("found %s %s\n", found_instr->ty->type_name(), sym);
+    return found_instr;
 }
 
 Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty)
 {
     if(is_same_type(val->ty, ty)) return val;
+    // decay
+    if(is_pointer(ty) && is_pointer(val->ty) 
+        && is_same_type(to_pointed_type(ty), to_elem_type(to_pointed_type(val->ty)))) {
+        printf("found %s decay from %s to %s\n", val->name(), val->ty->type_name(), ty->type_name());
+        auto imm = Ir::make_constant(ImmValue(0));
+        auto r = Ir::make_item_instr(val, {imm});
+        if(!is_same_type(ty, r->ty)) {
+            throw_error(root, -1, "decay error?");
+        }
+        add_instr(r);
+        _cur_func->add_imm(imm);
+        return r;
+    }
     if(!is_castable(val->ty, ty)) {
         printf("Message: not castable from %s to %s\n", val->ty->type_name(), ty->type_name());
         throw_error(root, 13, "[Convertor] error 13: not castable");
@@ -207,9 +184,76 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
     }
 }
 
-Ir::pVal Convertor::analyze_value(pNode root)
+Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const)
 {
     switch(root->type) {
+    case NODE_ITEM: {
+        /*
+        int fun(int a[]) { // i32* %a
+            // %0 = alloca i32* 0           | %0 -> int**
+            // store i32* %a, i32** %0
+            int b[2] = {0};
+            // %1 = alloca [2 x i32]        | %1 -> [2 x i32]*
+            a[1]:   %2 = load i32*, i32** %0
+                    %3 = gep i32, i32* %1, i64 1
+            b[1]:   %2 = gep [2 x i32], [2 x i32]* %1, i64 0, i64 1
+        }
+        */
+        auto r = std::static_pointer_cast<Ast::ItemNode>(root);
+        auto array = analyze_value(r->v, request_not_const);
+        if(!is_pointer(array->ty)) {
+            printf("Message: type is %s\n", array->ty->type_name());
+            throw_error(r->v, 25, "not an array");
+        }
+        printf("Array Type: %s\n", array->ty->type_name());
+        Vector<Ir::pVal> indexs;
+        for(auto i : r->index) {
+            indexs.push_back(analyze_value(i));
+            if(!is_integer(indexs.back()->ty))
+                throw_error(i, 14, "type of index should be integer");
+        }
+        auto itemptr = Ir::make_item_instr(array, indexs);
+        add_instr(itemptr);
+        return itemptr;
+    }
+    case NODE_SYM: {
+        auto r = std::static_pointer_cast<Ast::SymNode>(root);
+        return find_left_value(r, r->sym, request_not_const);
+    }
+    case NODE_DEREF: {
+        /*
+            int x;          | x: int*
+            int *y = &x;    | y: int**
+            *y = 1;         | %1 = load i32** y
+                            | store i32 1, i32* %1
+        */
+        auto r = std::static_pointer_cast<Ast::DerefNode>(root);
+        return add_instr(Ir::make_load_instr(analyze_left_value(r->val)));
+    }
+    default:
+        throw_error(root, 22, "left value needed");
+        break;
+    }
+    return Ir::make_empty_instr();
+}
+
+Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
+{
+    switch(root->type) {
+    case NODE_DEREF:
+    case NODE_ITEM:
+    case NODE_SYM: {
+        auto lv = analyze_left_value(root, request_not_const);
+        // printf("analyze value: from lv %s\n", lv->ty->type_name());
+        if(is_array(to_pointed_type(lv->ty))) { // 数组不能解引用传递
+            return lv;
+        }
+        return add_instr(Ir::make_load_instr(lv));
+    }
+    case NODE_REF: {
+        auto r = std::static_pointer_cast<Ast::RefNode>(root);
+        return analyze_left_value(r->v, true);
+    }
     case NODE_CAST: {
         auto r = std::static_pointer_cast<Ast::CastNode>(root);
         auto res = Ir::make_cast_instr(r->ty, analyze_value(r->val));
@@ -238,53 +282,6 @@ Ir::pVal Convertor::analyze_value(pNode root)
         _cur_func->add_imm(res);
         return res;
     }
-    case NODE_SYM: {
-        auto r = std::static_pointer_cast<Ast::SymNode>(root);
-        auto to = find_value(r);
-        return to;
-    }
-    case NODE_REF: {
-        auto r = std::static_pointer_cast<Ast::RefNode>(root);
-        return find_left_value(root, r->name);
-    }
-    case NODE_DEREF: {
-        auto rr = std::static_pointer_cast<Ast::DerefNode>(root);
-        if(rr->val->type == NODE_ITEM) {
-            // 特判 DEREF 的时候作为右值的情况
-            auto r = std::static_pointer_cast<Ast::ItemNode>(rr->val);
-            auto array = find_left_value(r, r->v, false);
-            Vector<Ir::pVal> indexs;
-            for(auto i : r->index) {
-                indexs.push_back(analyze_value(i));
-                if(!is_integer(indexs.back()->ty))
-                    throw_error(i, 14, "type of index should be integer");
-            }
-            auto itemptr = Ir::make_item_instr(array, indexs);
-            add_instr(itemptr);
-            auto res = Ir::make_load_instr(itemptr);
-            add_instr(res);
-            return res;
-        }
-        auto res = Ir::make_load_instr(analyze_value(rr->val));
-        add_instr(res);
-        return res;
-    }
-    case NODE_ITEM: {
-        auto r = std::static_pointer_cast<Ast::ItemNode>(root);
-        auto array = find_left_value(r, r->v);
-        Vector<Ir::pVal> indexs;
-        for(auto i : r->index) {
-            indexs.push_back(analyze_value(i));
-            if(!is_integer(indexs.back()->ty))
-                throw_error(i, 14, "type of index should be integer");
-        }
-        auto itemptr = Ir::make_item_instr(array, indexs);
-        add_instr(itemptr);
-        return itemptr;
-    }
-    case NODE_ARRAY_VAL: {
-        throw_error(root, -1, "array definition is not calculatable - impossible");
-    }
     case NODE_CALL: {
         auto r = std::static_pointer_cast<Ast::CallNode>(root);
         if(!func_count(r->name)) {
@@ -302,16 +299,7 @@ Ir::pVal Convertor::analyze_value(pNode root)
         }
         return add_instr(Ir::make_call_instr(func, args));
     }
-    case NODE_ASSIGN:
-    case NODE_DEF_VAR:
-    case NODE_IF:
-    case NODE_WHILE:
-    case NODE_FOR:
-    case NODE_CONTINUE:
-    case NODE_BREAK:
-    case NODE_RETURN:
-    case NODE_BLOCK:
-    case NODE_DEF_FUNC:
+    default:
         throw_error(root, 3, "node not calculatable");
     }
     return Ir::make_empty_instr();
@@ -356,9 +344,21 @@ void Convertor::analyze_statement_node(pNode root)
 {
     switch(root->type) {
     case NODE_ASSIGN: {
+        /* reject const:
+            1.
+                const int a = 10;
+                a = 3; // reject
+            2.
+                const int a = 10;
+                int *b = &a; // reject
+        */
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
-        auto lv = find_left_value(r->lv);
-        add_instr(Ir::make_store_instr(lv, cast_to_type(r->val, analyze_value(r->val), to_pointed_type(lv->ty))));
+        auto lv = analyze_left_value(r->lv, true);
+        if(is_array(to_pointed_type(lv->ty))) {
+            throw_error(r->lv, 23, "array cannot be left value");
+        }
+        auto rv = analyze_value(r->val);
+        add_instr(Ir::make_store_instr(lv, cast_to_type(r->val, rv, to_pointed_type(lv->ty))));
         break;
     }
     case NODE_DEF_VAR: {
@@ -550,6 +550,10 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
         Vector<pType> types;
         Vector<Symbol> syms;
         for(auto i : root->args) {
+            if(is_array(i.ty)) {
+                printf("Warning: %s is array.\n", i.sym);
+                throw_error(root, 24, "array cannot be argument");
+            }
             types.push_back(i.ty);
             syms.push_back(i.sym);
         }
@@ -559,6 +563,10 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
                 由于 sysy 语法中函数参数没有 const
                 所以这里一定是 false
             */
+            if(_env.env()->count(root->args[i].sym)) {
+                printf("Warning: %s repeated.\n", root->args[i].sym);
+                throw_error(root, 26, "repeated argument name");
+            }
             _env.env()->set(root->args[i].sym, { func->args[i], false });
         }
         set_func(func->name(), func);

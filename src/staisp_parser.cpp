@@ -214,7 +214,7 @@ pNode Parser::parse_left_value()
             return Ast::new_deref_node(current_p_token(), parse_value());
         }
         if(r == BUILDIN_ITEM) {
-            auto name = parse_sym();
+            auto name = parse_value();
             auto index = parse_array_value();
             return Ast::new_item_node(current_p_token(), name, index);
         }
@@ -317,13 +317,13 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         return Ast::new_cast_node(token, type, parse_value());
     }
     case BUILDIN_REF: {
-        return Ast::new_ref_node(token, parse_sym());
+        return Ast::new_ref_node(token, parse_value());
     }
     case BUILDIN_DEREF: {
         return Ast::new_deref_node(token, parse_value());
     }
     case BUILDIN_ITEM: {
-        auto v = parse_sym();
+        auto v = parse_value();
         auto index = parse_array_value();
         return Ast::new_item_node(token, v, index);
     }

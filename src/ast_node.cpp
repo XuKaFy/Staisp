@@ -52,9 +52,9 @@ pNode new_cast_node(pToken t, pType ty, pNode val)
     return pNode(new CastNode(t, ty, val));
 }
 
-pNode new_ref_node(pToken t, Symbol name)
+pNode new_ref_node(pToken t, pNode v)
 {
-    return pNode(new RefNode(t, name));
+    return pNode(new RefNode(t, v));
 }
 
 pNode new_deref_node(pToken t, pNode val)
@@ -62,7 +62,7 @@ pNode new_deref_node(pToken t, pNode val)
     return pNode(new DerefNode(t, val));
 }
 
-pNode new_item_node(pToken t, Symbol v, Vector<pNode> index)
+pNode new_item_node(pToken t, pNode v, Vector<pNode> index)
 {
     return pNode(new ItemNode(t, v, index));
 }

@@ -1,0 +1,23 @@
+DEFFUNC i32:fun1(i32[10]*:arr) {
+    DEFVAR i32[10][10]:b [[] [0 2]]
+    IF NE ITEM arr [1 1] 1
+        RETURN 0
+    ASSIGN arr b
+    RETURN EQ ITEM arr [1 1] 2
+}
+
+DEFFUNC i32:fun2(i32*:arr) {
+    DEFVAR i32[10]:b [0 2]
+    IF NE ITEM arr [1] 1
+        RETURN 0
+    ASSIGN arr b
+    RETURN EQ ITEM arr [1] 2
+}
+
+DEFFUNC i32:main() {
+    DEFVAR i32[10][10]:a [[] [0 1]]
+    DEFVAR i32[10]:b [0 1]
+    IF AND fun1(a) fun2(b)
+        RETURN 0
+    RETURN 1
+}

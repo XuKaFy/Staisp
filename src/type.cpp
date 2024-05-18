@@ -1,4 +1,5 @@
 #include "type.h"
+#include "def.h"
 
 Symbol BasicType::type_name() const
 {
@@ -74,6 +75,12 @@ pType join_type(pType a1, pType a2)
 // 只要两个类型的字符表达一致，就一定是同一类型
 bool is_same_type(pType a1, pType a2)
 {
+    if(!a1) {
+        throw Exception(1, "is_same_type", "arg1 is empty");
+    }
+    if(!a2) {
+        throw Exception(2, "is_same_type", "arg2 is empty");
+    }
     return strcmp(a1->type_name(), a2->type_name()) == 0;
 }
 
@@ -171,6 +178,9 @@ Pointer<PointerType> to_pointer_type(pType p)
 
 pType to_pointed_type(pType p)
 {
+    if(!is_pointer(p)) {
+        throw Exception(1, "to_pointed_type", "not a pointer");
+    }
     return to_pointer_type(p)->pointed_type;
 }
 

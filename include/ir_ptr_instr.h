@@ -13,6 +13,10 @@ struct ItemInstr : public Instr {
     virtual InstrType instr_type() const override {
         return INSTR_ITEM;
     }
+
+    // from int[][10], false
+    // from int[10][10], true
+    bool get_from_local;
 };
 
 pInstr make_item_instr(pVal val, Vector<pVal> index);

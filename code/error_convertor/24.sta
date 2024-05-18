@@ -1,0 +1,8 @@
+DEFFUNC i32:fun(i32[10]:a) {
+    RETURN ITEM a[0]
+}
+
+DEFFUNC i32:main() {
+    DEFVAR i32[10]:a []
+    RETURN fun(a)
+}

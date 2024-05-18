@@ -1743,7 +1743,7 @@ yyreduce:
   case 56: /* LVal: ID ArrayIndexes  */
 #line 369 "parser.y"
                   {
-    (yyval.lVal) = new ItemNode(NULL, to_symbol(*(yyvsp[-1].token)), *(yyvsp[0].args));
+    (yyval.lVal) = new ItemNode(NULL, new_sym_node(NULL, to_symbol(*(yyvsp[-1].token))), *(yyvsp[0].args));
     delete (yyvsp[-1].token);
     delete (yyvsp[0].args);
   }

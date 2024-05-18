@@ -39,16 +39,17 @@ public:
 private:
     static void throw_error(pNode root, int id, Symbol msg);
 
+    Ir::pVal find_left_value(pNode root, Symbol sym, bool request_not_const = false);
+    
+    Ir::pVal analyze_value(pNode root, bool request_not_const = false);
+    Ir::pVal analyze_left_value(pNode root, bool request_not_const = false);
+
     void generate_single(pNode root);
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);
     void analyze_statement_node(pNode root);
     void copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pVal> indexs = {});
-    Ir::pVal analyze_value(pNode root);
     Ir::pVal analyze_opr(Pointer<Ast::BinaryNode> root);
-    Ir::pVal find_value(Pointer<Ast::SymNode> root);
-    Ir::pVal find_left_value(pNode lv);
-    Ir::pVal find_left_value(pNode root, Symbol sym, bool request = true);
     Ir::pVal cast_to_type(pNode root, Ir::pVal val, pType tr);
 
     Value from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType> t);

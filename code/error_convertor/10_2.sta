@@ -1,5 +1,5 @@
 DEFFUNC i32:main() BLOCK {
     DEFVAR CONST i32[10]:i []
-    ASSIGN DEREF ITEM i [0] 1
-    RETURN DEREF ITEM i [0]
+    ASSIGN ITEM i [0] 1
+    RETURN ITEM i [0]
 }

@@ -1,6 +1,6 @@
 DEFFUNC i32:main () {
     DEFVAR i32[2]:a [0 1]
-    DEFVAR i32:b DEREF ITEM a [0]
-    DEFVAR i32:c DEREF ITEM a [1]
+    DEFVAR i32:b ITEM a [0]
+    DEFVAR i32:c ITEM a [1]
     RETURN b
 }

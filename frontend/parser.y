@@ -367,7 +367,7 @@ LVal:
     delete $1;
   }|
   ID ArrayIndexes {
-    $$ = new ItemNode(NULL, to_symbol(*$1), *$2);
+    $$ = new ItemNode(NULL, new_sym_node(NULL, to_symbol(*$1)), *$2);
     delete $1;
     delete $2;
   };

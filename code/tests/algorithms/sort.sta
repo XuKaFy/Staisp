@@ -5,12 +5,12 @@ DEFFUNC i32:swap(i32*:x i32*:y) {
     RETURN 0
 }
 
-DEFFUNC i32:minElement(i32[10]:a i32:size) {
+DEFFUNC i32:minElement(i32*:a i32:size) {
     DEFVAR i32:i ADD size 1
     DEFVAR i32:ans size
     WHILE LT i 10 {
-        IF LT DEREF ITEM a [i]
-              DEREF ITEM a [ans] {
+        IF LT ITEM a [i]
+              ITEM a [ans] {
             ASSIGN ans i
         }
         ASSIGN i ADD i 1
@@ -18,11 +18,11 @@ DEFFUNC i32:minElement(i32[10]:a i32:size) {
     RETURN ans
 }
 
-DEFFUNC i32:equal(i32[10]:a i32[10]:b) {
+DEFFUNC i32:equal(i32*:a i32*:b) {
     DEFVAR i32:i 0
     WHILE LT i 10 {
-        IF NE DEREF ITEM a [i] 
-              DEREF ITEM b [i] {
+        IF NE ITEM a [i] 
+              ITEM b [i] {
             RETURN i
         }
         ASSIGN i ADD i 1
@@ -38,7 +38,7 @@ DEFFUNC i32:main() {
     WHILE LT i 10 {
         ASSIGN pos minElement(a i)
         IF NE pos i
-            swap(ITEM a [i] ITEM a [pos])
+            swap(REF ITEM a [i] REF ITEM a [pos])
         ASSIGN i ADD i 1
     }
     RETURN NE equal(a b) 10

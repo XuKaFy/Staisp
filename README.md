@@ -229,6 +229,11 @@ compiler [file_name]
 19. `[Convertor] error 19: try to dereference a non-pointer value`：DEREF 只能用于指针
 20. `[Convertor] error 20: function not found`：未找到函数
 21. `[Convertor] error 21: neg an non-number`：单目运算符"-"的值类型必须是数字
+22. `[Convertor] error 22: left value needed`：此处应该需要一个左值
+23. `[Convertor] error 23: array cannot be left value`：数组不能做左值
+24. `[Convertor] error 24: array cannot be argument`：数组不能做参数
+25. `[Convertor] error 25: not an array`：不是数组
+26. `[Convertor] error 26: repeated argument name`：函数形参重复
 
 ### Executor 运行时报错
 
