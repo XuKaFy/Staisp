@@ -1,6 +1,8 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_instr.h"
+#include "ir_val.h"
 #include "type.h"
 #include <cassert>
 #include <cstdio>
@@ -96,7 +98,7 @@ Symbol PhiInstr::instr_print_impl() const {
     ret += String("phi ") + ty->type_name();
     for (auto [blk, val] : incoming_tuples) {
         ret += "[ ";
-        ret += val->name();
+        ret += val->usee->name();
         ret += ", ";
         ret += blk->name();
         ret += " ]";
@@ -105,11 +107,14 @@ Symbol PhiInstr::instr_print_impl() const {
     return to_symbol(ret);
 }
 
-void PhiInstr::add_incoming(pBlock blk, pVal val) {
-    my_assert(val->type() == type(), "rightvalue is same as type of phi node");
+void PhiInstr::add_incoming(Block *blk, Val *val) {
+    my_assert(val->ty == ty, "rightvalue is same as type of phi node");
     my_assert(incoming_tuples.find(blk) == incoming_tuples.end(),
               "block is not in incoming tuples");
-    incoming_tuples.insert({blk, val});
+    add_operand(val);
+    incoming_tuples.insert({blk, *operands.cbegin()});
 }
+
+pInstr make_phi_instr(const pType type) { return pInstr(new PhiInstr(type)); }
 
 }; // namespace Ir

@@ -34,8 +34,12 @@ struct PhiInstr final : Instr {
 
     virtual Symbol instr_print_impl() const override;
 
-    void add_incoming(pBlock block, pVal val);
+    void add_incoming(Block *block, Val *val);
 
-    Map<pBlock, pVal> incoming_tuples;
+    Map<Block *, pUse> incoming_tuples;
 };
+
+// make_phi_instr: create a new PhiInstr with the given type
+[[nodiscard]]
+pInstr make_phi_instr(pType type);
 }; // namespace Ir
