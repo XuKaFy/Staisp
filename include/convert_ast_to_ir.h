@@ -36,6 +36,8 @@ public:
     static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root);
     static Ir::CmpType fromCmpOpr(Pointer<Ast::BinaryNode> root, pType tr);
 
+    static ImmValue constant_eval(pNode node);
+
 private:
     static void throw_error(pNode root, int id, Symbol msg);
 

@@ -126,8 +126,12 @@ struct VarDefNode : public Node
         : Node(t, NODE_DEF_VAR), var(var), val(val), is_const(is_const) { }
 
     virtual void print(size_t tabs = 0) override {
-        printf("%s%s %s = ", is_const ? "const " : "", var.ty->type_name(), var.sym);
-        val->print(tabs);
+        if(val) {
+            printf("%s%s %s = ", is_const ? "const " : "", var.ty->type_name(), var.sym);
+            val->print(tabs);
+        } else {
+            printf("%s%s %s", is_const ? "const " : "", var.ty->type_name(), var.sym);
+        }
     }
 
     TypedSym var;

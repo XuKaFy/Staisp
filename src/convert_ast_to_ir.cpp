@@ -184,6 +184,42 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
     }
 }
 
+ImmValue Convertor::constant_eval(pNode node)
+{
+    switch(node->type) {
+    case NODE_IMM:
+        return std::static_pointer_cast<Ast::ImmNode>(node)->imm;
+    case NODE_UNARY: {
+        auto r = std::static_pointer_cast<Ast::UnaryNode>(node);
+        auto imm = constant_eval(r->ch);
+        return 0 - imm;
+    }
+    case NODE_BINARY: {
+        auto r = std::static_pointer_cast<Ast::BinaryNode>(node);
+        auto lc = constant_eval(r->lhs);
+        auto rc = constant_eval(r->rhs);
+        switch(r->type) {
+        case OPR_ADD:   return lc + rc;
+        case OPR_DIV:   return lc / rc;
+        case OPR_EQ:    return lc == rc;
+        case OPR_GE:    return lc >= rc;
+        case OPR_GT:    return lc > rc;
+        case OPR_LE:    return lc <= rc;
+        case OPR_LT:    return lc < rc;
+        case OPR_MUL:   return lc * rc;
+        case OPR_NE:    return lc != rc;
+        case OPR_REM:   return lc % rc;
+        case OPR_SUB:   return lc - rc;
+        case OPR_AND:   return lc && rc;
+        case OPR_OR:    return lc || rc;
+        }
+    }
+    default: break;
+    }
+    throw_error(node, 1, "not implemented");
+    return 0;
+}
+
 Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const)
 {
     switch(root->type) {
@@ -367,14 +403,18 @@ void Convertor::analyze_statement_node(pNode root)
         if(is_array(r->var.ty)) {
             if(r->val->type != NODE_ARRAY_VAL)
                 throw_error(r->val, 17, "array should be initialized by a list");
-            auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
             add_instr(tmp = Ir::make_alloc_instr(r->var.ty));
             _env.env()->set(r->var.sym, {tmp, r->is_const});
-            copy_to_array(r, tmp, tmp->ty, rrr->nums);
+            if(r->val) {
+                auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
+                copy_to_array(r, tmp, tmp->ty, rrr->nums);
+            }
             break;
         }
         add_instr(tmp = Ir::make_alloc_instr(r->var.ty));
-        add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val), r->var.ty)));
+        if(r->val) {
+            add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val), r->var.ty)));
+        }
         _env.env()->set(r->var.sym, {tmp, r->is_const});
         break;
     }
@@ -606,12 +646,23 @@ Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType>
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
 {
     _env.push_env();
-    if(root->val->type == NODE_IMM) {
-        module()->add_global(Ir::make_global(root->var, 
-            Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm), root->is_const));
+    if(is_integer(root->var.ty)) {
+        if(root->val) {
+            module()->add_global(Ir::make_global(root->var, 
+                Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm), root->is_const));
+        } else {
+            module()->add_global(Ir::make_global(root->var, 
+                Value(0), root->is_const));
+        }
     } else {
-        module()->add_global(Ir::make_global(root->var, 
-            Value(from_array_def(std::static_pointer_cast<Ast::ArrayDefNode>(root->val), to_array_type(root->var.ty))), root->is_const));
+        if(root->val) {
+            module()->add_global(Ir::make_global(root->var, 
+                Value(from_array_def(std::static_pointer_cast<Ast::ArrayDefNode>(root->val), 
+                    to_array_type(root->var.ty))), root->is_const));
+        } else {
+            module()->add_global(Ir::make_global(root->var, 
+                Value(from_array_def(nullptr, to_array_type(root->var.ty))), root->is_const));
+        }
     }
     _env.end_env();
 }

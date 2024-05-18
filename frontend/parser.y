@@ -3,6 +3,9 @@
   #include <memory>
   #include <cstring>
   #include <stdarg.h>
+
+  #include "../include/convert_ast_to_ir.h"
+
   using namespace std;
   using namespace Ast;
   vector<pNode> root; /* the top level root node of our final AST */
@@ -166,7 +169,7 @@ DefList:
 
 // 定义
 Def:
-  ID ArrayIndexes ASSIGN InitVal {
+  ID ArrayIndexes ASSIGN InitVal { // int a[10] = {{0, 0}, {1, 1}}
     $$ = new DefAST();
     $$->id = *$1;
     delete $1; 
@@ -210,16 +213,16 @@ InitVal:
   Exp {
     $$ = $1;
   }|
-  LC RC {
+  LC RC { // { }
     $$ = new ArrayDefNode(NULL, {});
   }|
-  LC InitValList RC {
+  LC InitValList RC { // {1, 2, 3}
     $$ = new ArrayDefNode(NULL, *$2);
     delete $2;
   };
 
 // 变量列表
-InitValList:
+InitValList: // {1, 1, 1, 1} 
   InitValList COMMA InitVal {
     $$ = $1;
     $$->push_back(pNode($3));
@@ -265,10 +268,20 @@ FuncFParam:
     $$ = new TypedSym(toTypedSym($2, $1));
   }|
   BType ID LB RB { // TODO
-    $$ = new TypedSym(toTypedSym($2, $1));
+    $$ = new TypedSym(toTypedSym($2, make_pointer_type(toPTYPE($1))));
   }|
   BType ID LB RB ArrayIndexes { // TODO
-    $$ = new TypedSym(toTypedSym($2, $1));
+    auto innerTy = toPTYPE($1);
+    for(auto && i : *$5) { // vector<pNode>
+      auto immValue = AstToIr::Convertor::constant_eval(i);
+      if(is_imm_integer(immValue.ty)) {
+        innerTy = make_array_type(innerTy, immValue.val.uval);
+      } else {
+        puts("index must be integer");
+        exit(0);
+      }
+    }
+    $$ = new TypedSym(toTypedSym($2, make_pointer_type(innerTy)));
   };
 
 // 语句块
