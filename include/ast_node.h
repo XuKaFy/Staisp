@@ -2,7 +2,6 @@
 
 #include "def.h"
 #include "imm.h"
-#include "staisp_parser.h"
 #include "type.h"
 
 #include "common_node.h"
@@ -122,32 +121,72 @@ struct AssignNode : public Node
     pNode val;
 };
 
+struct BasicTypeNode : public Node
+{
+    BasicTypeNode(pToken t, pType ty)
+        : Node(t, NODE_BASIC_TYPE), ty(ty) { }
+
+    virtual void print(size_t tabs = 0) override {
+        printf("%s", ty->type_name());
+    }
+
+    pType ty;
+};
+
+struct PointerTypeNode : public Node
+{
+    PointerTypeNode(pToken t, pNode n)
+        : Node(t, NODE_POINTER_TYPE), n(n) { }
+
+    virtual void print(size_t tabs = 0) override {
+        printf("(*)");
+    }
+
+    pNode n;
+};
+
+struct ArrayTypeNode : public Node
+{
+    ArrayTypeNode(pToken t, pNode n, pNode index)
+        : Node(t, NODE_ARRAY_TYPE), n(n), index(index) { }
+
+    virtual void print(size_t tabs = 0) override {
+        printf("[");
+        n->print();
+        printf("]");
+    }
+
+    pNode n;
+    pNode index;
+};
+
 struct VarDefNode : public Node
 {
-    VarDefNode(pToken t,TypedSym var, pNode val, bool is_const = false)
+    VarDefNode(pToken t, TypedNodeSym var, pNode val, bool is_const = false)
         : Node(t, NODE_DEF_VAR), var(var), val(val), is_const(is_const) { }
 
     virtual void print(size_t tabs = 0) override {
+        if(is_const) printf("const ");
+        var.print();
         if(val) {
-            printf("%s%s %s = ", is_const ? "const " : "", var.ty->type_name(), var.sym);
+            printf(" = ");
             val->print(tabs);
-        } else {
-            printf("%s%s %s", is_const ? "const " : "", var.ty->type_name(), var.sym);
         }
     }
 
-    TypedSym var;
+    TypedNodeSym var;
     pNode val;
     bool is_const;
 };
 
 struct FuncDefNode : public Node
 {
-    FuncDefNode(pToken t, TypedSym var, Vector<TypedSym> args, pNode body)
+    FuncDefNode(pToken t, TypedNodeSym var, Vector<TypedNodeSym> args, pNode body)
         : Node(t, NODE_DEF_FUNC), var(var), args(args), body(body) { }
     
     virtual void print(size_t tabs = 0) override {
-        printf("%s %s(", var.ty->type_name(), var.sym);
+        var.n->print(tabs);
+        printf(" %s(", var.name);
         bool first = true;
         for(auto &&i : args) {
             if(first) {
@@ -155,14 +194,15 @@ struct FuncDefNode : public Node
             } else {
                 printf(", ");
             }
-            printf("%s %s", i.ty->type_name(), i.sym);
+            i.n->print(tabs);
+            printf(" %s", i.name);
         }
         printf(") ");
         body->print(tabs);
     }
 
-    TypedSym var;
-    Vector<TypedSym> args;
+    TypedNodeSym var;
+    Vector<TypedNodeSym> args;
     pNode body;
 };
 
@@ -302,15 +342,17 @@ struct ArrayDefNode : public Node
 
 struct CastNode : public Node
 {
-    CastNode(pToken t, pType ty, pNode val)
+    CastNode(pToken t, pNode ty, pNode val)
         : Node(t, NODE_CAST), ty(ty), val(val) { }
 
     virtual void print(size_t tabs = 0) override {
-        printf("(%s)", ty->type_name());
+        printf("(");
+        ty->print(tabs);
+        printf(")");
         val->print(tabs);
     }
 
-    pType ty;
+    pNode ty;
     pNode val;
 };
 
@@ -369,13 +411,17 @@ pNode new_block_node(pToken t, AstProg body);
 
 pNode new_binary_node(pToken t, BinaryType type, pNode lhs, pNode rhs);
 pNode new_unary_node(pToken t, UnaryType type, pNode rhs);
-pNode new_cast_node(pToken t, pType ty, pNode val);
+pNode new_cast_node(pToken t, pNode ty, pNode val);
 pNode new_ref_node(pToken t, pNode v);
 pNode new_deref_node(pToken t, pNode val);
 pNode new_item_node(pToken t, pNode val, Vector<pNode> index);
 
-pNode new_var_def_node(pToken t, TypedSym var, pNode val, bool is_const = false);
-pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body);
+pNode new_basic_type_node(pToken t, pType ty);
+pNode new_pointer_type_node(pToken t, pNode n);
+pNode new_array_type_node(pToken t, pNode n, pNode index);
+
+pNode new_var_def_node(pToken t, TypedNodeSym var, pNode val, bool is_const = false);
+pNode new_func_def_node(pToken t, TypedNodeSym var, Vector<TypedNodeSym> args, pNode body);
 pNode new_array_def_node(pToken t, Vector<pNode> nums);
 
 pNode new_assign_node(pToken t, pNode lv, pNode val);

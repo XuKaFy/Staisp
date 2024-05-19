@@ -27,12 +27,27 @@ pNode new_assign_node(pToken t, pNode lv, pNode val)
     return pNode(new AssignNode(t, lv, val));
 }
 
-pNode new_var_def_node(pToken t, TypedSym var, pNode val, bool is_const)
+pNode new_basic_type_node(pToken t, pType ty)
+{
+    return pNode(new BasicTypeNode(t, ty));
+}
+
+pNode new_pointer_type_node(pToken t, pNode n)
+{
+    return pNode(new PointerTypeNode(t, n));
+}
+
+pNode new_array_type_node(pToken t, pNode n, pNode index)
+{
+    return pNode(new ArrayTypeNode(t, n, index));
+}
+
+pNode new_var_def_node(pToken t, TypedNodeSym var, pNode val, bool is_const)
 {
     return pNode(new VarDefNode(t, var, val, is_const));
 }
 
-pNode new_func_def_node(pToken t, TypedSym var, Vector<TypedSym> args, pNode body)
+pNode new_func_def_node(pToken t, TypedNodeSym var, Vector<TypedNodeSym> args, pNode body)
 {
     return pNode(new FuncDefNode(t, var, args, body));
 }
@@ -47,7 +62,7 @@ pNode new_array_def_node(pToken t, Vector<pNode> nums)
     return pNode(new ArrayDefNode(t, nums));
 }
 
-pNode new_cast_node(pToken t, pType ty, pNode val)
+pNode new_cast_node(pToken t, pNode ty, pNode val)
 {
     return pNode(new CastNode(t, ty, val));
 }

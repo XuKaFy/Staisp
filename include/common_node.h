@@ -18,6 +18,9 @@ enum NodeType
     NODE_SYM,
     NODE_ASSIGN,
     NODE_DEF_VAR,
+    NODE_BASIC_TYPE,
+    NODE_POINTER_TYPE,
+    NODE_ARRAY_TYPE,
     NODE_DEF_FUNC,
     NODE_BLOCK,
     NODE_RETURN,
@@ -71,3 +74,15 @@ struct Node
 
 typedef Pointer<Node> pNode;
 typedef List<pNode> AstProg; // 可以把一个由 Ast 组成的程序看作一组节点，每个节点都是全局中的某个操作
+
+struct TypedNodeSym
+{
+    TypedNodeSym(Symbol name, pNode n)
+        : name(name), n(n) { }
+    void print() {
+        n->print();
+        printf(" %s", name);
+    }
+    Symbol name;
+    pNode n;
+};

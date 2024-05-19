@@ -22,8 +22,8 @@
   DefAST* def;
   Node* initVal;
   Node* funcDef;
-  Vector<TypedSym>* FuncFParamList;
-  TypedSym* funcFParam;
+  Vector<TypedNodeSym>* FuncFParamList;
+  TypedNodeSym* funcFParam;
   Node* block;
   Node* stmt;
   Node* returnStmt;
@@ -252,7 +252,7 @@ FuncDef:
 // 函数形参列表
 FuncFParamList:
   FuncFParam {
-    $$ = new Vector<TypedSym>();
+    $$ = new Vector<TypedNodeSym>();
     $$->push_back(*$1);
     delete $1;
   }|
@@ -265,23 +265,19 @@ FuncFParamList:
 // 函数形参
 FuncFParam:
   BType ID {
-    $$ = new TypedSym(toTypedSym($2, $1));
+    $$ = new TypedNodeSym(to_symbol(*$2), new_basic_type_node(NULL, toPTYPE($1)));
+    delete $2;
   }|
-  BType ID LB RB { // TODO
-    $$ = new TypedSym(toTypedSym($2, make_pointer_type(toPTYPE($1))));
+  BType ID LB RB {
+    $$ = new TypedNodeSym(to_symbol(*$2), new_pointer_type_node(NULL, new_basic_type_node(NULL, toPTYPE($1))));
+    delete $2;
   }|
-  BType ID LB RB ArrayIndexes { // TODO
-    auto innerTy = toPTYPE($1);
-    for(auto i = std::rbegin(*$5); i!=std::rend(*$5); ++i) { // vector<pNode>
-      auto immValue = AstToIr::Convertor::constant_eval(*i);
-      if(is_imm_integer(immValue.ty)) {
-        innerTy = make_array_type(innerTy, immValue.val.uval);
-      } else {
-        puts("index must be integer");
-        exit(0);
-      }
+  BType ID LB RB ArrayIndexes {
+    auto innerTy = Ast::new_basic_type_node(NULL, toPTYPE($1));
+    for(auto i = std::rbegin(*$5); i!=std::rend(*$5); ++i) { 
+      innerTy = Ast::new_array_type_node(NULL, innerTy, *i);
     }
-    $$ = new TypedSym(toTypedSym($2, make_pointer_type(innerTy)));
+    $$ = new TypedNodeSym(to_symbol(*$2), new_pointer_type_node(NULL, innerTy));
   };
 
 // 语句块

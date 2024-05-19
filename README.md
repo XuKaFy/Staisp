@@ -234,6 +234,8 @@ compiler [file_name]
 24. `[Convertor] error 24: array cannot be argument`：数组不能做参数
 25. `[Convertor] error 25: not an array`：不是数组
 26. `[Convertor] error 26: repeated argument name`：函数形参重复
+27. `[Convertor] error 27: single type`：类型不能单独出现
+28. `[Convertor] error 28: not a type`：不是类型
 
 ### Executor 运行时报错
 

@@ -5,7 +5,6 @@
 
 #include "def.h"
 #include "env.h"
-#include "imm.h"
 #include "type.h"
 
 #include "staisp_lexer.h"
@@ -118,16 +117,16 @@ private:
     pNode parse_value();
     Vector<pNode> parse_array_value();
     pNode parse_left_value();
-    TypedSym parse_typed_sym();
+    TypedNodeSym parse_typed_sym();
     Symbol parse_sym();
     pNode parse_sym_node();
-    pType parse_type();
-    ImmValue parse_single_value_list();
+    pNode parse_type();
+    pNode parse_single_value_list();
     bool parse_const();
     
     bool is_type_ended() const;
 
-    Vector<TypedSym> parse_typed_sym_list();
+    Vector<TypedNodeSym> parse_typed_sym_list();
     Vector<pNode> parse_value_list();
 
     // 用于验证标识符可达性的栈环境

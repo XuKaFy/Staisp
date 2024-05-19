@@ -147,8 +147,8 @@ union YYSTYPE
   DefAST* def;
   Node* initVal;
   Node* funcDef;
-  Vector<TypedSym>* FuncFParamList;
-  TypedSym* funcFParam;
+  Vector<TypedNodeSym>* FuncFParamList;
+  TypedNodeSym* funcFParam;
   Node* block;
   Node* stmt;
   Node* returnStmt;

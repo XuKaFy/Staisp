@@ -2,6 +2,7 @@
 
 #include "ast_node.h"
 #include "staisp_lexer.h"
+#include "type.h"
 
 namespace Staisp
 {
@@ -97,34 +98,27 @@ bool Parser::is_type_ended() const
     return true;
 }
 
-pType Parser::parse_type() {
+pNode Parser::parse_type() {
     get_token();
     if(current_token().t != TOKEN_SYM) {
         throw_error(3, "not a type");
     }
     if(strcmp(current_token().sym, "void") == 0) {
-        return make_void_type();
+        return Ast::new_basic_type_node(current_p_token(), make_void_type());
     }
     if(gSymToImmType.count(current_token().sym) == 0) {
         throw_error(3, "not a type");
     }
-    pType root = make_basic_type(gSymToImmType.find(current_token().sym)->second);
+    pNode root = Ast::new_basic_type_node(current_p_token(), make_basic_type(gSymToImmType.find(current_token().sym)->second));
     // 注意，对 Type 的识别是左递归的
     while(!is_type_ended()) {
         if(peek().t == TOKEN_FLWR) {
-            root = make_pointer_type(root);
+            root = Ast::new_pointer_type_node(current_p_token(), root);
             consume_token(TOKEN_FLWR);
             continue;
         }
-        ImmValue val = parse_single_value_list();
-        if(!is_imm_integer(val.ty)) {
-            throw_error(13, "type of index should be integer");
-        }
-        if(is_imm_signed(val.ty)) {
-            root = make_array_type(root, val.val.ival);
-        } else {
-            root = make_array_type(root, val.val.uval);
-        }
+        pNode val = parse_single_value_list();
+        root = Ast::new_array_type_node(current_p_token(), root, val);
     }
     return root;
 }
@@ -138,24 +132,21 @@ bool Parser::parse_const()
     return false;
 }
 
-ImmValue Parser::parse_single_value_list()
+pNode Parser::parse_single_value_list()
 {
     consume_token(TOKEN_LB_M);
     // 数组大小必须是可以计算出的
     pNode node = parse_value();
-    if(node->type != NODE_IMM) {
-        throw_error(13, "type of index should be integer");
-    }
     consume_token(TOKEN_RB_M);
-    return std::static_pointer_cast<Ast::ImmNode>(node)->imm;
+    return node;
 }
 
-TypedSym Parser::parse_typed_sym()
+TypedNodeSym Parser::parse_typed_sym()
 {
     auto type = parse_type();
     consume_token(TOKEN_2DOT);
     auto sym = parse_sym();
-    return TypedSym(sym, type);
+    return TypedNodeSym(sym, type);
 }
 
 Vector<pNode> Parser::parse_array_value()
@@ -280,10 +271,10 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         bool is_const = parse_const();
         auto a1 = parse_typed_sym();
         auto a2 = parse_value();
-        if(_env.env()->count_current(a1.sym)) {
+        if(_env.env()->count_current(a1.name)) {
             throw_error(7, "definition existed");
         }
-        _env.env()->set(a1.sym, SYM_VAL);
+        _env.env()->set(a1.name, SYM_VAL);
         return Ast::new_var_def_node(token, a1, a2, is_const);
     }
     case BUILDIN_BREAK:
@@ -296,14 +287,14 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global)
         }
         auto a1 = parse_typed_sym();
         auto a2 = parse_typed_sym_list();
-        if(_env.env()->count_current(a1.sym)) {
+        if(_env.env()->count_current(a1.name)) {
             // should be rejected at error 8
             throw_error(-1, "definition existed - impossible");
         }
-        _env.env()->set(a1.sym, SYM_FUNC);
+        _env.env()->set(a1.name, SYM_FUNC);
         _env.push_env();
         for(auto i : a2) {
-            _env.env()->set(i.sym, SYM_VAL);
+            _env.env()->set(i.name, SYM_VAL);
         }
         auto a3 = parse_statement(false);
         _env.end_env();
@@ -349,10 +340,10 @@ pNode Parser::parse_statement(bool in_global)
     return parse_function_call(current_token().sym);
 }
 
-Vector<TypedSym> Parser::parse_typed_sym_list()
+Vector<TypedNodeSym> Parser::parse_typed_sym_list()
 {
     consume_token(TOKEN_LB_S);
-    Vector<TypedSym> ts;
+    Vector<TypedNodeSym> ts;
     while(peek().t != TOKEN_RB_S) {
         ts.push_back(parse_typed_sym());
     }

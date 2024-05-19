@@ -36,15 +36,16 @@ public:
     static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root, pType ty);
     static Ir::CmpType fromCmpOpr(Pointer<Ast::BinaryNode> root, pType tr);
 
-    static ImmValue constant_eval(pNode node);
-
 private:
     static void throw_error(pNode root, int id, Symbol msg);
 
     Ir::pVal find_left_value(pNode root, Symbol sym, bool request_not_const = false);
     
+    ImmValue constant_eval(pNode node);
     Ir::pVal analyze_value(pNode root, bool request_not_const = false);
     Ir::pVal analyze_left_value(pNode root, bool request_not_const = false);
+
+    pType analyze_type(pNode root);
 
     void generate_single(pNode root);
     void generate_global_var(Pointer<Ast::VarDefNode> root);

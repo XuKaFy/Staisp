@@ -582,13 +582,13 @@ static const yytype_int16 yyrline[] =
        0,   108,   108,   114,   119,   125,   128,   135,   142,   152,
      155,   161,   165,   172,   180,   186,   193,   201,   205,   213,
      216,   219,   226,   230,   237,   241,   244,   248,   254,   259,
-     267,   270,   273,   289,   292,   299,   302,   309,   312,   318,
-     321,   324,   327,   330,   333,   336,   339,   342,   347,   350,
-     355,   360,   363,   368,   373,   378,   382,   389,   392,   395,
-     401,   404,   409,   412,   415,   421,   425,   432,   435,   438,
-     443,   447,   453,   456,   459,   462,   467,   470,   473,   478,
-     481,   484,   487,   490,   495,   498,   501,   506,   509,   514,
-     517
+     267,   271,   275,   285,   288,   295,   298,   305,   308,   314,
+     317,   320,   323,   326,   329,   332,   335,   338,   343,   346,
+     351,   356,   359,   364,   369,   374,   378,   385,   388,   391,
+     397,   400,   405,   408,   411,   417,   421,   428,   431,   434,
+     439,   443,   449,   452,   455,   458,   463,   466,   469,   474,
+     477,   480,   483,   486,   491,   494,   497,   502,   505,   510,
+     513
 };
 #endif
 
@@ -1513,7 +1513,7 @@ yyreduce:
   case 28: /* FuncFParamList: FuncFParam  */
 #line 254 "parser.y"
              {
-    (yyval.FuncFParamList) = new Vector<TypedSym>();
+    (yyval.FuncFParamList) = new Vector<TypedNodeSym>();
     (yyval.FuncFParamList)->push_back(*(yyvsp[0].funcFParam));
     delete (yyvsp[0].funcFParam);
   }
@@ -1533,515 +1533,511 @@ yyreduce:
   case 30: /* FuncFParam: BType ID  */
 #line 267 "parser.y"
            {
-    (yyval.funcFParam) = new TypedSym(toTypedSym((yyvsp[0].token), (yyvsp[-1].ty)));
+    (yyval.funcFParam) = new TypedNodeSym(to_symbol(*(yyvsp[0].token)), new_basic_type_node(NULL, toPTYPE((yyvsp[-1].ty))));
+    delete (yyvsp[0].token);
   }
-#line 1539 "y.tab.cpp"
+#line 1540 "y.tab.cpp"
     break;
 
   case 31: /* FuncFParam: BType ID LB RB  */
-#line 270 "parser.y"
-                 { // TODO
-    (yyval.funcFParam) = new TypedSym(toTypedSym((yyvsp[-2].token), make_pointer_type(toPTYPE((yyvsp[-3].ty)))));
+#line 271 "parser.y"
+                 {
+    (yyval.funcFParam) = new TypedNodeSym(to_symbol(*(yyvsp[-2].token)), new_pointer_type_node(NULL, new_basic_type_node(NULL, toPTYPE((yyvsp[-3].ty)))));
+    delete (yyvsp[-2].token);
   }
-#line 1547 "y.tab.cpp"
+#line 1549 "y.tab.cpp"
     break;
 
   case 32: /* FuncFParam: BType ID LB RB ArrayIndexes  */
-#line 273 "parser.y"
-                              { // TODO
-    auto innerTy = toPTYPE((yyvsp[-4].ty));
-    for(auto i = std::rbegin(*(yyvsp[0].args)); i!=std::rend(*(yyvsp[0].args)); ++i) { // vector<pNode>
-      auto immValue = AstToIr::Convertor::constant_eval(*i);
-      if(is_imm_integer(immValue.ty)) {
-        innerTy = make_array_type(innerTy, immValue.val.uval);
-      } else {
-        puts("index must be integer");
-        exit(0);
-      }
+#line 275 "parser.y"
+                              {
+    auto innerTy = Ast::new_basic_type_node(NULL, toPTYPE((yyvsp[-4].ty)));
+    for(auto i = std::rbegin(*(yyvsp[0].args)); i!=std::rend(*(yyvsp[0].args)); ++i) { 
+      innerTy = Ast::new_array_type_node(NULL, innerTy, *i);
     }
-    (yyval.funcFParam) = new TypedSym(toTypedSym((yyvsp[-3].token), make_pointer_type(innerTy)));
+    (yyval.funcFParam) = new TypedNodeSym(to_symbol(*(yyvsp[-3].token)), new_pointer_type_node(NULL, innerTy));
   }
-#line 1565 "y.tab.cpp"
+#line 1561 "y.tab.cpp"
     break;
 
   case 33: /* Block: LC RC  */
-#line 289 "parser.y"
+#line 285 "parser.y"
         {
     (yyval.block) = new BlockNode(NULL, {});
   }
-#line 1573 "y.tab.cpp"
+#line 1569 "y.tab.cpp"
     break;
 
   case 34: /* Block: LC BlockItemList RC  */
-#line 292 "parser.y"
+#line 288 "parser.y"
                       {
     (yyval.block) = new BlockNode(NULL, AstProg((yyvsp[-1].args)->begin(), (yyvsp[-1].args)->end()));
     delete (yyvsp[-1].args);
   }
-#line 1582 "y.tab.cpp"
+#line 1578 "y.tab.cpp"
     break;
 
   case 35: /* BlockItemList: BlockItem  */
-#line 299 "parser.y"
+#line 295 "parser.y"
             {
     (yyval.args) = (yyvsp[0].args);
   }
-#line 1590 "y.tab.cpp"
+#line 1586 "y.tab.cpp"
     break;
 
   case 36: /* BlockItemList: BlockItemList BlockItem  */
-#line 302 "parser.y"
+#line 298 "parser.y"
                           {
     (yyval.args) = (yyvsp[-1].args);
     (yyval.args)->insert((yyval.args)->end(), (yyvsp[0].args)->begin(), (yyvsp[0].args)->end());
     delete (yyvsp[0].args);
   }
-#line 1600 "y.tab.cpp"
+#line 1596 "y.tab.cpp"
     break;
 
   case 37: /* BlockItem: Decl  */
-#line 309 "parser.y"
+#line 305 "parser.y"
        {
     (yyval.args) = (yyvsp[0].args);
   }
-#line 1608 "y.tab.cpp"
+#line 1604 "y.tab.cpp"
     break;
 
   case 38: /* BlockItem: Stmt  */
-#line 312 "parser.y"
+#line 308 "parser.y"
        {
     (yyval.args) = new Vector<pNode>();
     (yyval.args)->push_back(pNode((yyvsp[0].stmt)));
   }
-#line 1617 "y.tab.cpp"
+#line 1613 "y.tab.cpp"
     break;
 
   case 39: /* Stmt: SEMICOLON  */
-#line 318 "parser.y"
+#line 314 "parser.y"
             {
     (yyval.stmt) = new BlockNode(NULL, {});
   }
-#line 1625 "y.tab.cpp"
+#line 1621 "y.tab.cpp"
     break;
 
   case 40: /* Stmt: LVal ASSIGN Exp SEMICOLON  */
-#line 321 "parser.y"
+#line 317 "parser.y"
                             {
     (yyval.stmt) = new AssignNode(NULL, pNode((yyvsp[-3].lVal)), pNode((yyvsp[-1].exp)));
   }
-#line 1633 "y.tab.cpp"
+#line 1629 "y.tab.cpp"
     break;
 
   case 41: /* Stmt: Exp SEMICOLON  */
-#line 324 "parser.y"
+#line 320 "parser.y"
                 {
     (yyval.stmt) = (yyvsp[-1].exp);
   }
-#line 1641 "y.tab.cpp"
+#line 1637 "y.tab.cpp"
     break;
 
   case 42: /* Stmt: CONTINUE SEMICOLON  */
-#line 327 "parser.y"
+#line 323 "parser.y"
                      {
     (yyval.stmt) = new ContinueNode(NULL);
   }
-#line 1649 "y.tab.cpp"
+#line 1645 "y.tab.cpp"
     break;
 
   case 43: /* Stmt: BREAK SEMICOLON  */
-#line 330 "parser.y"
+#line 326 "parser.y"
                   {
     (yyval.stmt) = new BreakNode(NULL);
   }
-#line 1657 "y.tab.cpp"
+#line 1653 "y.tab.cpp"
     break;
 
   case 44: /* Stmt: Block  */
-#line 333 "parser.y"
+#line 329 "parser.y"
         {
     (yyval.stmt) = (yyvsp[0].block);
   }
-#line 1665 "y.tab.cpp"
+#line 1661 "y.tab.cpp"
     break;
 
   case 45: /* Stmt: ReturnStmt  */
-#line 336 "parser.y"
+#line 332 "parser.y"
              {
     (yyval.stmt) = (yyvsp[0].returnStmt);
   }
-#line 1673 "y.tab.cpp"
+#line 1669 "y.tab.cpp"
     break;
 
   case 46: /* Stmt: SelectStmt  */
-#line 339 "parser.y"
+#line 335 "parser.y"
              {
     (yyval.stmt) = (yyvsp[0].selectStmt);
   }
-#line 1681 "y.tab.cpp"
+#line 1677 "y.tab.cpp"
     break;
 
   case 47: /* Stmt: IterationStmt  */
-#line 342 "parser.y"
+#line 338 "parser.y"
                 {
     (yyval.stmt) = (yyvsp[0].iterationStmt);
   }
-#line 1689 "y.tab.cpp"
+#line 1685 "y.tab.cpp"
     break;
 
   case 48: /* SelectStmt: IF LP Cond RP Stmt  */
-#line 347 "parser.y"
+#line 343 "parser.y"
                                            {
     (yyval.selectStmt) = new IfNode(NULL, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].stmt)));
   }
-#line 1697 "y.tab.cpp"
+#line 1693 "y.tab.cpp"
     break;
 
   case 49: /* SelectStmt: IF LP Cond RP Stmt ELSE Stmt  */
-#line 350 "parser.y"
+#line 346 "parser.y"
                                {
     (yyval.selectStmt) = new IfNode(NULL, pNode((yyvsp[-4].exp)), pNode((yyvsp[-2].stmt)), pNode((yyvsp[0].stmt)));
   }
-#line 1705 "y.tab.cpp"
+#line 1701 "y.tab.cpp"
     break;
 
   case 50: /* IterationStmt: WHILE LP Cond RP Stmt  */
-#line 355 "parser.y"
+#line 351 "parser.y"
                         {
     (yyval.iterationStmt) = new WhileNode(NULL, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].stmt)));
   }
-#line 1713 "y.tab.cpp"
+#line 1709 "y.tab.cpp"
     break;
 
   case 51: /* ReturnStmt: RETURN Exp SEMICOLON  */
-#line 360 "parser.y"
+#line 356 "parser.y"
                        {
     (yyval.returnStmt) = new ReturnNode(NULL, pNode((yyvsp[-1].exp)));
   }
-#line 1721 "y.tab.cpp"
+#line 1717 "y.tab.cpp"
     break;
 
   case 52: /* ReturnStmt: RETURN SEMICOLON  */
-#line 363 "parser.y"
+#line 359 "parser.y"
                    {
     (yyval.returnStmt) = new ReturnNode(NULL);
   }
-#line 1729 "y.tab.cpp"
+#line 1725 "y.tab.cpp"
     break;
 
   case 53: /* Exp: AddExp  */
-#line 368 "parser.y"
+#line 364 "parser.y"
          {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1737 "y.tab.cpp"
+#line 1733 "y.tab.cpp"
     break;
 
   case 54: /* Cond: LOrExp  */
-#line 373 "parser.y"
+#line 369 "parser.y"
          {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1745 "y.tab.cpp"
+#line 1741 "y.tab.cpp"
     break;
 
   case 55: /* LVal: ID  */
-#line 378 "parser.y"
+#line 374 "parser.y"
      {
     (yyval.lVal) = new SymNode(NULL, to_symbol(*(yyvsp[0].token)));
     delete (yyvsp[0].token);
   }
-#line 1754 "y.tab.cpp"
+#line 1750 "y.tab.cpp"
     break;
 
   case 56: /* LVal: ID ArrayIndexes  */
-#line 382 "parser.y"
+#line 378 "parser.y"
                   {
     (yyval.lVal) = new ItemNode(NULL, new_sym_node(NULL, to_symbol(*(yyvsp[-1].token))), *(yyvsp[0].args));
     delete (yyvsp[-1].token);
     delete (yyvsp[0].args);
   }
-#line 1764 "y.tab.cpp"
+#line 1760 "y.tab.cpp"
     break;
 
   case 57: /* PrimaryExp: LP Exp RP  */
-#line 389 "parser.y"
+#line 385 "parser.y"
             {
     (yyval.exp) = (yyvsp[-1].exp);
   }
-#line 1772 "y.tab.cpp"
+#line 1768 "y.tab.cpp"
     break;
 
   case 58: /* PrimaryExp: LVal  */
-#line 392 "parser.y"
+#line 388 "parser.y"
        {
     (yyval.exp) = (yyvsp[0].lVal);
   }
-#line 1780 "y.tab.cpp"
+#line 1776 "y.tab.cpp"
     break;
 
   case 59: /* PrimaryExp: Number  */
-#line 395 "parser.y"
+#line 391 "parser.y"
          {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1788 "y.tab.cpp"
+#line 1784 "y.tab.cpp"
     break;
 
   case 60: /* Number: INT  */
-#line 401 "parser.y"
+#line 397 "parser.y"
       {
     (yyval.exp) = new ImmNode(NULL, ImmValue((yyvsp[0].int_val)));
   }
-#line 1796 "y.tab.cpp"
+#line 1792 "y.tab.cpp"
     break;
 
   case 61: /* Number: FLOAT  */
-#line 404 "parser.y"
+#line 400 "parser.y"
         {
     (yyval.exp) = new ImmNode(NULL, ImmValue((yyvsp[0].float_val)));
   }
-#line 1804 "y.tab.cpp"
+#line 1800 "y.tab.cpp"
     break;
 
   case 62: /* UnaryExp: PrimaryExp  */
-#line 409 "parser.y"
+#line 405 "parser.y"
              {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1812 "y.tab.cpp"
+#line 1808 "y.tab.cpp"
     break;
 
   case 63: /* UnaryExp: Call  */
-#line 412 "parser.y"
+#line 408 "parser.y"
        {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1820 "y.tab.cpp"
+#line 1816 "y.tab.cpp"
     break;
 
   case 64: /* UnaryExp: UnaryOp UnaryExp  */
-#line 415 "parser.y"
+#line 411 "parser.y"
                    {
     (yyval.exp) = new UnaryNode(NULL, (yyvsp[-1].op), pNode((yyvsp[0].exp)));
   }
-#line 1828 "y.tab.cpp"
+#line 1824 "y.tab.cpp"
     break;
 
   case 65: /* Call: ID LP RP  */
-#line 421 "parser.y"
+#line 417 "parser.y"
            {
     (yyval.exp) = new CallNode(NULL, to_symbol(*(yyvsp[-2].token)), {});
     delete (yyvsp[-2].token);
   }
-#line 1837 "y.tab.cpp"
+#line 1833 "y.tab.cpp"
     break;
 
   case 66: /* Call: ID LP Args RP  */
-#line 425 "parser.y"
+#line 421 "parser.y"
                 {
     (yyval.exp) = new CallNode(NULL, to_symbol(*(yyvsp[-3].token)), *(yyvsp[-1].args));
     delete (yyvsp[-3].token);
     delete (yyvsp[-1].args);
   }
-#line 1847 "y.tab.cpp"
+#line 1843 "y.tab.cpp"
     break;
 
   case 67: /* UnaryOp: ADD  */
-#line 432 "parser.y"
+#line 428 "parser.y"
       {
     (yyval.op) = OPR_POS;
   }
-#line 1855 "y.tab.cpp"
+#line 1851 "y.tab.cpp"
     break;
 
   case 68: /* UnaryOp: MINUS  */
-#line 435 "parser.y"
+#line 431 "parser.y"
         {
     (yyval.op) = OPR_NEG;
   }
-#line 1863 "y.tab.cpp"
+#line 1859 "y.tab.cpp"
     break;
 
   case 69: /* UnaryOp: NOT  */
-#line 438 "parser.y"
+#line 434 "parser.y"
       {
     (yyval.op) = OPR_NOT;
   }
-#line 1871 "y.tab.cpp"
+#line 1867 "y.tab.cpp"
     break;
 
   case 70: /* Args: Exp  */
-#line 443 "parser.y"
+#line 439 "parser.y"
       {
     (yyval.args) = new Vector<pNode>();
     (yyval.args)->push_back(pNode((yyvsp[0].exp)));
   }
-#line 1880 "y.tab.cpp"
+#line 1876 "y.tab.cpp"
     break;
 
   case 71: /* Args: Args COMMA Exp  */
-#line 447 "parser.y"
+#line 443 "parser.y"
                  {
     (yyval.args) = (yyvsp[-2].args);
     (yyval.args)->push_back(pNode((yyvsp[0].exp)));
   }
-#line 1889 "y.tab.cpp"
+#line 1885 "y.tab.cpp"
     break;
 
   case 72: /* MulExp: UnaryExp  */
-#line 453 "parser.y"
+#line 449 "parser.y"
            {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1897 "y.tab.cpp"
+#line 1893 "y.tab.cpp"
     break;
 
   case 73: /* MulExp: MulExp MUL UnaryExp  */
-#line 456 "parser.y"
+#line 452 "parser.y"
                       {
     (yyval.exp) = new BinaryNode(NULL, OPR_MUL, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1905 "y.tab.cpp"
+#line 1901 "y.tab.cpp"
     break;
 
   case 74: /* MulExp: MulExp DIV UnaryExp  */
-#line 459 "parser.y"
+#line 455 "parser.y"
                       {
     (yyval.exp) = new BinaryNode(NULL, OPR_DIV, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1913 "y.tab.cpp"
+#line 1909 "y.tab.cpp"
     break;
 
   case 75: /* MulExp: MulExp MOD UnaryExp  */
-#line 462 "parser.y"
+#line 458 "parser.y"
                       {
     (yyval.exp) = new BinaryNode(NULL, OPR_REM, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1921 "y.tab.cpp"
+#line 1917 "y.tab.cpp"
     break;
 
   case 76: /* AddExp: MulExp  */
-#line 467 "parser.y"
+#line 463 "parser.y"
          {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1929 "y.tab.cpp"
+#line 1925 "y.tab.cpp"
     break;
 
   case 77: /* AddExp: AddExp ADD MulExp  */
-#line 470 "parser.y"
+#line 466 "parser.y"
                     {
     (yyval.exp) = new BinaryNode(NULL, OPR_ADD, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1937 "y.tab.cpp"
+#line 1933 "y.tab.cpp"
     break;
 
   case 78: /* AddExp: AddExp MINUS MulExp  */
-#line 473 "parser.y"
+#line 469 "parser.y"
                       {
     (yyval.exp) = new BinaryNode(NULL, OPR_SUB, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1945 "y.tab.cpp"
+#line 1941 "y.tab.cpp"
     break;
 
   case 79: /* RelExp: AddExp  */
-#line 478 "parser.y"
+#line 474 "parser.y"
          {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1953 "y.tab.cpp"
+#line 1949 "y.tab.cpp"
     break;
 
   case 80: /* RelExp: RelExp GTE AddExp  */
-#line 481 "parser.y"
+#line 477 "parser.y"
                     {
     (yyval.exp) = new BinaryNode(NULL, OPR_GE, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1961 "y.tab.cpp"
+#line 1957 "y.tab.cpp"
     break;
 
   case 81: /* RelExp: RelExp LTE AddExp  */
-#line 484 "parser.y"
+#line 480 "parser.y"
                     {
     (yyval.exp) = new BinaryNode(NULL, OPR_LE, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1969 "y.tab.cpp"
+#line 1965 "y.tab.cpp"
     break;
 
   case 82: /* RelExp: RelExp GT AddExp  */
-#line 487 "parser.y"
+#line 483 "parser.y"
                    {
     (yyval.exp) = new BinaryNode(NULL, OPR_GT, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1977 "y.tab.cpp"
+#line 1973 "y.tab.cpp"
     break;
 
   case 83: /* RelExp: RelExp LT AddExp  */
-#line 490 "parser.y"
+#line 486 "parser.y"
                    {
     (yyval.exp) = new BinaryNode(NULL, OPR_LT, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 1985 "y.tab.cpp"
+#line 1981 "y.tab.cpp"
     break;
 
   case 84: /* EqExp: RelExp  */
-#line 495 "parser.y"
+#line 491 "parser.y"
          {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 1993 "y.tab.cpp"
+#line 1989 "y.tab.cpp"
     break;
 
   case 85: /* EqExp: EqExp EQ RelExp  */
-#line 498 "parser.y"
+#line 494 "parser.y"
                   {
     (yyval.exp) = new BinaryNode(NULL, OPR_EQ, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 2001 "y.tab.cpp"
+#line 1997 "y.tab.cpp"
     break;
 
   case 86: /* EqExp: EqExp NEQ RelExp  */
-#line 501 "parser.y"
+#line 497 "parser.y"
                    {
     (yyval.exp) = new BinaryNode(NULL, OPR_NE, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 2009 "y.tab.cpp"
+#line 2005 "y.tab.cpp"
     break;
 
   case 87: /* LAndExp: EqExp  */
-#line 506 "parser.y"
+#line 502 "parser.y"
         {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 2017 "y.tab.cpp"
+#line 2013 "y.tab.cpp"
     break;
 
   case 88: /* LAndExp: LAndExp AND EqExp  */
-#line 509 "parser.y"
+#line 505 "parser.y"
                     {
     (yyval.exp) = new BinaryNode(NULL, OPR_AND, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 2025 "y.tab.cpp"
+#line 2021 "y.tab.cpp"
     break;
 
   case 89: /* LOrExp: LAndExp  */
-#line 514 "parser.y"
+#line 510 "parser.y"
           {
     (yyval.exp) = (yyvsp[0].exp);
   }
-#line 2033 "y.tab.cpp"
+#line 2029 "y.tab.cpp"
     break;
 
   case 90: /* LOrExp: LOrExp OR LAndExp  */
-#line 517 "parser.y"
+#line 513 "parser.y"
                     {
     (yyval.exp) = new BinaryNode(NULL, OPR_OR, pNode((yyvsp[-2].exp)), pNode((yyvsp[0].exp)));
   }
-#line 2041 "y.tab.cpp"
+#line 2037 "y.tab.cpp"
     break;
 
 
-#line 2045 "y.tab.cpp"
+#line 2041 "y.tab.cpp"
 
       default: break;
     }
@@ -2234,7 +2230,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 520 "parser.y"
+#line 516 "parser.y"
 
 
 void setFileName(const char *name) {

@@ -1,5 +1,4 @@
 #include "../include/ast_node.h"
-#include "../include/convert_ast_to_ir.h"
 #include "type.h"
 #include <iterator>
 
@@ -19,16 +18,18 @@ inline pType toPTYPE(TYPE type) {
     return make_void_type();
 }
 
-inline TypedSym toTypedSym(std::string* id, pType ty) {
-    TypedSym result(to_symbol(*id), ty);
+inline TypedNodeSym toTypedSym(std::string* id, pType ty) {
+    TypedNodeSym result(to_symbol(*id), Ast::new_basic_type_node(NULL, ty));
     delete id;
     return result;
 }
 
-inline TypedSym toTypedSym(std::string* id, TYPE type) {
-    TypedSym result(to_symbol(*id), toPTYPE(type));
-    delete id;
-    return result;
+inline TypedNodeSym toTypedSym(std::string* id, TYPE type) {
+    return toTypedSym(id, toPTYPE(type));
+}
+
+inline TypedNodeSym toTypedSym(std::string* id, pNode type) {
+    return TypedNodeSym(to_symbol(*id), type);
 }
 
 struct DefAST {
@@ -37,21 +38,15 @@ struct DefAST {
     pNode initVal { nullptr };
 
     pNode create(bool is_const, TYPE type) {
-        auto innerTy = toPTYPE(type);
+        auto innerTy = Ast::new_basic_type_node(NULL, toPTYPE(type));
         if(indexes.empty()) {
             return pNode(new Ast::VarDefNode(NULL, 
-                TypedSym(to_symbol(id), innerTy), initVal, is_const));
+                TypedNodeSym(to_symbol(id), innerTy), initVal, is_const));
         }
         for(auto i = std::rbegin(indexes); i!=std::rend(indexes); ++i) {
-            auto immValue = AstToIr::Convertor::constant_eval(*i);
-            if(is_imm_integer(immValue.ty)) {
-                innerTy = make_array_type(innerTy, immValue.val.uval);
-            } else {
-                puts("index must be integer");
-                exit(0);
-            }
+            innerTy = Ast::new_array_type_node(NULL, innerTy, *i);
         }
         return pNode(new Ast::VarDefNode(NULL, 
-            TypedSym(to_symbol(id), innerTy), initVal, is_const));
+            TypedNodeSym(to_symbol(id), innerTy), initVal, is_const));
     }
 };
