@@ -30,18 +30,37 @@ void prepare()
     }
 }
 
+std::string normalizeLineEndings(const std::string& str) {
+    std::string result;
+    result.reserve(str.size());
+
+    for (size_t i = 0; i < str.size(); ++i) {
+        if (str[i] == '\r') {
+            if (i + 1 < str.size() && str[i + 1] == '\n') {
+                result += '\n';
+                ++i; // Skip '\n'
+            } else {
+                result += '\n';
+            }
+        } else {
+            result += str[i];
+        }
+    }
+    return result;
+}
+
 void cmp(String ll)
 {
     prepare();
     system((String("llvm-as ") + ll + " -o out.bc").c_str());
     system("llvm-link out.bc sylib.bc -o final.bc");
     system("lli final.bc < 1.std.in > 1.out ; echo $? > 1.out.ret");
-    String t1 = read("1.out");
+    String actual = read("1.out");
     String tret = read("1.out.ret");
-    String t2 = read("1.std.out");
-    if(!t1.empty() && t1.back() != '\n') t1 += "\n";
-    t1 += tret;
-    EXPECT_EQ(t1, t2);
+    String expected = read("1.std.out");
+    if(!actual.empty() && actual.back() != '\n') actual += "\n";
+    actual += tret;
+    EXPECT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
 }
 
 void run_sysy(String file)
