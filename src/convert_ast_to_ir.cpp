@@ -324,9 +324,10 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
             if(is_float(val->ty)) {
                 return add_instr(Ir::make_unary_instr(val));
             } else if(is_integer(val->ty)) {
-                auto imm = Ir::make_constant(ImmValue(0ll, to_basic_type(val->ty)->ty));
+                auto imm = Ir::make_constant(ImmValue(0));
+                auto ty = join_type(val->ty, imm->ty);
                 _cur_func->add_imm(imm);
-                return add_instr(Ir::make_binary_instr(Ir::INSTR_SUB, imm, val));
+                return add_instr(Ir::make_binary_instr(Ir::INSTR_SUB, cast_to_type(root, imm, ty), cast_to_type(root, val, ty)));
             }
             throw_error(root, 21, "neg an non-number");
         }

@@ -36,11 +36,11 @@ int main(int argc, char *argv[])
         out.close();
         
         // optimize
-        Optimize::optimize(mod);
+        // Optimize::optimize(mod);
 
-        out.open(String(argv[1]) + ".opt.ll", std::fstream::out);
-        out << mod->print_module();
-        out.close();
+        // out.open(String(argv[1]) + ".opt.ll", std::fstream::out);
+        // out << mod->print_module();
+        // out.close();
     } catch (Exception e) {
         printf("Exception Catched: [%s] error %lu: %s\n", e.object, e.id, e.message);
         return 1;

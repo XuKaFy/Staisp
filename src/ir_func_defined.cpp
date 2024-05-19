@@ -41,12 +41,13 @@ void FuncDefined::end_function()
     if(body.empty() || body.back()->instr_type() != INSTR_RET) {
         if(ty->type_type() == TYPE_VOID_TYPE) {
             body.push_back(make_ret_instr());
-        } else if(!strcmp(name(), "main")) {
-            auto imm = make_constant(ImmValue(0));
+        } else if(is_basic_type(ty)) { // for while(1), more a label
+            auto imm = make_constant(ImmValue(0)); // TODO：如果是浮点数怎么办
             add_imm(imm);
             body.push_back(make_ret_instr(imm));
         }
     }
+    // printf("function: %s\n", name());
     p.from_instrs(body);
 }
 
