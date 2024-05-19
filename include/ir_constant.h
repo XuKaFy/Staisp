@@ -20,6 +20,8 @@ struct Const : public Val {
     Value v;
 };
 
+typedef Pointer<Const> pConst;
+
 pVal make_constant(Value var);
 
 } // namespace Ir

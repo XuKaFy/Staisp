@@ -6,6 +6,7 @@
 #include "env.h"
 
 #include "ast_node.h"
+#include "ir_constant.h"
 #include "ir_instr.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
@@ -40,8 +41,10 @@ private:
     static void throw_error(pNode root, int id, Symbol msg);
 
     Ir::pVal find_left_value(pNode root, Symbol sym, bool request_not_const = false);
-    
+    ImmValue find_const_value(pNode root, Symbol sym);
+
     ImmValue constant_eval(pNode node);
+
     Ir::pVal analyze_value(pNode root, bool request_not_const = false);
     Ir::pVal analyze_left_value(pNode root, bool request_not_const = false);
 
@@ -62,6 +65,7 @@ private:
     Ir::pInstr add_instr(Ir::pInstr instr);
 
     EnvWrapper<MaybeConstInstr> _env;
+    EnvWrapper<ImmValue> _const_env;
     
     void set_func(Symbol sym, Ir::pFunc fun);
     bool func_count(Symbol sym);

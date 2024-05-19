@@ -203,11 +203,20 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
     }
 }
 
+ImmValue Convertor::find_const_value(pNode root, Symbol sym)
+{
+    if(!_const_env.env()->count(sym)) {
+        throw_error(root, 29, "not a constant");
+    }
+    return _const_env.env()->find(sym);
+}
+
 ImmValue Convertor::constant_eval(pNode node)
 {
     switch(node->type) {
     case NODE_SYM: {
-        // TODO
+        auto name = std::static_pointer_cast<Ast::SymNode>(node)->sym;
+        return find_const_value(node, name);
     }
     case NODE_IMM:
         return std::static_pointer_cast<Ast::ImmNode>(node)->imm;
@@ -464,6 +473,10 @@ void Convertor::analyze_statement_node(pNode root)
         }
         add_instr(tmp = Ir::make_alloc_instr(ty));
         if(r->val) {
+            if(r->is_const) {
+                _const_env.env()->set(r->var.name, constant_eval(r->val));
+                // printf("[1] Set Const Value: %s\n", _const_env.env()->find(r->var.name).print());
+            }
             add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val), ty)));
         }
         _env.env()->set(r->var.name, {tmp, r->is_const});
@@ -569,6 +582,7 @@ void Convertor::analyze_statement_node(pNode root)
         auto for_exec = Ir::make_label_instr();
         auto for_end = Ir::make_label_instr();
         _env.push_env();
+        _const_env.push_env();
         push_loop_env(for_exec, for_end); // continue start from for_exec
         analyze_statement_node(r->init);
         add_instr(Ir::make_br_instr(for_cond));
@@ -583,6 +597,7 @@ void Convertor::analyze_statement_node(pNode root)
         add_instr(Ir::make_br_instr(for_cond));
         add_instr(for_end);
         end_loop_env();
+        _const_env.end_env();
         _env.end_env();
         break;
     }
@@ -613,9 +628,11 @@ void Convertor::analyze_statement_node(pNode root)
     case NODE_BLOCK: {
         auto r = std::static_pointer_cast<Ast::BlockNode>(root);
         _env.push_env();
+        _const_env.push_env();
         for(auto i : r->body) {
             analyze_statement_node(i);
         }
+        _const_env.end_env();
         _env.end_env();
         break;
     }
@@ -640,6 +657,7 @@ void Convertor::analyze_statement_node(pNode root)
 void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
 {
     _env.push_env();
+    _const_env.push_env();
     Ir::pFuncDefined func;
     {
         Vector<pType> types;
@@ -672,6 +690,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
     analyze_statement_node(root->body);
     func->end_function();
     module()->add_func(func);
+    _const_env.end_env();
     _env.end_env();
 }
 
@@ -701,15 +720,22 @@ Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType>
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
 {
-    _env.push_env();
     TypedSym root_var = TypedSym(root->var.name, analyze_type(root->var.n));
     if(is_integer(root_var.ty)) {
         if(root->val) {
-            module()->add_global(Ir::make_global(root_var, 
-                Value(std::static_pointer_cast<Ast::ImmNode>(root->val)->imm), root->is_const));
+            auto imm = constant_eval(root->val);
+            module()->add_global(Ir::make_global(root_var, Value(imm)));
+            if(root->is_const) {
+                _const_env.env()->set(root_var.sym, imm);
+                // printf("[2] Set Const Value: %s\n", imm.print());
+            }
         } else {
             module()->add_global(Ir::make_global(root_var, 
                 Value(0), root->is_const));
+            if(root->is_const) {
+                _const_env.env()->set(root_var.sym, ImmValue(0));
+                // printf("[3] Set Const Value: %s\n", _const_env.env()->find(root_var.sym).print());
+            }
         }
     } else {
         if(root->val) {
@@ -721,7 +747,6 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
                 Value(from_array_def(nullptr, to_array_type(root_var.ty))), root->is_const));
         }
     }
-    _env.end_env();
 }
 
 void Convertor::generate_single(pNode root)
@@ -741,6 +766,8 @@ void Convertor::generate_single(pNode root)
 Ir::pModule Convertor::generate(AstProg asts)
 {
     _env.clear_env();
+    _const_env.clear_env();
+    _const_env.push_env();
     clear_loop_env();
     _prog = asts;
     _mod = Ir::pModule(new Ir::Module());
@@ -767,10 +794,12 @@ Ir::pModule Convertor::generate(AstProg asts)
     for(auto &&i : _mod->funsDeclared) {
         set_func(i->name(), i);
     }
-
+    
     for(auto i : asts) {
         generate_single(i);
     }
+    
+    _const_env.end_env();
     return _mod;
 }
 

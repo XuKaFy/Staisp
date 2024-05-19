@@ -151,6 +151,7 @@ ImmValue ImmValue::cast_to(ImmType new_ty) const
     }
     }
 #undef SWITCHES
+    printf("Warning: cast from %s to %s", gImmName[ty], gImmName[new_ty]);
     throw Exception(1, "ImmValue", "type not implemented {cast_to}");
     return ImmValue();
 }
