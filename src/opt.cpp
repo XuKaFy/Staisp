@@ -23,7 +23,7 @@ void optimize(Ir::pModule mod)
             opt_cnt += from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             i->p.normal_opt();
         }
-        printf("Optimization loop count of function \"%s\": %lu\n", i->name(), cnt);
+        // printf("Optimization loop count of function \"%s\": %lu\n", i->name(), cnt);
         i->p.re_generate();
     }
 }

@@ -48,7 +48,8 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const
         return a0 * a1;
     case INSTR_DIV:
         return a0 / a1;
-    case INSTR_REM:
+    case INSTR_SREM:
+    case INSTR_UREM:
         return a0 % a1;
     case INSTR_AND:
         return a0 & a1;

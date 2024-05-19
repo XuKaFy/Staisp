@@ -7,6 +7,11 @@ void Module::add_func(pFuncDefined f)
     funsDefined.push_back(f);
 }
 
+void Module::add_func_declaration(pFunc f)
+{
+    funsDeclared.push_back(f);
+}
+
 void Module::add_global(pGlobal g)
 {
     globs.push_back(g);
@@ -15,6 +20,11 @@ void Module::add_global(pGlobal g)
 Symbol Module::print_module() const
 {
     String ans;
+
+    for(auto i : funsDeclared) {
+        ans += i->print_func_declaration();
+        ans += "\n";
+    }
 
     for(auto i : globs) {
         ans += i->print_global();

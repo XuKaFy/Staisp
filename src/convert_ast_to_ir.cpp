@@ -6,6 +6,7 @@
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
 #include "ir_constant.h"
+#include "ir_func.h"
 #include "ir_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_ptr_instr.h"
@@ -71,7 +72,7 @@ Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty)
     // decay
     if(is_pointer(ty) && is_pointer(val->ty) 
         && is_same_type(to_pointed_type(ty), to_elem_type(to_pointed_type(val->ty)))) {
-        printf("found %s decay from %s to %s\n", val->name(), val->ty->type_name(), ty->type_name());
+        // printf("found %s decay from %s to %s\n", val->name(), val->ty->type_name(), ty->type_name());
         auto imm = Ir::make_constant(ImmValue(0));
         auto r = Ir::make_item_instr(val, {imm});
         if(!is_same_type(ty, r->ty)) {
@@ -105,7 +106,7 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
             printf("Warning: try to join %s and %s.\n", a1->ty->type_name(), a2->ty->type_name());
             throw_error(root, 18, "type has no joined type");
         }
-        auto ir = Ir::make_binary_instr(fromBinaryOpr(root), cast_to_type(root->lhs, a1, joined_type), cast_to_type(root->rhs, a2, joined_type));
+        auto ir = Ir::make_binary_instr(fromBinaryOpr(root, joined_type), cast_to_type(root->lhs, a1, joined_type), cast_to_type(root->rhs, a2, joined_type));
         add_instr(ir);
         return ir;
     }
@@ -241,7 +242,7 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const)
             printf("Message: type is %s\n", array->ty->type_name());
             throw_error(r->v, 25, "not an array");
         }
-        printf("Array Type: %s\n", array->ty->type_name());
+        // printf("Array Type: %s\n", array->ty->type_name());
         Vector<Ir::pVal> indexs;
         for(auto i : r->index) {
             indexs.push_back(analyze_value(i));
@@ -327,11 +328,15 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
         Vector<Ir::pVal> args;
         // assert size equal
         size_t length = func->functon_type()->arg_type.size();
-        if(length != r->ch.size())
+        if(!func->variant_length && length != r->ch.size())
             throw_error(root, 8, "wrong count of arguments");
-        for(size_t i=0; i<length; ++i) {
+        for(size_t i=0; i<r->ch.size(); ++i) {
             Ir::pVal cur_arg = analyze_value(r->ch[i]);
-            args.push_back(cast_to_type(r->ch[i], cur_arg, func->functon_type()->arg_type[i]));
+            if(i < length) {
+                args.push_back(cast_to_type(r->ch[i], cur_arg, func->functon_type()->arg_type[i]));
+            } else {
+                args.push_back(cur_arg);
+            }
         }
         return add_instr(Ir::make_call_instr(func, args));
     }
@@ -401,11 +406,11 @@ void Convertor::analyze_statement_node(pNode root)
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
         if(is_array(r->var.ty)) {
-            if(r->val->type != NODE_ARRAY_VAL)
-                throw_error(r->val, 17, "array should be initialized by a list");
             add_instr(tmp = Ir::make_alloc_instr(r->var.ty));
             _env.env()->set(r->var.sym, {tmp, r->is_const});
             if(r->val) {
+                if(r->val->type != NODE_ARRAY_VAL)
+                    throw_error(r->val, 17, "array should be initialized by a list");
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
                 copy_to_array(r, tmp, tmp->ty, rrr->nums);
             }
@@ -427,7 +432,7 @@ void Convertor::analyze_statement_node(pNode root)
             /*
                 br xxx IF_BEGIN, ELSE_BEGIN
                 IF_BEGIN:
-                    XXX
+                    xxx
                     GOTO ELSE_END:
                 IF_END/ELSE_BEGIN:
                     YYY
@@ -450,7 +455,7 @@ void Convertor::analyze_statement_node(pNode root)
             /*
                 br xxx IF_BEGIN, IF_END
                 IF_BEGIN:
-                    XXX
+                    xxx
                     GOTO IF_END:
                 IF_END:
             */
@@ -620,7 +625,6 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
 
 Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType> t)
 {
-    /*TODO*/
     ArrayValue v;
     v.ty = t->elem_type;
     if(is_array(t->elem_type)) {
@@ -687,23 +691,52 @@ Ir::pModule Convertor::generate(AstProg asts)
     clear_loop_env();
     _prog = asts;
     _mod = Ir::pModule(new Ir::Module());
+
+    auto i8 = make_basic_type(IMM_I8);
+    auto i32 = make_basic_type(IMM_I32);
+    auto f32 = make_basic_type(IMM_F32);
+    auto vd = make_void_type();
+
+    _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("getarray", i32), { make_pointer_type(i32) }));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("getfloat", f32), {}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("getfarray", i32), { make_pointer_type(f32) }));
+    
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putint", vd), { i32 }));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putch", vd), { i32 }));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putarray", vd), { i32, make_pointer_type(i32) }));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putfloat", vd), { f32 }));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putfarray", vd), { i32, make_pointer_type(f32) }));
+    
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putf", vd), { make_pointer_type(i8) }, true)); // 可变
+    
+    for(auto &&i : _mod->funsDeclared) {
+        set_func(i->name(), i);
+    }
+
     for(auto i : asts) {
         generate_single(i);
     }
     return _mod;
 }
 
-Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root)
+Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root, pType ty)
 {
+    bool is_signed = is_signed_type(ty);
 #define SELECT(x) case OPR_##x: return Ir::INSTR_##x;
     switch(root->type) {
     SELECT(ADD)
     SELECT(SUB)
     SELECT(MUL)
     SELECT(DIV)
-    SELECT(REM)
 //    SELECT(AND)
 //    SELECT(OR)
+    case OPR_REM: {
+        if(is_signed)
+            return Ir::INSTR_SREM;
+        return Ir::INSTR_UREM;
+    }
     default:
         throw_error(root, -1, "binary operation conversion from ast to ir not implemented");
     }

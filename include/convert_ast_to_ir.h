@@ -33,7 +33,7 @@ class Convertor {
 public:
     Ir::pModule generate(AstProg asts);
     
-    static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root);
+    static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root, pType ty);
     static Ir::CmpType fromCmpOpr(Pointer<Ast::BinaryNode> root, pType tr);
 
     static ImmValue constant_eval(pNode node);

@@ -316,7 +316,7 @@ BlockItem:
 
 Stmt:
   SEMICOLON {
-    $$ = NULL;
+    $$ = new BlockNode(NULL, {});
   }|
   LVal ASSIGN Exp SEMICOLON {
     $$ = new AssignNode(NULL, pNode($1), pNode($3));
@@ -325,7 +325,7 @@ Stmt:
     $$ = $1;
   }|
   CONTINUE SEMICOLON {
-    $$ = new BreakNode(NULL);
+    $$ = new ContinueNode(NULL);
   }|
   BREAK SEMICOLON {
     $$ = new BreakNode(NULL);

@@ -1371,7 +1371,7 @@ yyreduce:
 
   case 13: /* Def: ID ArrayIndexes ASSIGN InitVal  */
 #line 172 "parser.y"
-                                 {
+                                 { // int a[10] = {{0, 0}, {1, 1}}
     (yyval.def) = new DefAST();
     (yyval.def)->id = *(yyvsp[-3].token);
     delete (yyvsp[-3].token); 
@@ -1443,7 +1443,7 @@ yyreduce:
 
   case 20: /* InitVal: LC RC  */
 #line 216 "parser.y"
-        {
+        { // { }
     (yyval.initVal) = new ArrayDefNode(NULL, {});
   }
 #line 1450 "y.tab.cpp"
@@ -1451,7 +1451,7 @@ yyreduce:
 
   case 21: /* InitVal: LC InitValList RC  */
 #line 219 "parser.y"
-                    {
+                    { // {1, 2, 3}
     (yyval.initVal) = new ArrayDefNode(NULL, *(yyvsp[-1].args));
     delete (yyvsp[-1].args);
   }
@@ -1619,7 +1619,7 @@ yyreduce:
   case 39: /* Stmt: SEMICOLON  */
 #line 318 "parser.y"
             {
-    (yyval.stmt) = NULL;
+    (yyval.stmt) = new BlockNode(NULL, {});
   }
 #line 1625 "y.tab.cpp"
     break;
@@ -1643,7 +1643,7 @@ yyreduce:
   case 42: /* Stmt: CONTINUE SEMICOLON  */
 #line 327 "parser.y"
                      {
-    (yyval.stmt) = new BreakNode(NULL);
+    (yyval.stmt) = new ContinueNode(NULL);
   }
 #line 1649 "y.tab.cpp"
     break;

@@ -28,7 +28,6 @@
 
 # Executables
 *.exe
-*.out
 *.app
 
 .vscode/*.*
@@ -36,6 +35,7 @@
 .VSCodeCounter
 .VSCodeCounter/*.*
 *.ll
+*.bc
 
 build
 .cmake

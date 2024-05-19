@@ -21,11 +21,11 @@ int main(int argc, char *argv[])
 
     AstProg ast_root(root.begin(), root.end());
     
-    printf("root elements: %zu\n", root.size());
+    /*printf("root elements: %zu\n", root.size());
     for(auto &&i : root) {
         i->print();
         puts("");
-    }
+    }*/
     
     try {
         Ir::pModule mod = AstToIr::Convertor().generate(ast_root);

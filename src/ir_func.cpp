@@ -7,9 +7,9 @@ pFunctionType Func::functon_type() const
     return to_function_type(ty);
 }
 
-pFunc make_func(TypedSym var, Vector<pType> arg_types)
+pFunc make_func(TypedSym var, Vector<pType> arg_types, bool variant_length)
 {
-    return pFunc(new Func(var, arg_types));
+    return pFunc(new Func(var, arg_types, variant_length));
 }
 
 }

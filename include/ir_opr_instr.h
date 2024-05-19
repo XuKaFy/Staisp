@@ -10,7 +10,8 @@ namespace Ir {
     ENTRY(SUB, sub) \
     ENTRY(MUL, mul) \
     ENTRY(DIV, div) \
-    ENTRY(REM, rem) \
+    ENTRY(UREM, urem) \
+    ENTRY(SREM, srem) \
     ENTRY(AND, and) \
     ENTRY(OR, or)
 

@@ -11,10 +11,17 @@ namespace Ir
 struct Module {
     Symbol print_module() const;
     void add_func(pFuncDefined f);
+    void add_func_declaration(pFunc f);
     void add_global(pGlobal g);
 
     Vector<pFuncDefined> funsDefined;
     Vector<pGlobal> globs;
+    Vector<pFunc> funsDeclared;
+    /* TODO
+    加入 declare：
+        getint、getfloat、get...
+        putint、putfloat、put...
+    */
 };
 
 typedef Pointer<Module> pModule;
