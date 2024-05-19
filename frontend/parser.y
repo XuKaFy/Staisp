@@ -272,8 +272,8 @@ FuncFParam:
   }|
   BType ID LB RB ArrayIndexes { // TODO
     auto innerTy = toPTYPE($1);
-    for(auto && i : *$5) { // vector<pNode>
-      auto immValue = AstToIr::Convertor::constant_eval(i);
+    for(auto i = std::rbegin(*$5); i!=std::rend(*$5); ++i) { // vector<pNode>
+      auto immValue = AstToIr::Convertor::constant_eval(*i);
       if(is_imm_integer(immValue.ty)) {
         innerTy = make_array_type(innerTy, immValue.val.uval);
       } else {

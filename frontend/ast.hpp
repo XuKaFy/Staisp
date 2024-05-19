@@ -1,6 +1,7 @@
 #include "../include/ast_node.h"
 #include "../include/convert_ast_to_ir.h"
 #include "type.h"
+#include <iterator>
 
 enum TYPE {
     TYPE_INT, TYPE_FLOAT, TYPE_VOID
@@ -41,8 +42,8 @@ struct DefAST {
             return pNode(new Ast::VarDefNode(NULL, 
                 TypedSym(to_symbol(id), innerTy), initVal, is_const));
         }
-        for(auto &&i : indexes) {
-            auto immValue = AstToIr::Convertor::constant_eval(i);
+        for(auto i = std::rbegin(indexes); i!=std::rend(indexes); ++i) {
+            auto immValue = AstToIr::Convertor::constant_eval(*i);
             if(is_imm_integer(immValue.ty)) {
                 innerTy = make_array_type(innerTy, immValue.val.uval);
             } else {

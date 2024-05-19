@@ -43,5 +43,7 @@ int main(int argc, char *argv[])
         out.close();
     } catch (Exception e) {
         printf("Exception Catched: [%s] error %lu: %s\n", e.object, e.id, e.message);
+        return 1;
     }
+    return 0;
 }

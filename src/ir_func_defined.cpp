@@ -1,7 +1,12 @@
 #include "ir_func_defined.h"
 
+#include "imm.h"
+#include "ir_call_instr.h"
+#include "ir_constant.h"
+#include "ir_instr.h"
 #include "ir_mem_instr.h"
 #include "ir_control_instr.h"
+#include "type.h"
 
 namespace Ir {
 
@@ -33,6 +38,15 @@ void FuncDefined::add_imm(pVal val)
 
 void FuncDefined::end_function()
 {
+    if(body.empty() || body.back()->instr_type() != INSTR_RET) {
+        if(ty->type_type() == TYPE_VOID_TYPE) {
+            body.push_back(make_ret_instr());
+        } else if(!strcmp(name(), "main")) {
+            auto imm = make_constant(ImmValue(0));
+            add_imm(imm);
+            body.push_back(make_ret_instr(imm));
+        }
+    }
     p.from_instrs(body);
 }
 

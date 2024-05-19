@@ -458,18 +458,22 @@ void Convertor::analyze_statement_node(pNode root)
                     GOTO ELSE_END:
                 ELSE_END:
             */
+            bool need_label = false;
             add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
             if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
                 add_instr(Ir::make_br_instr(if_else_end));
+                need_label = true;
             }
             add_instr(if_end);
             analyze_statement_node(r->elsed);
             if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
                 add_instr(Ir::make_br_instr(if_else_end));
+                need_label = true;
             }
-            add_instr(if_else_end);
+            if(need_label)
+                add_instr(if_else_end);
         } else {
             /*
                 br xxx IF_BEGIN, IF_END

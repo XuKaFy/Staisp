@@ -1550,8 +1550,8 @@ yyreduce:
 #line 273 "parser.y"
                               { // TODO
     auto innerTy = toPTYPE((yyvsp[-4].ty));
-    for(auto && i : *(yyvsp[0].args)) { // vector<pNode>
-      auto immValue = AstToIr::Convertor::constant_eval(i);
+    for(auto i = std::rbegin(*(yyvsp[0].args)); i!=std::rend(*(yyvsp[0].args)); ++i) { // vector<pNode>
+      auto immValue = AstToIr::Convertor::constant_eval(*i);
       if(is_imm_integer(immValue.ty)) {
         innerTy = make_array_type(innerTy, immValue.val.uval);
       } else {

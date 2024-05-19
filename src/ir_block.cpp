@@ -115,6 +115,10 @@ void BlockedProgram::from_instrs(Instrs &instrs)
     LineGenerator g;
     g.generate(instrs);
 
+    /*for(auto &&i : instrs) {
+        printf(":: %s\n", i->instr_print());
+    }*/
+
     for(auto i : instrs) {
         switch(i->ty->type_type()) {
         case TYPE_IR_TYPE: {
