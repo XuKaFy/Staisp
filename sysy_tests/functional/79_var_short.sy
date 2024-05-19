@@ -1,0 +1,14 @@
+int main() {
+  int a1 = 2;
+  const int a2 = 20;
+  int a3[a2] = {1, 2};
+  int a4 = 0;
+  while (a1 < a2) {
+    a3[a1] = a3[a1] + a3[a1 - 1] + a3[a1 - 2];
+    a4 = a4 + a3[a1];
+    putint(a3[a1]);
+    putch(10);
+    a1 = a1 + 1;
+  }
+  return a4;
+}

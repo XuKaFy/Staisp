@@ -724,7 +724,7 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
     if(is_integer(root_var.ty)) {
         if(root->val) {
             auto imm = constant_eval(root->val);
-            module()->add_global(Ir::make_global(root_var, Value(imm)));
+            module()->add_global(Ir::make_global(root_var, Value(imm), root->is_const));
             if(root->is_const) {
                 _const_env.env()->set(root_var.sym, imm);
                 // printf("[2] Set Const Value: %s\n", imm.print());
