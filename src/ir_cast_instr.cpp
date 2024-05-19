@@ -1,4 +1,6 @@
 #include "ir_cast_instr.h"
+#include "imm.h"
+#include "type.h"
 
 namespace Ir
 {
@@ -11,6 +13,19 @@ Symbol CastInstr::instr_print_impl() const
     if(is_same_type(tsrc, tdest)) {
         throw Exception(1, "CastInstr", "no need to cast");
     }
+    // 第零种转换：转化为 bool
+    if(is_basic_type(tsrc) && is_basic_type(tdest) && (to_basic_type(tdest)->ty == IMM_I1 || to_basic_type(tdest)->ty == IMM_U1)) {
+        return to_symbol(
+            String(name())
+            + " = "
+            + " icmp "
+            + (is_imm_integer(to_basic_type(tsrc)->ty) ? "ne" : "one")
+            + " "
+            + tsrc->type_name()
+            + " " 
+            + val->name()
+            + ", 0");
+        }
     // 第一种转换：在整数和指针之间转换
     if(is_pointer(tsrc) && is_basic_type(tdest) && is_imm_integer(to_basic_type(tdest)->ty)) {
         return use("ptrtoint");
