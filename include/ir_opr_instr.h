@@ -10,6 +10,7 @@ namespace Ir {
     ENTRY(SUB, sub) \
     ENTRY(MUL, mul) \
     ENTRY(DIV, div) \
+    ENTRY(XOR, xor) \
     ENTRY(UREM, urem) \
     ENTRY(SREM, srem) \
     ENTRY(AND, and) \
@@ -43,6 +44,7 @@ struct UnaryInstr : public CalculatableInstr {
 
     virtual ImmValue calculate(Vector<ImmValue> v) const override;
 
+    InstrType binType;
 };
 
 struct BinInstr : public CalculatableInstr {

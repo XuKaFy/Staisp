@@ -70,12 +70,14 @@ struct UnaryNode : Node {
         : Node(t, NODE_UNARY), type(type), ch(ch) {}
 
     virtual void print(size_t tabs = 0) override {
+        printf("(");
         switch(type) {
         case UnaryType::OPR_NEG: printf("-"); break;
         case UnaryType::OPR_NOT: printf("!"); break;
         case UnaryType::OPR_POS: break;
         }
         ch->print(tabs);
+        printf(")");
     }
 
     UnaryType type;
@@ -200,7 +202,7 @@ struct IfNode : public Node
         printf(") "); body->print(tabs);
         if(elsed) {
             printf(" else ");
-            elsed->print();
+            elsed->print(tabs);
         }
     }
 

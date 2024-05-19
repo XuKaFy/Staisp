@@ -5,6 +5,7 @@
 #include "def.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
+#include "ir_cmp_instr.h"
 #include "ir_constant.h"
 #include "ir_func.h"
 #include "ir_instr.h"
@@ -193,7 +194,12 @@ ImmValue Convertor::constant_eval(pNode node)
     case NODE_UNARY: {
         auto r = std::static_pointer_cast<Ast::UnaryNode>(node);
         auto imm = constant_eval(r->ch);
-        return 0 - imm;
+        switch(r->type) {
+        case OPR_NOT: return !imm;
+        case OPR_NEG: return 0 - imm;
+        case OPR_POS: break;
+        }
+        return imm;
     }
     case NODE_BINARY: {
         auto r = std::static_pointer_cast<Ast::BinaryNode>(node);
@@ -302,16 +308,29 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
         return ir;
     }
     case NODE_UNARY: {
-        auto ch = std::static_pointer_cast<Ast::UnaryNode>(root)->ch;
+        auto r = std::static_pointer_cast<Ast::UnaryNode>(root);
+        auto ch = r->ch;
         auto val = analyze_value(ch);
-        if(is_float(val->ty)) {
-            return add_instr(Ir::make_unary_instr(val));
-        } else if(is_integer(val->ty)) {
-            auto imm = Ir::make_constant(ImmValue(0ll, to_basic_type(val->ty)->ty));
-            _cur_func->add_imm(imm);
-            return add_instr(Ir::make_binary_instr(Ir::INSTR_SUB, imm, val));
+        switch(r->type) {
+        case OPR_POS: {
+            return val;
         }
-        throw_error(root, 21, "neg an non-number");
+        case OPR_NOT: {
+            auto imm = Ir::make_constant(ImmValue(0));
+            _cur_func->add_imm(imm);
+            return add_instr(Ir::make_cmp_instr(Ir::CMP_EQ, val, imm));
+        }
+        case OPR_NEG: {
+            if(is_float(val->ty)) {
+                return add_instr(Ir::make_unary_instr(val));
+            } else if(is_integer(val->ty)) {
+                auto imm = Ir::make_constant(ImmValue(0ll, to_basic_type(val->ty)->ty));
+                _cur_func->add_imm(imm);
+                return add_instr(Ir::make_binary_instr(Ir::INSTR_SUB, imm, val));
+            }
+            throw_error(root, 21, "neg an non-number");
+        }
+        }
     }
     case NODE_IMM: {
         auto r = std::static_pointer_cast<Ast::ImmNode>(root);

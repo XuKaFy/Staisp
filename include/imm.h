@@ -132,6 +132,7 @@ struct ImmValue {
     ImmValue cast_to(ImmType new_ty) const;
 
     operator bool() const;
+    ImmValue operator ^ (ImmValue o) const;
     ImmValue operator + (ImmValue o) const;
     ImmValue operator - (ImmValue o) const;
     ImmValue operator * (ImmValue o) const;

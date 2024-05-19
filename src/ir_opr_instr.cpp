@@ -55,6 +55,8 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const
         return a0 & a1;
     case INSTR_OR:
         return a0 | a1;
+    case INSTR_XOR:
+        return a0 ^ a1;
     }
     throw Exception(1, "BinInstr::calculate", "?");
     return 0;
