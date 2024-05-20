@@ -108,9 +108,8 @@ Symbol PhiInstr::instr_print_impl() const {
 }
 
 void PhiInstr::add_incoming(Block *blk, Val *val) {
-    my_assert(val->ty == ty, "rightvalue is same as type of phi node");
-    my_assert(incoming_tuples.find(blk) == incoming_tuples.end(),
-              "block is not in incoming tuples");
+    my_assert(val->ty == ty, "operand is same as type of phi node");
+    my_assert(!incoming_tuples.count(blk), "block is not in incoming tuples");
     add_operand(val);
     incoming_tuples.insert({blk, *operands.cbegin()});
 }
