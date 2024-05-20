@@ -3,6 +3,7 @@
 #include "def.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
+#include "ir_call_instr.h"
 #include "type.h"
 #include <algorithm>
 #include <iterator>

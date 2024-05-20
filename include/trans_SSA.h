@@ -5,6 +5,8 @@
 #include "ir_instr.h"
 #include "ir_val.h"
 
+#include <functional>
+
 namespace Optimize {
 class SSA_pass {
 

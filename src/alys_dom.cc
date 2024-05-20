@@ -7,6 +7,8 @@
 #include <cassert>
 #include <cstdio>
 
+#include <functional>
+
 namespace Alys {
 
 pDomBlock DomTree::make_domblk() { return pDomBlock(new DomBlock()); }
