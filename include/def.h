@@ -8,6 +8,7 @@
 #include <cstring>
 #include <list>
 #include <map>
+#include <unordered_map>
 #include <memory>
 #include <optional>
 #include <set>
@@ -15,6 +16,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <deque>
 
 // 目标机的指针长度
 #define ARCH_BYTES 8
@@ -29,7 +31,7 @@ template <typename T> using Pointer = std::shared_ptr<T>;
 
 template <typename T> using WeakPointer = std::weak_ptr<T>;
 
-template <typename T> using List = std::list<T>;
+template <typename T> using List = std::deque<T>;
 
 template <typename T> using Vector = std::vector<T>;
 
@@ -37,7 +39,7 @@ template <typename T> using Set = std::set<T>;
 
 template <typename T> using Stack = std::stack<T>;
 
-template <typename T, typename U> using Map = std::map<T, U>;
+template <typename T, typename U> using Map = std::unordered_map<T, U>;
 
 template <typename T> using Opt = std::optional<T>;
 
