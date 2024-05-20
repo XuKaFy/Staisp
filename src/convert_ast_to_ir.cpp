@@ -395,6 +395,37 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
     return Ir::make_empty_instr();
 }
 
+size_t product(pType type) {
+    if (auto array = std::dynamic_pointer_cast<ArrayType>(type)) {
+        return array->elem_count * product(array->elem_type);
+    }
+    return 1;
+}
+
+Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer, Pointer<ArrayType> type) {
+    Vector<pNode> ans;
+    auto size = product(type);
+    auto step = size / type->elem_count;
+    for (auto&& init : initializer->nums) {
+        if (init->type == NodeType::NODE_ARRAY_VAL) {
+            // alignment
+            while (ans.size() % step) {
+                auto imm = Ast::new_imm_node(NULL, ImmValue(0));
+                ans.push_back(imm);
+            }
+            auto inner = flatten(std::static_pointer_cast<Ast::ArrayDefNode>(init), std::static_pointer_cast<ArrayType>(type->elem_type));
+            ans.insert(ans.end(), inner.begin(), inner.end());
+        } else {
+            ans.push_back(init);
+        }
+    }
+    while (ans.size() < size) {
+        auto imm = Ast::new_imm_node(NULL, ImmValue(0));
+        ans.push_back(imm);
+    }
+    return ans;
+}
+
 void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pVal> indexs)
 {
     if(!is_pointer(addr->ty)) {
