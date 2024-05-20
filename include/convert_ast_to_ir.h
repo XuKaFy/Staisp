@@ -6,7 +6,6 @@
 #include "env.h"
 
 #include "ast_node.h"
-#include "ir_constant.h"
 #include "ir_instr.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
@@ -53,7 +52,7 @@ private:
     void generate_single(pNode root);
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);
-    void analyze_statement_node(pNode root);
+    bool analyze_statement_node(pNode root);
     void copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t, Pointer<Ast::ArrayDefNode> n);
     Ir::pVal analyze_opr(Pointer<Ast::BinaryNode> root);
     Ir::pVal cast_to_type(pNode root, Ir::pVal val, pType tr);
@@ -62,6 +61,7 @@ private:
 
     Ir::pModule module() const;
 
+    bool current_block_end() const;
     Ir::pInstr add_instr(Ir::pInstr instr);
 
     EnvWrapper<MaybeConstInstr> _env;

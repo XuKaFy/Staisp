@@ -33,6 +33,11 @@ Ir::pModule Convertor::module() const
     return _mod;
 }
 
+bool Convertor::current_block_end() const
+{
+    return _cur_func->body.back()->is_end_of_block();
+}
+
 Ir::pInstr Convertor::add_instr(Ir::pInstr instr)
 {
     _cur_func->add_body(instr);
@@ -410,6 +415,7 @@ Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer, Pointer<ArrayType>
     auto step = size / type->elem_count;
     if(initializer) {
         for (auto&& init : initializer->nums) {
+            if (!init) continue;
             if (init->type == NodeType::NODE_ARRAY_VAL) {
                 // alignment
                 while (ans.size() % step) {
@@ -463,8 +469,9 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
     fn(t);
 }
 
-void Convertor::analyze_statement_node(pNode root)
+bool Convertor::analyze_statement_node(pNode root)
 {
+    bool is_end = false;
     switch(root->type) {
     case NODE_ARRAY_TYPE:
     case NODE_BASIC_TYPE:
@@ -535,18 +542,21 @@ void Convertor::analyze_statement_node(pNode root)
             add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
+            if(_cur_func->body.size() && !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_else_end));
                 need_label = true;
             }
             add_instr(if_end);
             analyze_statement_node(r->elsed);
-            if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
+            if(_cur_func->body.size() && !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_else_end));
                 need_label = true;
             }
-            if(need_label)
+            if(need_label) {
                 add_instr(if_else_end);
+            } else {
+                is_end = true;
+            }
         } else {
             /*
                 br xxx IF_BEGIN, IF_END
@@ -558,7 +568,7 @@ void Convertor::analyze_statement_node(pNode root)
             add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
+            if(_cur_func->body.size() && !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_end));
             }
             add_instr(if_end);
@@ -587,7 +597,7 @@ void Convertor::analyze_statement_node(pNode root)
         push_loop_env(while_cond, while_end);
         analyze_statement_node(r->body);
         // add_instr(Ir::make_br_instr(while_cond));
-        if(_cur_func->body.size() && !is_ir_type(_cur_func->body.back()->ty, IR_RET)) {
+        if(_cur_func->body.size() && !current_block_end()) {
             add_instr(Ir::make_br_instr(while_cond)); // who will write "while(xxx) return 0"?
         }
         add_instr(while_end);
@@ -656,6 +666,7 @@ void Convertor::analyze_statement_node(pNode root)
         } else {
             add_instr(Ir::make_ret_instr());
         }
+        is_end = true;
         break;
     }
     case NODE_BLOCK: {
@@ -663,7 +674,11 @@ void Convertor::analyze_statement_node(pNode root)
         _env.push_env();
         _const_env.push_env();
         for(auto i : r->body) {
-            analyze_statement_node(i);
+            bool ret = analyze_statement_node(i);
+            if(ret) {
+                is_end = true;
+                break;
+            }
         }
         _const_env.end_env();
         _env.end_env();
@@ -685,6 +700,7 @@ void Convertor::analyze_statement_node(pNode root)
         // impossible
         throw_error(root, -1, "statement calculation not implemented - impossible");
     }
+    return is_end;
 }
 
 void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
@@ -733,7 +749,7 @@ Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType>
     auto begin = flat.begin();
     std::function<Value(pType t)> fn = [&](pType t) -> Value {
         if(is_basic_type(t)) {
-            return constant_eval(*(begin++));
+            return constant_eval(*(begin++)).cast_to(to_basic_type(t)->ty);
         }
         size_t length = to_array_type(t)->elem_count;
         pType next_ty = to_array_type(t)->elem_type;

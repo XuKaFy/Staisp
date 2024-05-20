@@ -8,6 +8,13 @@ TEST(test_sysy, s) \
     run_sysy("sysy_tests/functional/" #s); \
 }
 
+#define run_sysy_hidden_test(s) \
+TEST(test_hidden_sysy, s) \
+{ \
+    prepare(); \
+    run_sysy("sysy_tests/hidden_functional/" #s); \
+}
+
 run_sysy_test(00_main);
 run_sysy_test(01_var_defn2);
 run_sysy_test(02_var_defn3);
@@ -108,3 +115,44 @@ run_sysy_test(96_matrix_add);
 run_sysy_test(97_matrix_sub);
 run_sysy_test(98_matrix_mul);
 run_sysy_test(99_matrix_tran);
+
+run_sysy_hidden_test(00_comment2);
+run_sysy_hidden_test(01_multiple_returns);
+run_sysy_hidden_test(02_ret_in_block);
+run_sysy_hidden_test(03_branch);
+run_sysy_hidden_test(04_break_continue);
+run_sysy_hidden_test(05_param_name);
+run_sysy_hidden_test(06_func_name);
+run_sysy_hidden_test(07_arr_init_nd);
+run_sysy_hidden_test(08_global_arr_init);
+run_sysy_hidden_test(09_BFS);
+run_sysy_hidden_test(10_DFS);
+run_sysy_hidden_test(11_BST);
+run_sysy_hidden_test(12_DSU);
+run_sysy_hidden_test(13_LCA);
+run_sysy_hidden_test(14_dp);
+run_sysy_hidden_test(15_graph_coloring);
+run_sysy_hidden_test(16_k_smallest);
+run_sysy_hidden_test(17_maximal_clique);
+run_sysy_hidden_test(18_prim);
+run_sysy_hidden_test(19_search);
+run_sysy_hidden_test(20_sort);
+run_sysy_hidden_test(21_union_find);
+run_sysy_hidden_test(22_matrix_multiply);
+run_sysy_hidden_test(23_json);
+run_sysy_hidden_test(24_array_only);
+run_sysy_hidden_test(25_scope3);
+run_sysy_hidden_test(26_scope4);
+run_sysy_hidden_test(27_scope5);
+run_sysy_hidden_test(28_side_effect2);
+run_sysy_hidden_test(29_long_line);
+run_sysy_hidden_test(30_many_dimensions);
+run_sysy_hidden_test(31_many_indirections);
+run_sysy_hidden_test(32_many_params3);
+run_sysy_hidden_test(33_multi_branch);
+run_sysy_hidden_test(34_multi_loop);
+run_sysy_hidden_test(35_math);
+run_sysy_hidden_test(36_rotate);
+run_sysy_hidden_test(37_dct);
+run_sysy_hidden_test(38_light2d);
+run_sysy_hidden_test(39_fp_params);

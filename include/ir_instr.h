@@ -46,6 +46,17 @@ struct Instr : public User {
         return INSTR_SYM;
     }
 
+    bool is_end_of_block() const {
+        switch(instr_type()) {
+        case INSTR_RET:
+        case INSTR_BR:
+        case INSTR_BR_COND:
+            return true;
+        default: break;
+        }
+        return false;
+    }
+
 private:
     Symbol instr_str_form { nullptr };
 };
