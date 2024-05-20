@@ -29,9 +29,8 @@ struct Val {
     virtual ~Val() { val_release(this); }
 
     bool has_name();
-    void set_name(Symbol name);
     void set_name(String name);
-    Symbol name() const;
+    String name() const;
 
     Vector<pUse> users;
     pType ty;
@@ -41,7 +40,7 @@ struct Val {
     virtual ValType type() const = 0;
 
 private:
-    Symbol _name{nullptr};
+    String _name;
 };
 typedef Pointer<Val> pVal;
 

@@ -2,4 +2,4 @@
 
 #include "def.h"
 
-pCode read_test_file(Symbol file_suffix);
+pCode read_test_file(String file_suffix);

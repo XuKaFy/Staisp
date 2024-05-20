@@ -13,9 +13,9 @@ struct Func : public User {
 
     virtual ValType type() const { return VAL_FUNC; }
 
-    Symbol print_func_declaration() const {
-        String whole_function = String("declare ") + ty->type_name() + " @" +
-                                name() + "("; // functions are all global
+    String print_func_declaration() const {
+        String whole_function = "declare " + ty->type_name() + " @" + name() +
+                                "("; // functions are all global
         auto func_ty = functon_type();
 
         if (func_ty->arg_type.empty())
@@ -34,7 +34,7 @@ struct Func : public User {
 
     PRINT_IMPL_END:
         whole_function += ")";
-        return to_symbol(whole_function);
+        return whole_function;
     }
 
     bool variant_length;

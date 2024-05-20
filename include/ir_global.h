@@ -9,10 +9,10 @@ namespace Ir {
 struct Global : public Val {
     Global(TypedSym val, Const con, bool is_const = false)
         : Val(make_pointer_type(val.ty)), con(con), is_const(is_const) {
-        set_name(String("@") + val.sym);
+        set_name("@" + val.sym);
     }
 
-    Symbol print_global() const;
+    String print_global() const;
 
     virtual ValType type() const { return VAL_GLOBAL; }
 

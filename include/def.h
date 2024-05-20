@@ -43,24 +43,11 @@ template <typename T> using Opt = std::optional<T>;
 
 template <typename T, typename U> using Pair = std::pair<T, U>;
 
-// Immediate 表示在该项目在常规计算中使用的数字类型
-// 很少使用
-typedef long long Immediate;
-
 typedef float Float32;
 typedef double Float64;
 
-// 使用的字符串
-// 注意，Symbol 是 C 风格字符串
-// String 为 C++ 风格字符串
-typedef const char *Symbol;
 typedef std::string String;
 typedef Pointer<String> pString;
-
-// to_symbol 函数内部存在一个内存池
-// 将所有的 String 拷贝为 C 风格字符串
-// 并且保证在程序结束后销毁所有开辟的 C 风格字符串
-Symbol to_symbol(String s);
 
 // 表示代码的数据结构
 struct Code {
@@ -76,9 +63,9 @@ pCode make_code(String code, String file_name);
 
 // 所有异常的基类
 struct Exception {
-    Exception(size_t id, Symbol obj, Symbol msg)
+    Exception(size_t id, String obj, String msg)
         : id(id), object(obj), message(msg) {}
     size_t id;
-    Symbol object;
-    Symbol message;
+    String object;
+    String message;
 };

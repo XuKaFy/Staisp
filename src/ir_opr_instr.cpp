@@ -4,19 +4,19 @@
 
 namespace Ir {
 
-Symbol UnaryInstr::instr_print_impl() const {
-    return to_symbol(String(name()) + " = " + "fneg" + " " + ty->type_name() +
-                     " " + operand(0)->usee->name());
+String UnaryInstr::instr_print() const {
+    return name() + " = " + "fneg" + " " + ty->type_name() + " " +
+           operand(0)->usee->name();
 }
 
-Symbol BinInstr::instr_print_impl() const {
-    return to_symbol(
-        String(name()) + " = " +
-        (is_float(ty)
-             ? "f"
-             : (binType == INSTR_DIV ? (is_signed_type(ty) ? "s" : "u") : "")) +
-        gBinInstrName[binType] + " " + ty->type_name() + " " +
-        operand(0)->usee->name() + ", " + operand(1)->usee->name());
+String BinInstr::instr_print() const {
+    return name() + " = " +
+           (is_float(ty)
+                ? "f"
+                : (binType == INSTR_DIV ? (is_signed_type(ty) ? "s" : "u")
+                                        : "")) +
+           gBinInstrName[binType] + " " + ty->type_name() + " " +
+           operand(0)->usee->name() + ", " + operand(1)->usee->name();
 }
 
 ImmValue BinInstr::calculate(Vector<ImmValue> v) const {

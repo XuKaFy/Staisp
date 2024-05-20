@@ -27,7 +27,7 @@ enum CmpType { CMP_INSTR_TABLE };
 #undef ENTRY
 
 #define ENTRY(x, y) #y,
-const Symbol gCmpInstrName[] = {CMP_INSTR_TABLE};
+const String gCmpInstrName[] = {CMP_INSTR_TABLE};
 #undef ENTRY
 
 #undef CMP_INSTR_TABLE
@@ -42,7 +42,7 @@ struct CmpInstr : public CalculatableInstr {
 
     virtual InstrType instr_type() const override { return INSTR_CMP; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     virtual ImmValue calculate(Vector<ImmValue> v) const override;
 

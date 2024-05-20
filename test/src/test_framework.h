@@ -67,7 +67,7 @@ String get_id(String path) {
     return path;
 }
 
-void mov(String path, String id, Symbol suffix1, Symbol suffix2) {
+void mov(String path, String id, String suffix1, String suffix2) {
     std::string command;
     command += "cp ../../";
     command += path;

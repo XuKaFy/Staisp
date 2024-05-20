@@ -37,11 +37,11 @@ public:
     static Ir::CmpType fromCmpOpr(Pointer<Ast::BinaryNode> root, pType tr);
 
 private:
-    static void throw_error(pNode root, int id, Symbol msg);
+    static void throw_error(pNode root, int id, String msg);
 
-    Ir::pVal find_left_value(pNode root, Symbol sym,
+    Ir::pVal find_left_value(pNode root, String sym,
                              bool request_not_const = false);
-    ImmValue find_const_value(pNode root, Symbol sym);
+    ImmValue find_const_value(pNode root, String sym);
 
     ImmValue constant_eval(pNode node);
 
@@ -69,9 +69,9 @@ private:
     EnvWrapper<MaybeConstInstr> _env;
     EnvWrapper<ImmValue> _const_env;
 
-    void set_func(Symbol sym, Ir::pFunc fun);
-    bool func_count(Symbol sym);
-    Ir::pFunc find_func(Symbol sym);
+    void set_func(String sym, Ir::pFunc fun);
+    bool func_count(String sym);
+    Ir::pFunc find_func(String sym);
 
     Map<String, Ir::pFunc> _func_map;
 

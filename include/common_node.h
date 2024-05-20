@@ -62,7 +62,7 @@ enum UnaryType {
 struct Node {
     Node(pToken t, NodeType type);
 
-    void throw_error(int id, Symbol object, Symbol message);
+    void throw_error(int id, String object, String message);
     virtual void print(size_t tabs = 0) { ; }
 
     pToken token;
@@ -75,11 +75,11 @@ typedef List<pNode>
              // 组成的程序看作一组节点，每个节点都是全局中的某个操作
 
 struct TypedNodeSym {
-    TypedNodeSym(Symbol name, pNode n) : name(name), n(n) {}
+    TypedNodeSym(String name, pNode n) : name(name), n(n) {}
     void print() {
         n->print();
-        printf(" %s", name);
+        printf(" %s", name.c_str());
     }
-    Symbol name;
+    String name;
     pNode n;
 };

@@ -16,7 +16,7 @@ struct CallInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_CALL; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     pFunctionType func_ty;
 };
@@ -29,7 +29,7 @@ struct RetInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_RET; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 pInstr make_call_instr(pFunc func, Vector<pVal> args);

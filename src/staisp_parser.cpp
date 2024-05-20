@@ -6,7 +6,7 @@
 
 namespace Staisp {
 
-void Parser::throw_error(int id, Symbol msg) {
+void Parser::throw_error(int id, String msg) {
     current_token().throw_error(id, "Parser", msg);
 }
 
@@ -55,9 +55,9 @@ AstProg Parser::parse(pCode code) {
     return parse(list);
 }
 
-bool Parser::is_buildin_sym(Symbol sym) {
+bool Parser::is_buildin_sym(String sym) {
     return gBuildinBinaryOprType.count(sym) || gBuildinSymType.count(sym) ||
-           (!strcmp(sym, "UNARY_NEG"));
+           (sym == "UNARY_NEG");
 }
 
 pNode Parser::parse_sym_node() {
@@ -68,7 +68,7 @@ pNode Parser::parse_sym_node() {
     return Ast::new_sym_node(current_p_token(), current_token().sym);
 }
 
-Symbol Parser::parse_sym() {
+String Parser::parse_sym() {
     get_token();
     if (current_token().t != TOKEN_SYM) {
         throw_error(2, "not a symbol");
@@ -87,7 +87,7 @@ pNode Parser::parse_type() {
     if (current_token().t != TOKEN_SYM) {
         throw_error(3, "not a type");
     }
-    if (strcmp(current_token().sym, "void") == 0) {
+    if (current_token().sym == "void") {
         return Ast::new_basic_type_node(current_p_token(), make_void_type());
     }
     if (gSymToImmType.count(current_token().sym) == 0) {
@@ -110,7 +110,7 @@ pNode Parser::parse_type() {
 }
 
 bool Parser::parse_const() {
-    if (!strcmp(peek().sym, "CONST")) {
+    if (peek().sym == "CONST") {
         consume_token(TOKEN_SYM);
         return true;
     }
@@ -195,7 +195,7 @@ pNode Parser::parse_left_value() {
     return parse_sym_node();
 }
 
-pNode Parser::parse_buildin_sym(Symbol sym, bool in_global) {
+pNode Parser::parse_buildin_sym(String sym, bool in_global) {
     auto token = current_p_token();
     if (gBuildinBinaryOprType.count(sym)) {
         auto a1 = parse_value();
@@ -203,7 +203,7 @@ pNode Parser::parse_buildin_sym(Symbol sym, bool in_global) {
         return Ast::new_binary_node(
             token, gBuildinBinaryOprType.find(sym)->second, a1, a2);
     }
-    if (!strcmp(sym, "UNARY_NEG")) {
+    if (sym == "UNARY_NEG") {
         auto a = parse_value();
         return Ast::new_unary_node(token, OPR_NEG, a);
     }
@@ -341,7 +341,7 @@ Vector<pNode> Parser::parse_value_list() {
     return list;
 }
 
-pNode Parser::parse_function_call(Symbol sym) {
+pNode Parser::parse_function_call(String sym) {
     if (!_env.env()->count(sym)) {
         throw_error(4, "function not found");
     }
@@ -388,7 +388,7 @@ AstProg Parser::parse(TokenList list) {
         _env.end_env();
         return _result;
     } catch (Exception e) {
-        current_token().throw_error(e.id, e.object, e.message);
+        current_token().throw_error(e.id, e.object.c_str(), e.message);
     }
     return {};
 }

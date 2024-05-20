@@ -15,9 +15,9 @@ public:
 
     Env(pEnv parent = pEnv()) : _parent(parent) {}
 
-    bool count_current(Symbol sym) { return _var_map.count(sym); }
+    bool count_current(String sym) { return _var_map.count(sym); }
 
-    bool count(Symbol sym) {
+    bool count(String sym) {
         if (count_current(sym)) {
             return true;
         }
@@ -26,20 +26,20 @@ public:
         return false;
     }
 
-    T &operator[](Symbol sym) {
-        if (sym == nullptr)
+    T &operator[](String sym) {
+        if (sym.empty())
             throw Exception(2, "Env", "empty symbol");
         return find(sym);
     }
 
-    const T &operator[](Symbol sym) const {
-        if (sym == nullptr)
+    const T &operator[](String sym) const {
+        if (sym.empty())
             throw Exception(2, "Env", "empty symbol");
         return find(sym);
     }
 
-    T &find(Symbol sym) {
-        if (sym == nullptr)
+    T &find(String sym) {
+        if (sym.empty())
             throw Exception(2, "Env", "empty symbol");
         if (_var_map.count(sym)) {
             return _var_map[sym];
@@ -49,8 +49,8 @@ public:
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
-    const T &find(Symbol sym) const {
-        if (sym == nullptr)
+    const T &find(String sym) const {
+        if (sym.empty())
             throw Exception(2, "Env", "empty symbol");
         if (_var_map.count(sym)) {
             return _var_map[sym];
@@ -60,7 +60,7 @@ public:
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
-    void set(Symbol sym, T i) { _var_map[sym] = i; }
+    void set(String sym, T i) { _var_map[sym] = i; }
 
 private:
     pEnv _parent;

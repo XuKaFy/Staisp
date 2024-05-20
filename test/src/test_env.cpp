@@ -8,7 +8,7 @@ TEST(test_env, basic_env) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_STREQ(e.object, "Env");
+        EXPECT_STREQ(e.object.c_str(), "Env");
     }
     a.set("hello", 10);
     try {
@@ -21,18 +21,18 @@ TEST(test_env, basic_env) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_STREQ(e.object, "Env");
+        EXPECT_STREQ(e.object.c_str(), "Env");
     }
 }
 
 TEST(test_env, env_found_empty) {
     Env<int> a;
     try {
-        a.find(nullptr);
+        a.find("");
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
-        EXPECT_STREQ(e.object, "Env");
+        EXPECT_STREQ(e.object.c_str(), "Env");
     }
 }
 
@@ -43,7 +43,7 @@ TEST(test_env_wrapper, basic_env_wrapper) {
         ew.env();
     } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
-        EXPECT_STREQ(e.object, "EnvWrapper");
+        EXPECT_STREQ(e.object.c_str(), "EnvWrapper");
     }
     ew.push_env();
     EXPECT_EQ(ew.env_count(), 1);
@@ -69,6 +69,6 @@ TEST(test_env_wrapper, basic_env_wrapper) {
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
-        EXPECT_STREQ(e.object, "EnvWrapper");
+        EXPECT_STREQ(e.object.c_str(), "EnvWrapper");
     }
 }

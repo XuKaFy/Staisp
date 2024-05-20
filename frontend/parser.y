@@ -265,11 +265,11 @@ FuncFParamList:
 // 函数形参
 FuncFParam:
   BType ID {
-    $$ = new TypedNodeSym(to_symbol(*$2), new_basic_type_node(NULL, toPTYPE($1)));
+    $$ = new TypedNodeSym(*$2, new_basic_type_node(NULL, toPTYPE($1)));
     delete $2;
   }|
   BType ID LB RB {
-    $$ = new TypedNodeSym(to_symbol(*$2), new_pointer_type_node(NULL, new_basic_type_node(NULL, toPTYPE($1))));
+    $$ = new TypedNodeSym(*$2, new_pointer_type_node(NULL, new_basic_type_node(NULL, toPTYPE($1))));
     delete $2;
   }|
   BType ID LB RB ArrayIndexes {
@@ -277,7 +277,7 @@ FuncFParam:
     for(auto i = std::rbegin(*$5); i!=std::rend(*$5); ++i) { 
       innerTy = Ast::new_array_type_node(NULL, innerTy, *i);
     }
-    $$ = new TypedNodeSym(to_symbol(*$2), new_pointer_type_node(NULL, innerTy));
+    $$ = new TypedNodeSym(*$2, new_pointer_type_node(NULL, innerTy));
   };
 
 // 语句块
@@ -372,11 +372,11 @@ Cond:
 
 LVal:
   ID {
-    $$ = new SymNode(NULL, to_symbol(*$1));
+    $$ = new SymNode(NULL, *$1);
     delete $1;
   }|
   ID ArrayIndexes {
-    $$ = new ItemNode(NULL, new_sym_node(NULL, to_symbol(*$1)), *$2);
+    $$ = new ItemNode(NULL, new_sym_node(NULL, *$1), *$2);
     delete $1;
     delete $2;
   };
@@ -415,11 +415,11 @@ UnaryExp:
 
 Call:
   ID LP RP {
-    $$ = new CallNode(NULL, to_symbol(*$1), {});
+    $$ = new CallNode(NULL, *$1, {});
     delete $1;
   }|
   ID LP Args RP {
-    $$ = new CallNode(NULL, to_symbol(*$1), *$3);
+    $$ = new CallNode(NULL, *$1, *$3);
     delete $1;
     delete $3;
   };

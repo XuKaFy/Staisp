@@ -35,8 +35,7 @@ enum InstrType {
 struct Instr : public User {
     Instr(pType ty) : User(ty) {}
 
-    Symbol instr_print();
-    virtual Symbol instr_print_impl() const;
+    virtual String instr_print() const;
 
     virtual ValType type() const { return VAL_INSTR; }
 
@@ -53,9 +52,6 @@ struct Instr : public User {
         }
         return false;
     }
-
-private:
-    Symbol instr_str_form{nullptr};
 };
 
 // 所有只要操作数为常量就可以计算出值的操作

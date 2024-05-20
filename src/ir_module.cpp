@@ -8,7 +8,7 @@ void Module::add_func_declaration(pFunc f) { funsDeclared.push_back(f); }
 
 void Module::add_global(pGlobal g) { globs.push_back(g); }
 
-Symbol Module::print_module() const {
+String Module::print_module() const {
     String ans;
 
     for (auto i : funsDeclared) {
@@ -28,7 +28,7 @@ Symbol Module::print_module() const {
         ans += "\n";
     }
 
-    return to_symbol(ans);
+    return ans;
 }
 
 pModule make_module() { return pModule(new Module()); }

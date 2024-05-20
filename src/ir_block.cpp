@@ -42,13 +42,13 @@ void Block::connect_in_and_out() {
     out->in_block.erase(this);
 }
 
-Symbol Block::print_block() const {
+String Block::print_block() const {
     String whole_block;
     for (size_t i = 0; i < body.size(); ++i) {
         whole_block += body[i]->instr_print();
         whole_block += "\n";
     }
-    return to_symbol(whole_block);
+    return whole_block;
 }
 
 void Block::connect(Block *next) {
@@ -178,12 +178,12 @@ void BlockedProgram::generate_cfg() const {
 
 void BlockedProgram::print_cfg() const {
     for (auto i : blocks) {
-        printf("CFG: Block %s\n", i->name());
+        printf("CFG: Block %s\n", i->name().c_str());
         for (auto j : i->in_block) {
-            printf("    In Block %s\n", j->name());
+            printf("    In Block %s\n", j->name().c_str());
         }
         for (auto j : i->out_block) {
-            printf("    Out Block %s\n", j->name());
+            printf("    Out Block %s\n", j->name().c_str());
         }
     }
 }

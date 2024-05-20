@@ -13,7 +13,7 @@ class LineGenerator {
 public:
     LineGenerator() : _line(0), _label_line(0) {}
     int line();
-    Symbol label();
+    String label();
 
     void generate(const Instrs &body);
 

@@ -21,12 +21,12 @@ public:
           int line);
 
     // 打印报错信息后，throw 一个 Exception
-    void throw_error(int id, Symbol object, Symbol error_code);
+    void throw_error(int id, String object, String error_code);
     // 仅打印警告信息
-    void print_warning(int id, Symbol object, Symbol error_code);
+    void print_warning(int id, String object, String error_code);
 
 private:
-    void print_message(Symbol type, int id, Symbol object, Symbol error_code);
+    void print_message(String type, int id, String object, String error_code);
 
     pCode p_code;
     String::iterator token_begin;

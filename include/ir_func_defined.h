@@ -6,9 +6,9 @@
 namespace Ir {
 
 struct FuncDefined : public Func {
-    FuncDefined(TypedSym var, Vector<pType> arg_types, Vector<Symbol> arg_name);
+    FuncDefined(TypedSym var, Vector<pType> arg_types, Vector<String> arg_name);
 
-    Symbol print_func() const;
+    String print_func() const;
 
     void add_body(pInstr instr);
     // 将该块使用到的临时变量存放起来
@@ -18,7 +18,7 @@ struct FuncDefined : public Func {
 
     void end_function();
 
-    Vector<Symbol> arg_name;
+    Vector<String> arg_name;
     Vector<pVal> imms;
     Instrs args;
     Instrs body;
@@ -29,6 +29,6 @@ struct FuncDefined : public Func {
 typedef Pointer<FuncDefined> pFuncDefined;
 
 pFuncDefined make_func_defined(TypedSym var, Vector<pType> arg_types,
-                               Vector<Symbol> syms);
+                               Vector<String> syms);
 
 } // namespace Ir

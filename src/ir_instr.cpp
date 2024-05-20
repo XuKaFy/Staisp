@@ -2,14 +2,7 @@
 
 namespace Ir {
 
-Symbol Instr::instr_print() {
-    // if(instr_str_form == nullptr) {
-    return instr_str_form = instr_print_impl();
-    // }
-    // return instr_str_form;
-}
-
-Symbol Instr::instr_print_impl() const { return name(); }
+String Instr::instr_print() const { return name(); }
 
 pInstr make_empty_instr() {
     static pInstr empty = pInstr();

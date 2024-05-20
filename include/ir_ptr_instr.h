@@ -8,7 +8,7 @@ namespace Ir {
 struct ItemInstr : public Instr {
     ItemInstr(pVal val, Vector<pVal> index);
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     virtual InstrType instr_type() const override { return INSTR_ITEM; }
 

@@ -6,7 +6,7 @@ pNode new_imm_node(pToken t, ImmValue imm) {
     return pNode(new ImmNode(t, imm));
 }
 
-pNode new_sym_node(pToken t, Symbol str) { return pNode(new SymNode(t, str)); }
+pNode new_sym_node(pToken t, String str) { return pNode(new SymNode(t, str)); }
 
 pNode new_binary_node(pToken t, BinaryType type, pNode lhs, pNode rhs) {
     return pNode(new BinaryNode(t, type, lhs, rhs));
@@ -85,7 +85,7 @@ pNode new_return_node(pToken t) { return pNode(new ReturnNode(t)); }
 
 pNode new_continue_node(pToken t) { return pNode(new ContinueNode(t)); }
 
-pNode new_call_node(pToken t, Symbol name, Vector<pNode> ch) {
+pNode new_call_node(pToken t, String name, Vector<pNode> ch) {
     return pNode(new CallNode(t, name, ch));
 }
 

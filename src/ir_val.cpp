@@ -22,14 +22,9 @@ void val_release_use(Val *usee, pUse i) {
     }
 }
 
-bool Val::has_name() { return _name; }
+bool Val::has_name() { return !_name.empty(); }
 
-void Val::set_name(Symbol name) { _name = name; }
-
-void Val::set_name(String name) {
-    // printf("NAME SET %s(%llx)\n", to_symbol(name), this);
-    set_name(to_symbol(name));
-}
+void Val::set_name(String name) { _name = name; }
 
 void Val::replace_self(Val *val) {
     for (auto &i : users) {
@@ -41,7 +36,7 @@ void Val::replace_self(Val *val) {
     users.clear();
 }
 
-Symbol Val::name() const { return _name; }
+String Val::name() const { return _name; }
 
 void User::add_operand(Val *val) {
     pUse use = pUse(new Use{this, val});

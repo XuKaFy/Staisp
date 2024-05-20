@@ -13,7 +13,7 @@
 // * TokenType t：指代这个 Token 内存放的额外数据是字符串类型的还是 ImmValue
 // 类型的
 // * ImmValue val：以 ImmValue 为存放媒介的字面数字常量
-// * Symbol sym：以 Symbol 为存放媒介的字面字符串常量
+// * String sym：以 String 为存放媒介的字面字符串常量
 
 #pragma once
 
@@ -42,17 +42,15 @@ enum TokenType {
 struct StaispToken : public Token {
     StaispToken(ImmValue val, pCode code, String::iterator token_begin,
                 String::iterator token_end, int line);
-    StaispToken(Symbol sym, pCode code, String::iterator token_begin,
+    StaispToken(String sym, pCode code, String::iterator token_begin,
                 String::iterator token_end, int line);
     StaispToken(TokenType t, String::value_type c, pCode code,
                 String::iterator token_begin, String::iterator token_end,
                 int line);
 
     TokenType t;
-    union {
-        ImmValue val;
-        Symbol sym;
-    };
+    ImmValue val;
+    String sym;
 };
 
 class Lexer {
@@ -69,7 +67,7 @@ private:
     pToken lexer_one_token();
     pToken lexer_number(String::value_type head);
     pToken lexer_sym(String::value_type head);
-    pToken lexer_float(Immediate head);
+    pToken lexer_float(long long head);
 
     // _begin 指代当前的 Token 单元从第几个字符开始识别
     String::iterator _begin;

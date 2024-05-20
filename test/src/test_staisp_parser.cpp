@@ -11,7 +11,7 @@
             EXPECT_TRUE(false);                                                \
         } catch (Exception e) {                                                \
             EXPECT_EQ(e.id, x);                                                \
-            EXPECT_STREQ(e.object, "Parser");                                  \
+            EXPECT_STREQ(e.object.c_str(), "Parser");                          \
         }                                                                      \
     }
 

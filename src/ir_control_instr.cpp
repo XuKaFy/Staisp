@@ -2,17 +2,15 @@
 
 namespace Ir {
 
-Symbol LabelInstr::instr_print_impl() const {
-    return to_symbol(name() + String(":"));
-}
+String LabelInstr::instr_print() const { return name() + ":"; }
 
-Symbol BrInstr::instr_print_impl() const {
+String BrInstr::instr_print() const {
     String ans = "br label %";
     ans += operand(0)->usee->name();
-    return to_symbol(ans);
+    return ans;
 }
 
-Symbol BrCondInstr::instr_print_impl() const {
+String BrCondInstr::instr_print() const {
     String ans = "br ";
     auto &cond = operand(0)->usee;
     auto &trueTo = operand(1)->usee;
@@ -24,7 +22,7 @@ Symbol BrCondInstr::instr_print_impl() const {
     ans += trueTo->name();
     ans += ", label %";
     ans += falseTo->name();
-    return to_symbol(ans);
+    return ans;
 }
 
 pInstr BrCondInstr::select(bool cond) {

@@ -21,7 +21,7 @@ enum BinInstrType { BIN_INSTR_TABLE };
 #undef ENTRY
 
 #define ENTRY(x, y) #y,
-const Symbol gBinInstrName[] = {BIN_INSTR_TABLE};
+const String gBinInstrName[] = {BIN_INSTR_TABLE};
 #undef ENTRY
 
 #undef BIN_INSTR_TABLE
@@ -29,7 +29,7 @@ const Symbol gBinInstrName[] = {BIN_INSTR_TABLE};
 struct UnaryInstr : public CalculatableInstr {
     UnaryInstr(pVal oprd) : CalculatableInstr(oprd->ty) { add_operand(oprd); }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     virtual InstrType instr_type() const override { return INSTR_UNARY; }
 
@@ -45,7 +45,7 @@ struct BinInstr : public CalculatableInstr {
         add_operand(oprd2);
     }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     virtual ImmValue calculate(Vector<ImmValue> v) const override;
 

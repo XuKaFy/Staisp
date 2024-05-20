@@ -12,17 +12,19 @@ namespace Ast {
 struct ImmNode : public Node {
     ImmNode(pToken t, ImmValue imm) : Node(t, NODE_IMM), imm(imm) {}
 
-    virtual void print(size_t tabs = 0) override { printf("%s", imm.print()); }
+    virtual void print(size_t tabs = 0) override {
+        printf("%s", imm.print().c_str());
+    }
 
     ImmValue imm;
 };
 
 struct SymNode : public Node {
-    SymNode(pToken t, Symbol sym) : Node(t, NODE_SYM), sym(sym) {}
+    SymNode(pToken t, String sym) : Node(t, NODE_SYM), sym(sym) {}
 
-    virtual void print(size_t tabs = 0) override { printf("%s", sym); }
+    virtual void print(size_t tabs = 0) override { printf("%s", sym.c_str()); }
 
-    Symbol sym;
+    String sym;
 };
 
 struct BinaryNode : public Node {
@@ -107,11 +109,11 @@ struct UnaryNode : Node {
 };
 
 struct CallNode : public Node {
-    CallNode(pToken t, Symbol name, Vector<pNode> ch)
+    CallNode(pToken t, String name, Vector<pNode> ch)
         : Node(t, NODE_CALL), name(name), ch(ch) {}
 
     virtual void print(size_t tabs = 0) override {
-        printf("%s(", name);
+        printf("%s(", name.c_str());
         bool first = true;
         for (auto &&i : ch) {
             if (first) {
@@ -124,7 +126,7 @@ struct CallNode : public Node {
         printf(")");
     }
 
-    Symbol name;
+    String name;
     Vector<pNode> ch;
 };
 
@@ -146,7 +148,7 @@ struct BasicTypeNode : public Node {
     BasicTypeNode(pToken t, pType ty) : Node(t, NODE_BASIC_TYPE), ty(ty) {}
 
     virtual void print(size_t tabs = 0) override {
-        printf("%s", ty->type_name());
+        printf("%s", ty->type_name().c_str());
     }
 
     pType ty;
@@ -200,7 +202,7 @@ struct FuncDefNode : public Node {
 
     virtual void print(size_t tabs = 0) override {
         var.n->print(tabs);
-        printf(" %s(", var.name);
+        printf(" %s(", var.name.c_str());
         bool first = true;
         for (auto &&i : args) {
             if (first) {
@@ -209,7 +211,7 @@ struct FuncDefNode : public Node {
                 printf(", ");
             }
             i.n->print(tabs);
-            printf(" %s", i.name);
+            printf(" %s", i.name.c_str());
         }
         printf(") ");
         body->print(tabs);
@@ -402,7 +404,7 @@ struct ItemNode : public Node {
 };
 
 pNode new_imm_node(pToken t, ImmValue imm);
-pNode new_sym_node(pToken t, Symbol symbol);
+pNode new_sym_node(pToken t, String symbol);
 
 pNode new_block_node(pToken t, AstProg body);
 
@@ -430,6 +432,6 @@ pNode new_for_node(pToken t, pNode init, pNode cond, pNode exec, pNode body);
 pNode new_break_node(pToken t);
 pNode new_return_node(pToken t, pNode ret = {});
 pNode new_continue_node(pToken t);
-pNode new_call_node(pToken t, Symbol name, Vector<pNode> ch);
+pNode new_call_node(pToken t, String name, Vector<pNode> ch);
 
 } // namespace Ast

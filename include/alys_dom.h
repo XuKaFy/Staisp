@@ -32,7 +32,7 @@ struct PhiInstr final : Instr {
 
     virtual InstrType instr_type() const override { return INSTR_PHI; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     void add_incoming(Block *block, Val *val);
 

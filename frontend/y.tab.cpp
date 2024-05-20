@@ -1533,8 +1533,10 @@ yyreduce:
   case 30: /* FuncFParam: BType ID  */
 #line 267 "parser.y"
            {
-    (yyval.funcFParam) = new TypedNodeSym(to_symbol(*(yyvsp[0].token)), new_basic_type_node(NULL, toPTYPE((yyvsp[-1].ty))));
-    delete (yyvsp[0].token);
+      (yyval.funcFParam) =
+          new TypedNodeSym(*(yyvsp[0].token),
+                           new_basic_type_node(NULL, toPTYPE((yyvsp[-1].ty))));
+      delete (yyvsp[0].token);
   }
 #line 1540 "y.tab.cpp"
     break;
@@ -1542,8 +1544,11 @@ yyreduce:
   case 31: /* FuncFParam: BType ID LB RB  */
 #line 271 "parser.y"
                  {
-    (yyval.funcFParam) = new TypedNodeSym(to_symbol(*(yyvsp[-2].token)), new_pointer_type_node(NULL, new_basic_type_node(NULL, toPTYPE((yyvsp[-3].ty)))));
-    delete (yyvsp[-2].token);
+      (yyval.funcFParam) = new TypedNodeSym(
+          *(yyvsp[-2].token),
+          new_pointer_type_node(
+              NULL, new_basic_type_node(NULL, toPTYPE((yyvsp[-3].ty)))));
+      delete (yyvsp[-2].token);
   }
 #line 1549 "y.tab.cpp"
     break;
@@ -1555,7 +1560,8 @@ yyreduce:
     for(auto i = std::rbegin(*(yyvsp[0].args)); i!=std::rend(*(yyvsp[0].args)); ++i) { 
       innerTy = Ast::new_array_type_node(NULL, innerTy, *i);
     }
-    (yyval.funcFParam) = new TypedNodeSym(to_symbol(*(yyvsp[-3].token)), new_pointer_type_node(NULL, innerTy));
+    (yyval.funcFParam) = new TypedNodeSym(*(yyvsp[-3].token),
+                                          new_pointer_type_node(NULL, innerTy));
   }
 #line 1561 "y.tab.cpp"
     break;
@@ -1743,8 +1749,8 @@ yyreduce:
   case 55: /* LVal: ID  */
 #line 374 "parser.y"
      {
-    (yyval.lVal) = new SymNode(NULL, to_symbol(*(yyvsp[0].token)));
-    delete (yyvsp[0].token);
+      (yyval.lVal) = new SymNode(NULL, *(yyvsp[0].token));
+      delete (yyvsp[0].token);
   }
 #line 1750 "y.tab.cpp"
     break;
@@ -1752,9 +1758,10 @@ yyreduce:
   case 56: /* LVal: ID ArrayIndexes  */
 #line 378 "parser.y"
                   {
-    (yyval.lVal) = new ItemNode(NULL, new_sym_node(NULL, to_symbol(*(yyvsp[-1].token))), *(yyvsp[0].args));
-    delete (yyvsp[-1].token);
-    delete (yyvsp[0].args);
+      (yyval.lVal) = new ItemNode(NULL, new_sym_node(NULL, *(yyvsp[-1].token)),
+                                  *(yyvsp[0].args));
+      delete (yyvsp[-1].token);
+      delete (yyvsp[0].args);
   }
 #line 1760 "y.tab.cpp"
     break;
@@ -1826,8 +1833,8 @@ yyreduce:
   case 65: /* Call: ID LP RP  */
 #line 417 "parser.y"
            {
-    (yyval.exp) = new CallNode(NULL, to_symbol(*(yyvsp[-2].token)), {});
-    delete (yyvsp[-2].token);
+      (yyval.exp) = new CallNode(NULL, *(yyvsp[-2].token), {});
+      delete (yyvsp[-2].token);
   }
 #line 1833 "y.tab.cpp"
     break;
@@ -1835,9 +1842,9 @@ yyreduce:
   case 66: /* Call: ID LP Args RP  */
 #line 421 "parser.y"
                 {
-    (yyval.exp) = new CallNode(NULL, to_symbol(*(yyvsp[-3].token)), *(yyvsp[-1].args));
-    delete (yyvsp[-3].token);
-    delete (yyvsp[-1].args);
+      (yyval.exp) = new CallNode(NULL, *(yyvsp[-3].token), *(yyvsp[-1].args));
+      delete (yyvsp[-3].token);
+      delete (yyvsp[-1].args);
   }
 #line 1843 "y.tab.cpp"
     break;

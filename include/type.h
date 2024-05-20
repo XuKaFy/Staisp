@@ -40,7 +40,7 @@ struct Type {
     Type() {}
 
     virtual TypeType type_type() const { return TYPE_VOID_TYPE; }
-    virtual Symbol type_name() const { return "void"; }
+    virtual String type_name() const { return "void"; }
     virtual size_t length() const { return 0; }
 };
 
@@ -48,9 +48,9 @@ typedef Pointer<Type> pType;
 
 // 表达具有任意类型的标识符
 struct TypedSym {
-    TypedSym(Symbol sym, pType ty) : sym(sym), ty(ty) {}
+    TypedSym(String sym, pType ty) : sym(sym), ty(ty) {}
 
-    Symbol sym;
+    String sym;
     pType ty;
 };
 
@@ -67,7 +67,7 @@ struct IrType : public Type {
     IrType(VoidIrType ty) : Type(), ir_ty(ty) {}
 
     virtual TypeType type_type() const override { return TYPE_IR_TYPE; }
-    virtual Symbol type_name() const override { return "ir"; }
+    virtual String type_name() const override { return "ir"; }
     virtual size_t length() const override { return 0; }
 
     VoidIrType ir_ty;
@@ -79,7 +79,7 @@ struct BasicType : public Type {
     BasicType(ImmType ty) : Type(), ty(ty) {}
 
     virtual TypeType type_type() const override { return TYPE_BASIC_TYPE; }
-    virtual Symbol type_name() const override;
+    virtual String type_name() const override;
     virtual size_t length() const override { return bytes_of_imm_type(ty); }
     ImmType ty;
 };
@@ -92,7 +92,7 @@ struct FunctionType : public Type {
     virtual TypeType type_type() const override {
         return ret_type->type_type();
     }
-    virtual Symbol type_name() const override { return ret_type->type_name(); }
+    virtual String type_name() const override { return ret_type->type_name(); }
     virtual size_t length() const override { return ret_type->length(); }
 
     pType ret_type;
@@ -133,7 +133,7 @@ struct StructType : public CompoundType {
 struct PointerType : public CompoundType {
     PointerType(pType ty) : CompoundType(), pointed_type(ty) {}
 
-    virtual Symbol type_name() const override;
+    virtual String type_name() const override;
     virtual CompoundTypeType compound_type_type() const override {
         return COMPOUND_TYPE_POINTER;
     }
@@ -149,7 +149,7 @@ struct ArrayType : public CompoundType {
     virtual CompoundTypeType compound_type_type() const override {
         return COMPOUND_TYPE_ARRAY;
     }
-    virtual Symbol type_name() const override;
+    virtual String type_name() const override;
     virtual size_t length() const override {
         return elem_type->length() * elem_count;
     }

@@ -12,7 +12,7 @@
             EXPECT_TRUE(false);                                                \
         } catch (Exception e) {                                                \
             EXPECT_EQ(e.id, x);                                                \
-            EXPECT_STREQ(e.object, "Convertor");                               \
+            EXPECT_STREQ(e.object.c_str(), "Convertor");                       \
         }                                                                      \
     }
 
@@ -25,7 +25,7 @@
             EXPECT_TRUE(false);                                                \
         } catch (Exception e) {                                                \
             EXPECT_EQ(e.id, x);                                                \
-            EXPECT_STREQ(e.object, "Convertor");                               \
+            EXPECT_STREQ(e.object.c_str(), "Convertor");                       \
         }                                                                      \
     }
 

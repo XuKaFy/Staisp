@@ -3,8 +3,8 @@
 
 namespace Ir {
 
-Symbol ItemInstr::instr_print_impl() const {
-    String ans = String(name()) + " = getelementptr " +
+String ItemInstr::instr_print() const {
+    String ans = name() + " = getelementptr " +
                  to_pointed_type(operand(0)->usee->ty)->type_name() + ", " +
                  operand(0)->usee->ty->type_name() + " " +
                  operand(0)->usee->name();
@@ -16,7 +16,7 @@ Symbol ItemInstr::instr_print_impl() const {
         ans += String(", ") + operand(i)->usee->ty->type_name() + " " +
                operand(i)->usee->name();
     }
-    return to_symbol(ans);
+    return ans;
 }
 
 pType ex_shell(pType t, size_t count, bool &get_from_local) {

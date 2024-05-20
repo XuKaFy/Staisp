@@ -42,7 +42,7 @@ struct Value {
 
     operator bool() const;
 
-    Symbol to_string() const;
+    String to_string() const;
 
     ImmValue &imm_value() { return std::get<ImmValue>(val); }
     PointerValue &pointer_value() { return std::get<PointerValue>(val); }
@@ -74,7 +74,7 @@ pValue make_value(ArrayValue v);
 pValue make_value(StructValue v);
 
 struct ElemValue {
-    Symbol name;
+    String name;
     pType ty;
     Value v;
 };

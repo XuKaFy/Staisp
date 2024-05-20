@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
         // out << mod->print_module();
         // out.close();
     } catch (Exception e) {
-        printf("Exception Catched: [%s] error %lu: %s\n", e.object, e.id,
-               e.message);
+        printf("Exception Catched: [%s] error %lu: %s\n", e.object.c_str(),
+               e.id, e.message.c_str());
         return 1;
     }
     return 0;

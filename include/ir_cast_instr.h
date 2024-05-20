@@ -9,12 +9,12 @@ struct CastInstr : public CalculatableInstr {
 
     virtual InstrType instr_type() const override { return INSTR_CAST; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 
     virtual ImmValue calculate(Vector<ImmValue> v) const override;
 
 private:
-    Symbol use(Symbol inst) const;
+    String use(String inst) const;
 };
 
 pInstr make_cast_instr(pType tr, pVal a1);

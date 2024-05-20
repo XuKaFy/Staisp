@@ -10,7 +10,7 @@ struct AllocInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_ALLOCA; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 struct LoadInstr : public Instr {
@@ -20,7 +20,7 @@ struct LoadInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_LOAD; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 struct StoreInstr : public Instr {
@@ -31,7 +31,7 @@ struct StoreInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_STORE; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 pInstr make_alloc_instr(pType tr);

@@ -24,7 +24,7 @@
 
 namespace AstToIr {
 
-void Convertor::throw_error(pNode root, int id, Symbol msg) {
+void Convertor::throw_error(pNode root, int id, String msg) {
     root->throw_error(id, "Convertor", msg);
 }
 
@@ -39,7 +39,7 @@ Ir::pInstr Convertor::add_instr(Ir::pInstr instr) {
     return instr;
 }
 
-Ir::pVal Convertor::find_left_value(pNode root, Symbol sym,
+Ir::pVal Convertor::find_left_value(pNode root, String sym,
                                     bool request_not_const) {
     Ir::pInstr found_instr;
     if (_env.env()->count(sym)) { // local
@@ -52,11 +52,10 @@ Ir::pVal Convertor::find_left_value(pNode root, Symbol sym,
         found_instr = found.instr;
     } else { // global
         for (auto i : module()->globs) {
-            if (strcmp(i->name() + 1, sym) == 0) {
+            if (i->name() == "@" + sym) {
                 if (request_not_const && i->is_const)
                     throw_error(root, 11, "assignment to a global const value");
-                auto sym_node = Ir::make_sym_instr(
-                    TypedSym(to_symbol(String("@") + sym), i->ty));
+                auto sym_node = Ir::make_sym_instr(TypedSym("@" + sym, i->ty));
                 _cur_func->add_imm(sym_node);
                 found_instr = sym_node;
                 break;
@@ -64,7 +63,7 @@ Ir::pVal Convertor::find_left_value(pNode root, Symbol sym,
         }
     }
     if (!found_instr) {
-        printf("Warning: left-value \"%s\" not found.\n", sym);
+        printf("Warning: left-value \"%s\" not found.\n", sym.c_str());
         throw_error(root, 1, "left value cannot be found");
     }
     // printf("found %s %s\n", found_instr->ty->type_name(), sym);
@@ -90,8 +89,8 @@ Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty) {
         return r;
     }
     if (!is_castable(val->ty, ty)) {
-        printf("Message: not castable from %s to %s\n", val->ty->type_name(),
-               ty->type_name());
+        printf("Message: not castable from %s to %s\n",
+               val->ty->type_name().c_str(), ty->type_name().c_str());
         throw_error(root, 13, "[Convertor] error 13: not castable");
     }
     auto r = Ir::make_cast_instr(ty, val);
@@ -129,8 +128,8 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root) {
         auto a2 = analyze_value(root->rhs);
         auto joined_type = join_type(a1->ty, a2->ty);
         if (!joined_type) {
-            printf("Warning: try to join %s and %s.\n", a1->ty->type_name(),
-                   a2->ty->type_name());
+            printf("Warning: try to join %s and %s.\n",
+                   a1->ty->type_name().c_str(), a2->ty->type_name().c_str());
             throw_error(root, 18, "type has no joined type");
         }
         auto ir =
@@ -219,7 +218,7 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root) {
     }
 }
 
-ImmValue Convertor::find_const_value(pNode root, Symbol sym) {
+ImmValue Convertor::find_const_value(pNode root, String sym) {
     if (!_const_env.env()->count(sym)) {
         throw_error(root, 29, "not a constant");
     }
@@ -304,7 +303,7 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const) {
         auto r = std::static_pointer_cast<Ast::ItemNode>(root);
         auto array = analyze_value(r->v, request_not_const);
         if (!is_pointer(array->ty)) {
-            printf("Message: type is %s\n", array->ty->type_name());
+            printf("Message: type is %s\n", array->ty->type_name().c_str());
             throw_error(r->v, 25, "not an array");
         }
         // printf("Array Type: %s\n", array->ty->type_name());
@@ -793,11 +792,11 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root) {
     Ir::pFuncDefined func;
     {
         Vector<pType> types;
-        Vector<Symbol> syms;
+        Vector<String> syms;
         for (auto i : root->args) {
             auto ty = analyze_type(i.n);
             if (is_array(ty)) {
-                printf("Warning: %s is array.\n", i.name);
+                printf("Warning: %s is array.\n", i.name.c_str());
                 throw_error(root, 24, "array cannot be argument");
             }
             types.push_back(ty);
@@ -811,7 +810,7 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root) {
                 所以这里一定是 false
             */
             if (_env.env()->count(root->args[i].name)) {
-                printf("Warning: %s repeated.\n", root->args[i].name);
+                printf("Warning: %s repeated.\n", root->args[i].name.c_str());
                 throw_error(root, 26, "repeated argument name");
             }
             _env.env()->set(root->args[i].name, {func->args[i], false});
@@ -908,6 +907,9 @@ Ir::pModule Convertor::generate(AstProg asts) {
     auto i32 = make_basic_type(IMM_I32);
     auto f32 = make_basic_type(IMM_F32);
     auto vd = make_void_type();
+
+    _mod->add_func_declaration(Ir::make_func(TypedSym("starttime", vd), {}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("stoptime", vd), {}));
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));
@@ -1020,10 +1022,10 @@ void Convertor::clear_loop_env() {
         _loop_env_stack.pop();
 }
 
-void Convertor::set_func(Symbol sym, Ir::pFunc fun) { _func_map[sym] = fun; }
+void Convertor::set_func(String sym, Ir::pFunc fun) { _func_map[sym] = fun; }
 
-bool Convertor::func_count(Symbol sym) { return _func_map.count(sym); }
+bool Convertor::func_count(String sym) { return _func_map.count(sym); }
 
-Ir::pFunc Convertor::find_func(Symbol sym) { return _func_map[sym]; }
+Ir::pFunc Convertor::find_func(String sym) { return _func_map[sym]; }
 
 } // namespace AstToIr

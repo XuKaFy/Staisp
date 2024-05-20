@@ -6,7 +6,7 @@ StaispToken::StaispToken(ImmValue val, pCode code, String::iterator token_begin,
                          String::iterator token_end, int line)
     : Token(code, token_begin, token_end, line), t(TOKEN_INT), val(val) {}
 
-StaispToken::StaispToken(Symbol sym, pCode code, String::iterator token_begin,
+StaispToken::StaispToken(String sym, pCode code, String::iterator token_begin,
                          String::iterator token_end, int line)
     : Token(code, token_begin, token_end, line), t(TOKEN_SYM), sym(sym) {}
 
@@ -61,7 +61,7 @@ TokenList Lexer::lexer(pCode code) {
 }
 
 pToken Lexer::lexer_number(String::value_type head) {
-    Immediate var = head - '0';
+    long long var = head - '0';
     while (has_char() && !isspace(peek())) {
         if (peek() == '.') {
             get_char();
@@ -83,7 +83,7 @@ pToken Lexer::lexer_number(String::value_type head) {
                                   _current, _line_count));
 }
 
-pToken Lexer::lexer_float(Immediate head) {
+pToken Lexer::lexer_float(long long head) {
     Float64 var = head;
     Float64 small = 0.1;
     while (has_char() && !isspace(peek())) {
@@ -108,8 +108,7 @@ pToken Lexer::lexer_sym(String::value_type head) {
             break;
         sym += get_char();
     }
-    return pToken(new StaispToken(to_symbol(sym), _p_code, _begin, _current,
-                                  _line_count));
+    return pToken(new StaispToken(sym, _p_code, _begin, _current, _line_count));
 }
 
 pToken Lexer::lexer_one_token() {

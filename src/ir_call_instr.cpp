@@ -2,11 +2,11 @@
 
 namespace Ir {
 
-Symbol CallInstr::instr_print_impl() const {
+String CallInstr::instr_print() const {
     String res;
     if (ty->type_type() != TYPE_VOID_TYPE)
-        res = String(name()) + " = ";
-    res += String("call ") + func_ty->ret_type->type_name() + " @" +
+        res = name() + " = ";
+    res += "call " + func_ty->ret_type->type_name() + " @" +
            operand(0)->usee->name() + "("; // %1 = call @fun(i32 1, i64 2)
 
     my_assert(func_ty->arg_type.size() + 1 == operand_size(),
@@ -28,15 +28,15 @@ Symbol CallInstr::instr_print_impl() const {
 
 INSTR_PRINT_IMPL_END:
     res += ")";
-    return to_symbol(res);
+    return res;
 }
 
-Symbol RetInstr::instr_print_impl() const {
+String RetInstr::instr_print() const {
     if (operand_size()) {
-        return to_symbol(String("ret ") + operand(0)->usee->ty->type_name() +
-                         " " + operand(0)->usee->name());
+        return "ret " + operand(0)->usee->ty->type_name() + " " +
+               operand(0)->usee->name();
     }
-    return to_symbol("ret void");
+    return "ret void";
 }
 
 pInstr make_call_instr(pFunc func, Vector<pVal> args) {

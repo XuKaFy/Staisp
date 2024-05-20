@@ -34,7 +34,7 @@ struct Block : public Val {
     void replace_out(Block *before, Block *out);
 
     // 打印该 block
-    Symbol print_block() const;
+    String print_block() const;
 
     // 该块的 label，默认为第一条 instr
     pInstr label() const;

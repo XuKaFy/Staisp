@@ -9,7 +9,7 @@ struct LabelInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_LABEL; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 struct BrInstr : public Instr {
@@ -19,7 +19,7 @@ struct BrInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_BR; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 struct BrCondInstr : public Instr {
@@ -34,7 +34,7 @@ struct BrCondInstr : public Instr {
 
     virtual InstrType instr_type() const override { return INSTR_BR_COND; }
 
-    virtual Symbol instr_print_impl() const override;
+    virtual String instr_print() const override;
 };
 
 typedef Pointer<LabelInstr> pLabel;

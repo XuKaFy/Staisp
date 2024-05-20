@@ -57,11 +57,12 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
 
 void DomTree::print_dom_tree() const {
     for (auto [_, dom_node] : dom_map) {
-        printf("Dominance Tree: Block %s\n", dom_node->basic_block->name());
-        printf("Idom: %s", dom_node->idom->basic_block->name());
+        printf("Dominance Tree: Block %s\n",
+               dom_node->basic_block->name().c_str());
+        printf("Idom: %s", dom_node->idom->basic_block->name().c_str());
         printf("Out Block: ");
         for (auto j : dom_node->out_block) {
-            printf("%s ;", j->basic_block->name());
+            printf("%s ;", j->basic_block->name().c_str());
             my_assert(dom_map.at(j->basic_block.get())->idom == dom_node.get(),
                       "dominance tree success");
         }
@@ -86,7 +87,7 @@ Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
 } // namespace Alys
 
 namespace Ir {
-Symbol PhiInstr::instr_print_impl() const {
+String PhiInstr::instr_print() const {
     /*
     Phi syntax:
     %indvar = phi i32 [ 0, %LoopHeader ], [ %nextindvar, %Loop ]
@@ -95,9 +96,9 @@ Symbol PhiInstr::instr_print_impl() const {
     String ret;
     my_assert(ty->type_type() != TYPE_VOID_TYPE,
               "Phi Instruction type must be non-void");
-    ret = String(name()) + " = ";
+    ret = name() + " = ";
 
-    ret += String("phi ") + ty->type_name();
+    ret += "phi " + ty->type_name();
     for (auto [blk, val] : incoming_tuples) {
         ret += "[ ";
         ret += val->usee->name();
@@ -106,7 +107,7 @@ Symbol PhiInstr::instr_print_impl() const {
         ret += " ]";
     }
 
-    return to_symbol(ret);
+    return ret;
 }
 
 void PhiInstr::add_incoming(Block *blk, Val *val) {

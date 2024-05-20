@@ -38,7 +38,7 @@ bool Value::is_static() const {
     return false;
 }
 
-Symbol Value::to_string() const {
+String Value::to_string() const {
     switch (type()) {
     case VALUE_IMM:
         return imm_value().print();
@@ -64,7 +64,7 @@ Symbol Value::to_string() const {
             s += i->to_string();
         }
         s += "]";
-        return to_symbol(s);
+        return s;
     }
     default:
         throw Exception(1, "Value", "not implemented");

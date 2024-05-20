@@ -70,7 +70,7 @@ bool is_imm_integer(ImmType t) {
 
 ImmType join_imm_type(ImmType a, ImmType b) { return std::max(a, b); }
 
-ImmTypedSym::ImmTypedSym(Symbol sym, ImmType tr, bool is_const)
+ImmTypedSym::ImmTypedSym(String sym, ImmType tr, bool is_const)
     : sym(sym), tr(tr), is_const(is_const) {}
 
 ImmValue::operator bool() const {
@@ -147,7 +147,8 @@ ImmValue ImmValue::cast_to(ImmType new_ty) const {
     }
     }
 #undef SWITCHES
-    printf("Warning: cast from %s to %s", gImmName[ty], gImmName[new_ty]);
+    printf("Warning: cast from %s to %s", gImmName[ty].c_str(),
+           gImmName[new_ty].c_str());
     throw Exception(1, "ImmValue", "type not implemented {cast_to}");
     return ImmValue();
 }
@@ -262,7 +263,7 @@ OPR_DEF_LOGICAL(==)
 OPR_DEF_LOGICAL(!=)
 #undef OPR_DEF_INT
 
-Symbol ImmValue::print() const {
+String ImmValue::print() const {
     static char buf[256] = {0};
     switch (ty) {
     case IMM_I1:
@@ -286,7 +287,7 @@ Symbol ImmValue::print() const {
         sprintf(buf, "%lf", val.f64val);
         break;
     }
-    return to_symbol(String(buf));
+    return buf;
 }
 
 ImmValue ImmValue::operator!() const {

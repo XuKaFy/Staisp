@@ -1,17 +1,17 @@
 #include "type.h"
 #include "def.h"
 
-Symbol BasicType::type_name() const { return gImmName[ty]; }
+String BasicType::type_name() const { return gImmName[ty]; }
 
-Symbol PointerType::type_name() const {
-    return to_symbol(String(pointed_type->type_name()) + "*");
+String PointerType::type_name() const {
+    return pointed_type->type_name() + "*";
 }
 
-Symbol ArrayType::type_name() const {
+String ArrayType::type_name() const {
     static char tmp[256];
     sprintf(tmp, "[%llu x %s]", (unsigned long long)elem_count,
-            elem_type->type_name());
-    return to_symbol(String(tmp));
+            elem_type->type_name().c_str());
+    return tmp;
 }
 
 pType make_void_type() { return pType(new Type()); }
@@ -64,7 +64,7 @@ bool is_same_type(pType a1, pType a2) {
     if (!a2) {
         throw Exception(2, "is_same_type", "arg2 is empty");
     }
-    return strcmp(a1->type_name(), a2->type_name()) == 0;
+    return a1->type_name() == a2->type_name();
 }
 
 bool is_castable(pType from, pType to) {

@@ -4,7 +4,7 @@
 
 namespace Ir {
 
-Symbol CastInstr::instr_print_impl() const {
+String CastInstr::instr_print() const {
     auto &val = operand(0)->usee;
     auto tsrc = val->ty;
     auto tdest = ty;
@@ -15,10 +15,9 @@ Symbol CastInstr::instr_print_impl() const {
     if (is_basic_type(tsrc) && is_basic_type(tdest) &&
         (to_basic_type(tdest)->ty == IMM_I1 ||
          to_basic_type(tdest)->ty == IMM_U1)) {
-        return to_symbol(
-            String(name()) + " = " + " icmp " +
-            (is_imm_integer(to_basic_type(tsrc)->ty) ? "ne" : "one") + " " +
-            tsrc->type_name() + " " + val->name() + ", 0");
+        return name() + " = " + " icmp " +
+               (is_imm_integer(to_basic_type(tsrc)->ty) ? "ne" : "one") + " " +
+               tsrc->type_name() + " " + val->name() + ", 0";
     }
     // 第一种转换：在整数和指针之间转换
     if (is_pointer(tsrc) && is_basic_type(tdest) &&
@@ -63,17 +62,17 @@ Symbol CastInstr::instr_print_impl() const {
             return use("fpext");
         return use("fptrunc");
     }
-    printf("Converting type %s to type %s\n", tsrc->type_name(),
-           tdest->type_name());
+    printf("Converting type %s to type %s\n", tsrc->type_name().c_str(),
+           tdest->type_name().c_str());
     throw Exception(2, "CastInstr", "not castable");
 }
 
-Symbol CastInstr::use(Symbol inst) const {
+String CastInstr::use(String inst) const {
     auto &val = operand(0)->usee;
     auto tsrc = val->ty;
     auto tdest = ty;
-    return to_symbol(String(name()) + " = " + inst + " " + tsrc->type_name() +
-                     " " + val->name() + " to " + tdest->type_name());
+    return name() + " = " + inst + " " + tsrc->type_name() + " " + val->name() +
+           " to " + tdest->type_name();
 }
 
 ImmValue CastInstr::calculate(Vector<ImmValue> v) const {

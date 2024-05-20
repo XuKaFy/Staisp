@@ -2,12 +2,10 @@
 
 namespace Ir {
 
-Symbol CmpInstr::instr_print_impl() const {
-    return to_symbol(
-        String(name()) +
-        (is_float(operand(0)->usee->ty) ? " = fcmp " : " = icmp ") +
-        gCmpInstrName[cmp_type] + " " + operand(0)->usee->ty->type_name() +
-        " " + operand(0)->usee->name() + ", " + operand(1)->usee->name());
+String CmpInstr::instr_print() const {
+    return name() + (is_float(operand(0)->usee->ty) ? " = fcmp " : " = icmp ") +
+           gCmpInstrName[cmp_type] + " " + operand(0)->usee->ty->type_name() +
+           " " + operand(0)->usee->name() + ", " + operand(1)->usee->name();
 }
 
 ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {

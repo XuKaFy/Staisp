@@ -88,7 +88,7 @@ enum SymType {
 class Parser {
 public:
     // 判断一个 C 风格字符串内容是否为关键字
-    static bool is_buildin_sym(Symbol sym);
+    static bool is_buildin_sym(String sym);
 
     AstProg parse(pCode code);
     AstProg parse(TokenList list);
@@ -98,7 +98,7 @@ private:
     // 可以这么理解，若错误是之前的 Token 爆出的，那么就不应该执行到下个 Token
     // 如果是之后的 Token 爆出，那么错误就不在当前节点
     // 因此，被爆出的错误只能是当前 Token 产生
-    void throw_error(int id, Symbol msg);
+    void throw_error(int id, String msg);
 
     StaispToken get_token();
     StaispToken current_token() const;
@@ -108,15 +108,15 @@ private:
     void consume_token(TokenType t);
     bool has_token() const;
 
-    pNode parse_buildin_sym(Symbol sym, bool in_global = false);
-    pNode parse_function_call(Symbol sym);
+    pNode parse_buildin_sym(String sym, bool in_global = false);
+    pNode parse_function_call(String sym);
     pNode parse_block();
     pNode parse_statement(bool in_global);
     pNode parse_value();
     Vector<pNode> parse_array_value();
     pNode parse_left_value();
     TypedNodeSym parse_typed_sym();
-    Symbol parse_sym();
+    String parse_sym();
     pNode parse_sym_node();
     pNode parse_type();
     pNode parse_single_value_list();

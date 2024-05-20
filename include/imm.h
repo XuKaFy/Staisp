@@ -49,7 +49,7 @@ const Map<String, ImmType> gSymToImmType{
 // 均映射为 i64
 // 对于浮点数，IMM_F64 映射为 double，IMM_F32 映射为 float
 #define ENTRY(x, y, z, a) #a,
-const Symbol gImmName[] = {IMM_TYPE_TABLE};
+const String gImmName[] = {IMM_TYPE_TABLE};
 #undef ENTRY
 #undef IMM_TYPE_TABLE
 
@@ -144,7 +144,7 @@ struct ImmValue {
     ImmValue operator!=(ImmValue o) const;
     ImmValue operator!() const;
 
-    Symbol print() const;
+    String print() const;
 };
 
 typedef Vector<ImmValue> ImmValues;
@@ -152,9 +152,9 @@ typedef Opt<ImmValue> ImmOrVoid;
 
 // TypedSym 类型即限定某个标识符的类型如何
 struct ImmTypedSym {
-    ImmTypedSym(Symbol sym, ImmType tr, bool is_const = false);
+    ImmTypedSym(String sym, ImmType tr, bool is_const = false);
 
-    Symbol sym;
+    String sym;
     ImmType tr;
     bool is_const;
 };
