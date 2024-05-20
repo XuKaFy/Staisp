@@ -240,7 +240,7 @@ ImmValue Convertor::constant_eval(pNode node) {
         case OPR_NOT:
             return !imm;
         case OPR_NEG:
-            return 0 - imm;
+            return imm.neg();
         case OPR_POS:
             break;
         }
@@ -847,7 +847,7 @@ Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n,
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root) {
     TypedSym root_var = TypedSym(root->var.name, analyze_type(root->var.n));
-    if (is_integer(root_var.ty)) {
+    if (is_basic_type(root_var.ty)) {
         if (root->val) {
             auto imm = constant_eval(root->val);
             module()->add_global(

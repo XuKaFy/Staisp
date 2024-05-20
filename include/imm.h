@@ -144,6 +144,8 @@ struct ImmValue {
     ImmValue operator!=(ImmValue o) const;
     ImmValue operator!() const;
 
+    ImmValue neg() const;
+
     String print() const;
 };
 

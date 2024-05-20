@@ -280,14 +280,48 @@ String ImmValue::print() const {
     case IMM_U64:
         sprintf(buf, "%llu", val.uval);
         break;
-    case IMM_F32:
-        sprintf(buf, "%f", val.f32val);
-        break;
-    case IMM_F64:
-        sprintf(buf, "%lf", val.f64val);
+    case IMM_F32: {
+        union {
+            float fx;
+            unsigned int ix;
+        };
+        fx = val.f32val;
+        sprintf(buf, "0x%08x", ix);
         break;
     }
+    case IMM_F64:
+        union {
+            double fx;
+            unsigned long long ix;
+        };
+        fx = val.f64val;
+        sprintf(buf, "0x%016llx", ix);
+        
+    }
     return buf;
+}
+
+ImmValue ImmValue::neg() const
+{
+    switch (ty) {
+    case IMM_I1:
+    case IMM_I8:
+    case IMM_I16:
+    case IMM_I32:
+    case IMM_I64:
+        return -val.ival;
+    case IMM_U1:
+    case IMM_U8:
+    case IMM_U16:
+    case IMM_U32:
+    case IMM_U64:
+        return -val.uval;
+    case IMM_F32:
+        return -val.f32val;
+    case IMM_F64:
+        return -val.f64val;
+    }
+    return 0;
 }
 
 ImmValue ImmValue::operator!() const {
