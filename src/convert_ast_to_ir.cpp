@@ -19,6 +19,8 @@
 #include "value.h"
 #include <memory>
 
+#include <functional>
+
 namespace AstToIr {
 
 void Convertor::throw_error(pNode root, int id, Symbol msg)
@@ -406,59 +408,59 @@ Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer, Pointer<ArrayType>
     Vector<pNode> ans;
     auto size = product(type);
     auto step = size / type->elem_count;
-    for (auto&& init : initializer->nums) {
-        if (init->type == NodeType::NODE_ARRAY_VAL) {
-            // alignment
-            while (ans.size() % step) {
-                auto imm = Ast::new_imm_node(NULL, ImmValue(0));
-                ans.push_back(imm);
+    if(initializer) {
+        for (auto&& init : initializer->nums) {
+            if (init->type == NodeType::NODE_ARRAY_VAL) {
+                // alignment
+                while (ans.size() % step) {
+                    auto imm = Ast::new_imm_node(NULL, ImmValue(0));
+                    ans.push_back(imm);
+                }
+                auto inner = flatten(std::static_pointer_cast<Ast::ArrayDefNode>(init), std::static_pointer_cast<ArrayType>(type->elem_type));
+                ans.insert(ans.end(), inner.begin(), inner.end());
+            } else {
+                ans.push_back(init);
             }
-            auto inner = flatten(std::static_pointer_cast<Ast::ArrayDefNode>(init), std::static_pointer_cast<ArrayType>(type->elem_type));
-            ans.insert(ans.end(), inner.begin(), inner.end());
-        } else {
-            ans.push_back(init);
         }
     }
     while (ans.size() < size) {
         auto imm = Ast::new_imm_node(NULL, ImmValue(0));
         ans.push_back(imm);
     }
+    if(ans.size() > size) {
+        throw Exception(1, "flatten", "too much elements");
+    }
     return ans;
 }
 
-void Convertor::copy_to_array(pNode root, Ir::pInstr addr, pType cur_type, Vector<pNode> nums, Vector<Ir::pVal> indexs)
+void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t, Pointer<Ast::ArrayDefNode> n)
 {
     if(!is_pointer(addr->ty)) {
         throw_error(root, 16, "list should initialize type that is pointed");
     }
-    auto array_type = std::static_pointer_cast<ArrayType>(to_pointed_type(cur_type));
-    auto elem_type = array_type->elem_type;
-    auto subarray_type = make_pointer_type(elem_type);
-    size_t valid_size = std::min(array_type->elem_count, nums.size());
-    if(is_array(elem_type)) {
-        for(size_t i=0; i<valid_size; ++i) {
-            if(nums[i]->type != NODE_ARRAY_VAL)
-                throw_error(root, 17, "list doesn't match the expected value");
+    Vector<pNode> flat = flatten(n, t);
+    Vector<Ir::pVal> indexes;
+    auto begin = flat.begin();
+    std::function<void(pType t)> fn = [&](pType t) -> void {
+        if(is_basic_type(t)) {
+            auto val = analyze_value(*(begin++));
+            auto item = Ir::make_item_instr(addr, indexes);
+            add_instr(item);
+            auto store = Ir::make_store_instr(item, val);
+            add_instr(store);
+            return ;
+        }
+        size_t length = to_array_type(t)->elem_count;
+        pType next_ty = to_array_type(t)->elem_type;
+        for(size_t i=0; i<length; ++i) {
             auto index = Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32));
             _cur_func->add_imm(index);
-            indexs.push_back(index);
-            copy_to_array(root, addr, subarray_type, std::static_pointer_cast<Ast::ArrayDefNode>(nums[i])->nums, indexs);
-            indexs.pop_back();
+            indexes.push_back(index);
+            fn(next_ty);
+            indexes.pop_back();
         }
-        return ;
-    }
-    for(size_t i=0; i<valid_size; ++i) {
-        auto index = Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32));
-        indexs.push_back(index);
-        _cur_func->add_imm(index);
-        auto item = Ir::make_item_instr(addr, indexs);
-        
-        add_instr(item);
-        
-        auto store = Ir::make_store_instr(item, analyze_value(nums[i]));
-        add_instr(store);
-        indexs.pop_back();
-    }
+    };
+    fn(t);
 }
 
 void Convertor::analyze_statement_node(pNode root)
@@ -498,7 +500,7 @@ void Convertor::analyze_statement_node(pNode root)
                 if(r->val->type != NODE_ARRAY_VAL)
                     throw_error(r->val, 17, "array should be initialized by a list");
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
-                copy_to_array(r, tmp, tmp->ty, rrr->nums);
+                copy_to_array(r, tmp, to_array_type(ty), rrr);
             }
             break;
         }
@@ -727,26 +729,22 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
 
 Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType> t)
 {
-    ArrayValue v;
-    v.ty = t->elem_type;
-    if(is_array(t->elem_type)) {
-        for(size_t i=0; i<t->elem_count; ++i) {
-            if(n && i < n->nums.size()) {
-                v.arr.push_back(make_value(from_array_def(std::static_pointer_cast<Ast::ArrayDefNode>(n->nums[i]), to_array_type(t->elem_type))));
-            } else {
-                v.arr.push_back(make_value(from_array_def(nullptr, to_array_type(t->elem_type))));
-            }
+    Vector<pNode> flat = flatten(n, t);
+    auto begin = flat.begin();
+    std::function<Value(pType t)> fn = [&](pType t) -> Value {
+        if(is_basic_type(t)) {
+            return constant_eval(*(begin++));
+        }
+        size_t length = to_array_type(t)->elem_count;
+        pType next_ty = to_array_type(t)->elem_type;
+        ArrayValue v;
+        v.ty = next_ty;
+        for(size_t i=0; i<length; ++i) {
+            v.arr.push_back(make_value(fn(next_ty)));
         }
         return v;
-    }
-    for(size_t i=0; i<t->elem_count; ++i) {
-        if(n && i < n->nums.size()) {
-            v.arr.push_back(make_value(std::static_pointer_cast<Ast::ImmNode>(n->nums[i])->imm));
-        } else {
-            v.arr.push_back(make_value(ImmValue(to_basic_type(t->elem_type)->ty)));
-        }
-    }
-    return v;
+    };
+    return fn(t);
 }
 
 void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
