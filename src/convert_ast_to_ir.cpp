@@ -17,6 +17,7 @@
 #include "imm.h"
 #include "type.h"
 #include "value.h"
+#include <cstddef>
 #include <memory>
 
 #include <functional>
@@ -402,41 +403,83 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
     return Ir::make_empty_instr();
 }
 
-size_t product(pType type) {
-    if (auto array = std::dynamic_pointer_cast<ArrayType>(type)) {
-        return array->elem_count * product(array->elem_type);
+struct InitializerVisitor
+{
+    InitializerVisitor(Pointer<Ast::ArrayDefNode> vst)
+        : vst(vst) {
+        if(vst) {
+            begin = vst->nums.begin();
+            end = vst->nums.end();
+            is_empty = false;
+        } else {
+            is_empty = true;
+        }
     }
-    return 1;
+
+    InitializerVisitor(InitializerVisitor &a)
+        : vst(a.vst), begin(a.begin), end(a.end), is_empty(a.is_empty) { }
+
+    pNode peek() {
+        if(begin == end) {
+            return nullptr;
+        }
+        if(is_empty) return nullptr;
+        return *begin;
+    }
+
+    pNode get() {
+        if(begin == end) {
+            return nullptr;
+        }
+        if(is_empty) return nullptr;
+        return *(begin++);
+    }
+
+    Pointer<Ast::ArrayDefNode> vst;
+    Vector<pNode>::iterator begin;
+    Vector<pNode>::iterator end;
+
+    bool is_empty;
+};
+
+Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
+    Vector<pNode> ans;
+    size_t size  = type->elem_count;
+    pType elem_ty = type->elem_type;
+
+    if(elem_ty->type_type() == TYPE_BASIC_TYPE) {
+        for(size_t i=0; i<size; ++i) {
+            auto elem = list.get();
+            if(elem) {
+                ans.push_back(elem);
+            } else {
+                ans.push_back(Ast::new_imm_node(nullptr, 0));
+            }
+        }
+        return ans;
+    }
+
+    for(size_t i=0; i<size; ++i) {
+        auto elem = list.peek();
+        if(elem && elem->type == NODE_ARRAY_VAL) {
+            elem = list.get();
+            InitializerVisitor new_v(std::dynamic_pointer_cast<Ast::ArrayDefNode>(elem));
+            Vector<pNode> inner = flatten(new_v,
+                std::static_pointer_cast<ArrayType>(elem_ty));
+            ans.insert(ans.end(), inner.begin(), inner.end());
+        } else {
+            Vector<pNode> inner = flatten(list, 
+                std::static_pointer_cast<ArrayType>(elem_ty));
+            ans.insert(ans.end(), inner.begin(), inner.end());
+        }
+    }
+    
+    return ans;
 }
 
 Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer, Pointer<ArrayType> type) {
-    Vector<pNode> ans;
-    auto size = product(type);
-    auto step = size / type->elem_count;
-    if(initializer) {
-        for (auto&& init : initializer->nums) {
-            if (!init) continue;
-            if (init->type == NodeType::NODE_ARRAY_VAL) {
-                // alignment
-                while (ans.size() % step) {
-                    auto imm = Ast::new_imm_node(NULL, ImmValue(0));
-                    ans.push_back(imm);
-                }
-                auto inner = flatten(std::static_pointer_cast<Ast::ArrayDefNode>(init), std::static_pointer_cast<ArrayType>(type->elem_type));
-                ans.insert(ans.end(), inner.begin(), inner.end());
-            } else {
-                ans.push_back(init);
-            }
-        }
-    }
-    while (ans.size() < size) {
-        auto imm = Ast::new_imm_node(NULL, ImmValue(0));
-        ans.push_back(imm);
-    }
-    if(ans.size() > size) {
-        throw Exception(1, "flatten", "too much elements");
-    }
-    return ans;
+    InitializerVisitor new_v(initializer);
+    return flatten(new_v, type);
 }
 
 void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t, Pointer<Ast::ArrayDefNode> n)
