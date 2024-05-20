@@ -1,14 +1,11 @@
 
-#include "alys_dom.h"
+#include "trans_SSA.h"
 #include "def.h"
-#include "ir_block.h"
 #include "ir_instr.h"
-#include "ir_val.h"
-#include "opt.h"
+#include "ir_mem_instr.h"
 #include "type.h"
 #include <algorithm>
-#include <functional>
-
+#include <iterator>
 /*
 This algorithem is based on the paper "Simple and Efficient Construction of
 Static Single Assignment Form" by Braun, M., Buchwald, S., Hack, S., Leißa, R.,
@@ -17,148 +14,251 @@ https:doi.org/10.1007/978-3-642-37051-9_6
 */
 
 namespace Optimize {
-class SSA_pass {
 
-    using vrtl_reg = Ir::Val;
-    Map<vrtl_reg *, Map<Ir::Block *, vrtl_reg *>> current_def;
-    Set<Ir::Block *> sealedBlocks;
-    Ir::BlockedProgram &cur_func;
-    Alys::DomTree dom_ctx;
-    Map<Ir::Block *, Vector<Pair<vrtl_reg *, Ir::Instr *>>> incompletePhis;
+SSA_pass::SSA_pass(Ir::BlockedProgram &cur_func) : cur_func(cur_func) {
+    dom_ctx.build_dom(cur_func);
+}
 
-    SSA_pass(Ir::BlockedProgram &cur_func) : cur_func(cur_func) {
-        dom_ctx.build_dom(cur_func);
+auto SSA_pass::entry_blk() -> Ir::Block * {
+    return cur_func.blocks.at(0).get();
+}
+
+auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
+                       vrtl_reg *definition_val) -> void {
+    current_def[variable][block] = definition_val;
+}
+
+auto SSA_pass::is_phi(Ir::User *user) -> bool {
+    if (user->type() == Ir::VAL_INSTR) {
+        auto t = static_cast<Ir::Instr *>(user);
+        my_assert(t, "t must be Instr *");
+        return t->instr_type() == Ir::INSTR_PHI;
+    }
+    return false;
+}
+
+SSA_pass::vrtl_reg *SSA_pass::use_val(vrtl_reg *variable, Ir::Block *block) {
+    if (current_def.at(variable).count(block)) {
+        return current_def[variable][block];
+    }
+    my_assert(block != entry_blk(),
+              "The definition of every variable must be in the entry block.");
+    return use_val_recursive(variable, block);
+}
+
+SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
+                                                Ir::Block *block) {
+    vrtl_reg *val = nullptr;
+    if (sealedBlocks.find(block) == sealedBlocks.end()) {
+        // Incomplete CFG.
+        auto phi = Ir::make_phi_instr(variable->ty);
+        my_assert(is_phi(phi.get()), "phi instr type is not INSTR_PHI");
+        val = phi.get();
+        block->body.insert(block->body.cend(), phi);
+        my_assert(block->body.front() == phi, "head insertion");
+        incompletePhis[block].emplace_back<Pair<vrtl_reg *, Ir::Instr *>>(
+            {variable, phi.get()});
+    } else if (block->in_block.size() == 1) {
+        // Optimize the common case of one predecessor: No phi needed
+        val = use_val(variable, *block->in_block.begin());
+    } else {
+        my_assert(!block->in_block.empty(),
+                  "every block in such function must have predecessor");
+        // Break potential cycles with operandless phi
+        auto phi = Ir::make_phi_instr(variable->ty);
+        block->body.insert(block->body.cend(), phi);
+        my_assert(block->body.front() == phi, "head insertion");
+        def_val(variable, block, phi.get());
+        val = addPhiOperands(variable, phi.get(), block);
+    }
+    def_val(variable, block, val);
+    return val;
+}
+
+SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
+                                             Ir::Block *phi_blk) {
+    auto phi_ins = static_cast<Ir::PhiInstr *>(phi);
+    for (auto pred : phi_blk->in_block) {
+        auto val = use_val(variable, pred);
+        // phi->add_incoming(pred, val);
+        phi_ins->add_incoming(pred, val);
+    }
+    return tryRemoveTrivialPhi(phi_ins);
+}
+
+auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
+    vrtl_reg *same = nullptr;
+    for (auto [_, use_val] : phi->incoming_tuples) {
+        auto val = use_val->usee;
+        if (val == same || val == phi)
+            continue;
+        if (same)
+            return phi;
+        same = val;
     }
 
-    auto entry_blk() -> Ir::Block * { return cur_func.blocks.front().get(); }
+    my_assert(same, "nullptr to some val in phi incoming tuples");
+    Vector<Ir::PhiInstr *> phiUsers;
 
-    auto def_val(vrtl_reg *variable, Ir::Block *block, vrtl_reg *val) -> void {
-        current_def[variable][block] = val;
-    }
-
-    template <typename a, typename b>
-    auto fmap(std::function<b(a)> f, Vector<a> v1) -> Vector<b> {
-        Vector<b> v2;
-        for (auto vs : v1) {
-            v2.push_back(f(vs));
+    for (Ir::User *user : fmap<Ir::pUse, Ir::User *>(
+             [&phi](auto arg_use) {
+                 my_assert(arg_use->usee == phi,
+                           "the source of such use-def edge must be phi instr");
+                 return arg_use->user;
+             },
+             phi->users)) {
+        if (user != phi && is_phi(user)) {
+            phiUsers.push_back(static_cast<Ir::PhiInstr *>(user));
         }
-        return v2;
+    }
+
+    // reset val
+    phi->replace_self(same);
+
+    for (auto user : phiUsers) {
+        tryRemoveTrivialPhi(user);
+    }
+    return same;
+}
+
+void SSA_pass::sealBlock(Ir::Block *block) {
+    if (incompletePhis.find(block) != incompletePhis.end()) {
+        for (auto [variable, phi] : incompletePhis[block]) {
+            addPhiOperands(variable, phi, block);
+        }
+        incompletePhis.erase(block);
+    }
+    sealedBlocks.insert(block);
+}
+
+auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
+    Set<Ir::Block *> unreachable;
+    for (auto bb : cur_func.blocks) {
+        if (!dom_ctx.dom_map.count(bb.get())) {
+            unreachable.insert(bb.get());
+        }
+    }
+    return unreachable;
+}
+
+void SSA_pass::transform_func() {
+    my_assert(unreachable_blks().empty(), "no unreachable blocks");
+
+    auto use_map = [this](Ir::Instr *instr, Ir::Block *block) -> void {
+        switch (instr->instr_type()) {
+        case Ir::INSTR_CALL:
+        case Ir::INSTR_CMP:
+        case Ir::INSTR_RET:
+        case Ir::INSTR_UNARY:
+        case Ir::INSTR_BINARY:
+            for (auto arg : instr->operands) {
+                arg->usee->replace_self(use_val(arg->usee, block));
+            }
+            break;
+
+        case Ir::INSTR_STORE: {
+            auto store = static_cast<Ir::StoreInstr *>(instr);
+            auto to = store->operands.at(0)->usee;
+            auto val = store->operands.at(1)->usee;
+            // val must be a pointer type
+            my_assert(to_pointer_type(val->ty), "pointer type");
+            to->replace_self(use_val(to, block));
+            break;
+        }
+
+        case Ir::INSTR_ITEM:
+        case Ir::INSTR_LOAD: {
+            auto use = static_cast<Ir::Instr *>(instr)->operand(0)->usee;
+            use->replace_self(use_val(use, block));
+            break;
+        }
+
+        case Ir::INSTR_PHI:
+        case Ir::INSTR_CAST:
+        case Ir::INSTR_ALLOCA:
+            break;
+
+        // instruction without impletementation / unrelated
+        case Ir::INSTR_SYM:
+        case Ir::INSTR_IF:
+        case Ir::INSTR_WHILE:
+        case Ir::INSTR_BREAK:
+        case Ir::INSTR_CONTINUE:
+        case Ir::INSTR_LABEL:
+        case Ir::INSTR_BR:
+        case Ir::INSTR_BR_COND:
+        case Ir::INSTR_FUNC:
+        case Ir::INSTR_GLOBAL:
+            break;
+        };
+    };
+    auto def_map = [this](Ir::Instr *instr, Ir::Block *block) -> void {
+        switch (instr->instr_type()) {
+        case Ir::INSTR_CALL: {
+            auto call = static_cast<Ir::CallInstr *>(instr);
+            if (call->ty->type_type() != TYPE_VOID_TYPE)
+                def_val(instr, block, instr);
+            break;
+        }
+        case Ir::INSTR_CMP:
+        case Ir::INSTR_UNARY:
+        case Ir::INSTR_ITEM:
+        case Ir::INSTR_BINARY:
+        case Ir::INSTR_LOAD:
+        case Ir::INSTR_ALLOCA:
+            def_val(instr, block, instr);
+            break;
+
+        case Ir::INSTR_STORE: {
+            auto store = static_cast<Ir::StoreInstr *>(instr);
+            auto destination_ptr = store->operands.at(0)->usee;
+            auto val = store->operands.at(1)->usee;
+            my_assert(to_pointer_type(destination_ptr->ty), "pointer type");
+            def_val(destination_ptr, block, val);
+            break;
+        }
+        case Ir::INSTR_CAST:
+        case Ir::INSTR_RET:
+        case Ir::INSTR_PHI:
+            break;
+        case Ir::INSTR_SYM:
+        case Ir::INSTR_IF:
+        case Ir::INSTR_WHILE:
+        case Ir::INSTR_BREAK:
+        case Ir::INSTR_CONTINUE:
+        case Ir::INSTR_LABEL:
+        case Ir::INSTR_BR:
+        case Ir::INSTR_BR_COND:
+        case Ir::INSTR_FUNC:
+        case Ir::INSTR_GLOBAL:
+            break;
+        };
     };
 
-    auto is_phi(Ir::User *user) -> bool {
-        if (user->type() == Ir::VAL_INSTR) {
-            auto t = static_cast<Ir::Instr *>(user);
-            my_assert(t, "t must be Instr *");
-            return t->instr_type() == Ir::INSTR_PHI;
+    Map<Ir::Block *, size_t> pred = {};
+    std::transform(cur_func.blocks.begin(), cur_func.blocks.end(),
+                   std::inserter(pred, pred.end()), [](const auto &bb) {
+                       return std::make_pair(bb.get(), bb->in_block.size());
+                   });
+    auto trySeal = [this, &pred](Ir::Block *block) -> void {
+        if (!sealedBlocks.count(block) && pred[block] == 0) {
+            sealBlock(block);
+        };
+    };
+
+    for (auto cur_block : cur_func.blocks) {
+        for (auto cur_instr : cur_block->body) {
+            use_map(cur_instr.get(), cur_block.get());
+            def_map(cur_instr.get(), cur_block.get());
         }
-        return false;
-    }
-
-    vrtl_reg *use_val(vrtl_reg *variable, Ir::Block *block) {
-        if (current_def.at(variable).count(block)) {
-            return current_def[variable][block];
-        }
-        my_assert(
-            block != entry_blk(),
-            "The definition of every variable must be in the entry block.");
-        return use_val_recursive(variable, block);
-    }
-
-    vrtl_reg *use_val_recursive(vrtl_reg *variable, Ir::Block *block) {
-        vrtl_reg *val = nullptr;
-        if (sealedBlocks.find(block) == sealedBlocks.end()) {
-            // Incomplete CFG.
-            auto phi = Ir::make_phi_instr(variable->ty);
-            my_assert(phi->instr_type() == Ir::INSTR_PHI,
-                      "phi instr type is not INSTR_PHI");
-            val = phi.get();
-            block->body.insert(block->body.cend(), phi);
-            my_assert(block->body.front() == phi, "head insertion");
-            incompletePhis[block].emplace_back<Pair<vrtl_reg *, Ir::Instr *>>(
-                {variable, phi.get()});
-        } else if (block->in_block.size() == 1) {
-            // Optimize the common case of one predecessor: No phi needed
-            val = use_val(variable, *block->in_block.begin());
-        } else {
-            my_assert(!block->in_block.empty(),
-                      "every block in such function must have predecessor");
-            // Break potential cycles with operandless phi
-            auto phi = Ir::make_phi_instr(variable->ty);
-            block->body.insert(block->body.cend(), phi);
-            my_assert(block->body.front() == phi, "head insertion");
-            def_val(variable, block, phi.get());
-            val = addPhiOperands(variable, phi.get(), block);
-        }
-        def_val(variable, block, val);
-        return val;
-    }
-
-    vrtl_reg *addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
-                             Ir::Block *phi_blk) {
-        auto phi_ins = static_cast<Ir::PhiInstr *>(phi);
-        for (auto pred : phi_blk->in_block) {
-            auto val = use_val(variable, pred);
-            // phi->add_incoming(pred, val);
-            phi_ins->add_incoming(pred, val);
-        }
-        return tryRemoveTrivialPhi(phi_ins);
-    }
-
-    auto tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
-        vrtl_reg *same = nullptr;
-        for (auto [_, use_val] : phi->incoming_tuples) {
-            auto val = use_val->usee;
-            if (val == same || val == phi)
-                continue;
-            if (same)
-                return phi;
-            same = val;
-        }
-
-        my_assert(same, "nullptr to some val in phi incoming tuples");
-        Vector<Ir::PhiInstr *> phiUsers;
-
-        for (Ir::User *user : fmap<Ir::pUse, Ir::User *>(
-                 [](auto pU) { return pU->user; }, phi->users)) {
-            if (user != phi && is_phi(user)) {
-                phiUsers.push_back(static_cast<Ir::PhiInstr *>(user));
-            }
-        }
-
-        // reset val
-        phi->replace_self(same);
-
-        for (auto user : phiUsers) {
-            tryRemoveTrivialPhi(user);
-        }
-        return same;
-    }
-
-    void sealBlock(Ir::Block *block) {
-        if (incompletePhis.find(block) != incompletePhis.end()) {
-            for (auto [variable, phi] : incompletePhis[block]) {
-                addPhiOperands(variable, phi, block);
-            }
-            incompletePhis.erase(block);
-        }
-        sealedBlocks.insert(block);
-    }
-
-    auto unreachable_blks() -> Set<Ir::Block *> {
-        Set<Ir::Block *> unreachable;
-        for (auto bb : cur_func.blocks) {
-            if (!dom_ctx.dom_map.count(bb.get()))
-                unreachable.insert(bb.get());
-        }
-        return unreachable;
-    }
-
-    void transform_func() {
-        my_assert(unreachable_blks().empty(), "no unreachable blocks");
-        for (auto cur_block : cur_func.blocks) {
-            for (auto cur_instr : cur_block->body) {
-            }
+        trySeal(cur_block.get());
+        for (auto succ_bb : cur_block->out_block) {
+            pred[succ_bb]--;
+            trySeal(succ_bb);
         }
     }
-};
+
+    my_assert(sealedBlocks.size() == cur_func.blocks.size(),
+              "all blocks are sealed");
+}
 } // namespace Optimize
