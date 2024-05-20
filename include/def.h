@@ -3,18 +3,18 @@
 
 #pragma once
 
-#include <vector>
-#include <string>
-#include <stack>
-#include <map>
-#include <set>
-#include <memory>
-#include <cstring>
 #include <cassert>
-#include <list>
-#include <utility>
-#include <optional>
 #include <climits>
+#include <cstring>
+#include <list>
+#include <map>
+#include <memory>
+#include <optional>
+#include <set>
+#include <stack>
+#include <string>
+#include <utility>
+#include <vector>
 
 // 目标机的指针长度
 #define ARCH_BYTES 8
@@ -25,32 +25,23 @@
 
 // 一些模板类型的别名，便于更换为其他数据类型
 
-template<typename T>
-using Pointer = std::shared_ptr<T>;
+template <typename T> using Pointer = std::shared_ptr<T>;
 
-template<typename T>
-using WeakPointer = std::weak_ptr<T>;
+template <typename T> using WeakPointer = std::weak_ptr<T>;
 
-template<typename T>
-using List = std::list<T>;
+template <typename T> using List = std::list<T>;
 
-template<typename T>
-using Vector = std::vector<T>;
+template <typename T> using Vector = std::vector<T>;
 
-template<typename T>
-using Set = std::set<T>;
+template <typename T> using Set = std::set<T>;
 
-template<typename T>
-using Stack = std::stack<T>;
+template <typename T> using Stack = std::stack<T>;
 
-template<typename T, typename U>
-using Map = std::map<T, U>;
+template <typename T, typename U> using Map = std::map<T, U>;
 
-template<typename T>
-using Opt = std::optional<T>;
+template <typename T> using Opt = std::optional<T>;
 
-template<typename T, typename U>
-using Pair = std::pair<T, U>;
+template <typename T, typename U> using Pair = std::pair<T, U>;
 
 // Immediate 表示在该项目在常规计算中使用的数字类型
 // 很少使用
@@ -62,7 +53,7 @@ typedef double Float64;
 // 使用的字符串
 // 注意，Symbol 是 C 风格字符串
 // String 为 C++ 风格字符串
-typedef const char* Symbol;
+typedef const char *Symbol;
 typedef std::string String;
 typedef Pointer<String> pString;
 
@@ -86,7 +77,7 @@ pCode make_code(String code, String file_name);
 // 所有异常的基类
 struct Exception {
     Exception(size_t id, Symbol obj, Symbol msg)
-        : id(id), object(obj), message(msg) { }
+        : id(id), object(obj), message(msg) {}
     size_t id;
     Symbol object;
     Symbol message;

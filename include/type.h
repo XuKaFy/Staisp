@@ -6,7 +6,7 @@
 // * PointerType：指针类型，作为一个指向某已知类型的指针
 // * ArrayType：数组类型，作为一个元素全为已知类型的数组
 // * StructType：结构体类型，作为内部存放若干已知类型的结构体
-// 
+//
 // 复合类型的本质是对基本类型或另一已知的复合类型进行一次包装
 // 在使用时进行解包
 //
@@ -37,7 +37,7 @@ enum TypeType {
 // * type_name：类型的字符串形式
 // * length：该类型所占据的字节数
 struct Type {
-    Type() { }
+    Type() {}
 
     virtual TypeType type_type() const { return TYPE_VOID_TYPE; }
     virtual Symbol type_name() const { return "void"; }
@@ -47,10 +47,8 @@ struct Type {
 typedef Pointer<Type> pType;
 
 // 表达具有任意类型的标识符
-struct TypedSym
-{
-    TypedSym(Symbol sym, pType ty)
-        : sym(sym), ty(ty) { }
+struct TypedSym {
+    TypedSym(Symbol sym, pType ty) : sym(sym), ty(ty) {}
 
     Symbol sym;
     pType ty;
@@ -66,8 +64,7 @@ enum VoidIrType {
 
 // 为表达 Ir 指令类型所准备的类
 struct IrType : public Type {
-    IrType(VoidIrType ty)
-        : Type(), ir_ty(ty) { }
+    IrType(VoidIrType ty) : Type(), ir_ty(ty) {}
 
     virtual TypeType type_type() const override { return TYPE_IR_TYPE; }
     virtual Symbol type_name() const override { return "ir"; }
@@ -78,10 +75,8 @@ struct IrType : public Type {
 
 // 基础类型 ImmType 的封装
 // 使用继承自 Type 的 BasicType 进行表达
-struct BasicType : public Type
-{
-    BasicType(ImmType ty)
-        : Type(), ty(ty) { }
+struct BasicType : public Type {
+    BasicType(ImmType ty) : Type(), ty(ty) {}
 
     virtual TypeType type_type() const override { return TYPE_BASIC_TYPE; }
     virtual Symbol type_name() const override;
@@ -90,12 +85,13 @@ struct BasicType : public Type
 };
 
 // 函数类型
-struct FunctionType : public Type
-{
+struct FunctionType : public Type {
     FunctionType(pType ret_type, Vector<pType> arg_type)
-        : Type(), ret_type(ret_type), arg_type(arg_type) { }
+        : Type(), ret_type(ret_type), arg_type(arg_type) {}
 
-    virtual TypeType type_type() const override { return ret_type->type_type(); }
+    virtual TypeType type_type() const override {
+        return ret_type->type_type();
+    }
     virtual Symbol type_name() const override { return ret_type->type_name(); }
     virtual size_t length() const override { return ret_type->length(); }
 
@@ -112,20 +108,20 @@ enum CompoundTypeType {
 };
 
 struct CompoundType : public Type {
-    CompoundType()
-        : Type() { }
+    CompoundType() : Type() {}
 
     virtual TypeType type_type() const override { return TYPE_COMPOUND_TYPE; }
     virtual CompoundTypeType compound_type_type() const = 0;
 };
 
 struct StructType : public CompoundType {
-    StructType(Vector<TypedSym> elems)
-        : CompoundType(), elems(elems) { }
-    virtual CompoundTypeType compound_type_type() const override { return COMPOUND_TYPE_STRUCT; }
+    StructType(Vector<TypedSym> elems) : CompoundType(), elems(elems) {}
+    virtual CompoundTypeType compound_type_type() const override {
+        return COMPOUND_TYPE_STRUCT;
+    }
     virtual size_t length() const override {
         size_t ans = 0;
-        for(auto i : elems) {
+        for (auto i : elems) {
             ans += i.ty->length();
         }
         return ans;
@@ -135,11 +131,12 @@ struct StructType : public CompoundType {
 };
 
 struct PointerType : public CompoundType {
-    PointerType(pType ty)
-        : CompoundType(), pointed_type(ty) { }
+    PointerType(pType ty) : CompoundType(), pointed_type(ty) {}
 
     virtual Symbol type_name() const override;
-    virtual CompoundTypeType compound_type_type() const override { return COMPOUND_TYPE_POINTER; }
+    virtual CompoundTypeType compound_type_type() const override {
+        return COMPOUND_TYPE_POINTER;
+    }
     virtual size_t length() const override { return ARCH_BYTES; }
 
     pType pointed_type;
@@ -147,12 +144,16 @@ struct PointerType : public CompoundType {
 
 struct ArrayType : public CompoundType {
     ArrayType(pType elem_type, size_t elem_count)
-        : CompoundType(), elem_type(elem_type), elem_count(elem_count) { }
+        : CompoundType(), elem_type(elem_type), elem_count(elem_count) {}
 
-    virtual CompoundTypeType compound_type_type() const override{ return COMPOUND_TYPE_ARRAY; }
+    virtual CompoundTypeType compound_type_type() const override {
+        return COMPOUND_TYPE_ARRAY;
+    }
     virtual Symbol type_name() const override;
-    virtual size_t length() const override { return elem_type->length() * elem_count; }
-    
+    virtual size_t length() const override {
+        return elem_type->length() * elem_count;
+    }
+
     pType elem_type;
     size_t elem_count;
 };

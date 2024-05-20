@@ -8,21 +8,19 @@
 #include <cstdlib>
 #include <string>
 
-String read(String file)
-{
+String read(String file) {
     std::ifstream in;
     in.open(file, std::fstream::in);
     EXPECT_TRUE(in.is_open());
 
-    String code((std::istreambuf_iterator<char>(in)),  
-                 std::istreambuf_iterator<char>());
+    String code((std::istreambuf_iterator<char>(in)),
+                std::istreambuf_iterator<char>());
     return code;
 }
 
-void prepare()
-{
+void prepare() {
     static bool flag = false;
-    if(!flag) {
+    if (!flag) {
         EXPECT_FALSE(system("clang -S -emit-llvm ../../lib/sylib.c"));
         EXPECT_FALSE(system("cp ../../lib/sylib.ll sylib.ll"));
         EXPECT_FALSE(system("llvm-as sylib.ll -o sylib.bc"));
@@ -30,7 +28,7 @@ void prepare()
     }
 }
 
-std::string normalizeLineEndings(const std::string& str) {
+std::string normalizeLineEndings(const std::string &str) {
     std::string result;
     result.reserve(str.size());
 
@@ -49,8 +47,7 @@ std::string normalizeLineEndings(const std::string& str) {
     return result;
 }
 
-void cmp(String ll)
-{
+void cmp(String ll) {
     prepare();
     system((String("llvm-as ") + ll + " -o out.bc").c_str());
     system("llvm-link out.bc sylib.bc -o final.bc");
@@ -58,18 +55,19 @@ void cmp(String ll)
     String actual = read("1.out");
     String tret = read("1.out.ret");
     String expected = read("1.std.out");
-    if(!actual.empty() && actual.back() != '\n') actual += "\n";
+    if (!actual.empty() && actual.back() != '\n')
+        actual += "\n";
     actual += tret;
     EXPECT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
 }
 
-void run_sysy(String file)
-{
+void run_sysy(String file) {
     // in ./build/test
-    int res = system((String("../frontend/SysYFrontend ../../") + file + ".sy").c_str());
-    if(res) {
+    int res = system(
+        (String("../frontend/SysYFrontend ../../") + file + ".sy").c_str());
+    if (res) {
         EXPECT_EQ(0, 1);
-        return ;
+        return;
     }
     system((String("cp ../../") + file + ".out 1.std.out").c_str());
     system((String("cp ../../") + file + ".in 1.std.in").c_str());
@@ -80,12 +78,12 @@ void run_sysy(String file)
     // cmp("1.sy.opt.ll");
 }
 
-void run_staisp(String file)
-{
-    int res = system((String("../staisp_frontend ../..") + file + ".sta").c_str());
-    if(res) {
+void run_staisp(String file) {
+    int res =
+        system((String("../staisp_frontend ../..") + file + ".sta").c_str());
+    if (res) {
         EXPECT_EQ(0, 1);
-        return ;
+        return;
     }
     system((String("cp ../../") + file + ".out 1.std.out").c_str());
     system((String("cp ../../") + file + ".in 1.std.in").c_str());

@@ -2,18 +2,12 @@
 
 #include "ir_instr.h"
 
-namespace Ir
-{
+namespace Ir {
 
 struct CastInstr : public CalculatableInstr {
-    CastInstr(pType tr, pVal a1)
-        : CalculatableInstr(tr) {
-        add_operand(a1);
-    }
+    CastInstr(pType tr, pVal a1) : CalculatableInstr(tr) { add_operand(a1); }
 
-    virtual InstrType instr_type() const override {
-        return INSTR_CAST;
-    }
+    virtual InstrType instr_type() const override { return INSTR_CAST; }
 
     virtual Symbol instr_print_impl() const override;
 
@@ -25,4 +19,4 @@ private:
 
 pInstr make_cast_instr(pType tr, pVal a1);
 
-} // namespace ir
+} // namespace Ir

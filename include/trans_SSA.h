@@ -17,7 +17,7 @@ class SSA_pass {
     Alys::DomTree dom_ctx;
     Map<Ir::Block *, Vector<Pair<vrtl_reg *, Ir::Instr *>>> incompletePhis;
 
-  public:
+public:
     SSA_pass(Ir::BlockedProgram &cur_func);
 
     auto entry_blk() -> Ir::Block *;

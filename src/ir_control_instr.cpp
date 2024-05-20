@@ -2,20 +2,17 @@
 
 namespace Ir {
 
-Symbol LabelInstr::instr_print_impl() const
-{
+Symbol LabelInstr::instr_print_impl() const {
     return to_symbol(name() + String(":"));
 }
 
-Symbol BrInstr::instr_print_impl() const
-{
+Symbol BrInstr::instr_print_impl() const {
     String ans = "br label %";
     ans += operand(0)->usee->name();
     return to_symbol(ans);
 }
 
-Symbol BrCondInstr::instr_print_impl() const
-{
+Symbol BrCondInstr::instr_print_impl() const {
     String ans = "br ";
     auto &cond = operand(0)->usee;
     auto &trueTo = operand(1)->usee;
@@ -30,29 +27,18 @@ Symbol BrCondInstr::instr_print_impl() const
     return to_symbol(ans);
 }
 
-pInstr BrCondInstr::select(bool cond)
-{
-    return make_br_instr(static_cast<Instr*>(operand(cond+1)->usee));
+pInstr BrCondInstr::select(bool cond) {
+    return make_br_instr(static_cast<Instr *>(operand(cond + 1)->usee));
 }
 
-pInstr make_label_instr()
-{
-    return pInstr(new LabelInstr());
-}
+pInstr make_label_instr() { return pInstr(new LabelInstr()); }
 
-pInstr make_br_instr(pInstr to)
-{
-    return pInstr(new BrInstr(to));
-}
+pInstr make_br_instr(pInstr to) { return pInstr(new BrInstr(to)); }
 
-pInstr make_br_instr(Instr* to)
-{
-    return pInstr(new BrInstr(to));
-}
+pInstr make_br_instr(Instr *to) { return pInstr(new BrInstr(to)); }
 
-pInstr make_br_cond_instr(pVal cond, pInstr trueTo, pInstr falseTo)
-{
+pInstr make_br_cond_instr(pVal cond, pInstr trueTo, pInstr falseTo) {
     return pInstr(new BrCondInstr(cond, trueTo, falseTo));
 }
 
-} // namespace ir
+} // namespace Ir

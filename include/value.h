@@ -29,36 +29,34 @@ enum ValueType {
 };
 
 struct Value {
-    Value()
-        : val(), ty(make_void_type()) { }
-    Value(ImmValue v)
-        : val(v), ty(make_basic_type(v.ty)) { }
-    Value(PointerValue v)
-        : val(v), ty(make_pointer_type(v.v->ty)) { }
-    Value(ArrayValue v)
-        : val(v), ty(make_array_type(v.ty, v.arr.size())) { }
-    //Value(StructValue v)
-    //    : val(v), ty(make_struct_type(v.v->ty)) { }
+    Value() : val(), ty(make_void_type()) {}
+    Value(ImmValue v) : val(v), ty(make_basic_type(v.ty)) {}
+    Value(PointerValue v) : val(v), ty(make_pointer_type(v.v->ty)) {}
+    Value(ArrayValue v) : val(v), ty(make_array_type(v.ty, v.arr.size())) {}
+    // Value(StructValue v)
+    //     : val(v), ty(make_struct_type(v.v->ty)) { }
 
     void reset_value(Value v) { val = v.val; }
 
-    ValueType type() const {
-        return (ValueType) val.index();
-    }
+    ValueType type() const { return (ValueType)val.index(); }
 
     operator bool() const;
 
     Symbol to_string() const;
 
-    ImmValue& imm_value() { return std::get<ImmValue>(val); }
-    PointerValue& pointer_value() { return std::get<PointerValue>(val); }
-    ArrayValue& array_value() { return std::get<ArrayValue>(val); }
-    StructValue& struct_value() { return std::get<StructValue>(val); }
-    
-    const ImmValue& imm_value() const { return std::get<ImmValue>(val); }
-    const PointerValue& pointer_value() const { return std::get<PointerValue>(val); }
-    const ArrayValue& array_value() const { return std::get<ArrayValue>(val); }
-    const StructValue& struct_value() const { return std::get<StructValue>(val); }
+    ImmValue &imm_value() { return std::get<ImmValue>(val); }
+    PointerValue &pointer_value() { return std::get<PointerValue>(val); }
+    ArrayValue &array_value() { return std::get<ArrayValue>(val); }
+    StructValue &struct_value() { return std::get<StructValue>(val); }
+
+    const ImmValue &imm_value() const { return std::get<ImmValue>(val); }
+    const PointerValue &pointer_value() const {
+        return std::get<PointerValue>(val);
+    }
+    const ArrayValue &array_value() const { return std::get<ArrayValue>(val); }
+    const StructValue &struct_value() const {
+        return std::get<StructValue>(val);
+    }
 
     bool is_static() const;
 

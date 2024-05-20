@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
-#include "staisp_lexer.h"
 #include "read_file.h"
+#include "staisp_lexer.h"
+#include "gtest/gtest.h"
 
 #include "gtest/gtest.h"
 

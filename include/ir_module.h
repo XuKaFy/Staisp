@@ -3,8 +3,7 @@
 #include "ir_func_defined.h"
 #include "ir_global.h"
 
-namespace Ir
-{
+namespace Ir {
 
 // 一个程序的集合
 // 包括若干已定义的函数和若干已定义的全局变量
@@ -28,4 +27,4 @@ typedef Pointer<Module> pModule;
 
 pModule make_module();
 
-} // namespace ir
+} // namespace Ir

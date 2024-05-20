@@ -10,9 +10,7 @@ struct ItemInstr : public Instr {
 
     virtual Symbol instr_print_impl() const override;
 
-    virtual InstrType instr_type() const override {
-        return INSTR_ITEM;
-    }
+    virtual InstrType instr_type() const override { return INSTR_ITEM; }
 
     // from int[][10], false
     // from int[10][10], true
@@ -21,4 +19,4 @@ struct ItemInstr : public Instr {
 
 pInstr make_item_instr(pVal val, Vector<pVal> index);
 
-} // namespace ir
+} // namespace Ir

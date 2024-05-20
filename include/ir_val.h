@@ -12,8 +12,8 @@ typedef Pointer<Use> pUse;
 struct Val;
 struct User;
 
-void val_release(Val* val);
-void user_release(User* user);
+void val_release(Val *val);
+void user_release(User *user);
 
 enum ValType {
     VAL_CONST,
@@ -24,12 +24,9 @@ enum ValType {
 };
 
 struct Val {
-    Val(pType ty)
-        : ty(ty) { }
+    Val(pType ty) : ty(ty) {}
 
-    virtual ~Val() {
-        val_release(this);
-    }
+    virtual ~Val() { val_release(this); }
 
     bool has_name();
     void set_name(Symbol name);
@@ -39,28 +36,25 @@ struct Val {
     Vector<pUse> users;
     pType ty;
 
-    void replace_self(Val* val);
+    void replace_self(Val *val);
 
     virtual ValType type() const = 0;
 
 private:
-    Symbol _name { nullptr };
+    Symbol _name{nullptr};
 };
 typedef Pointer<Val> pVal;
 
 struct User : public Val {
-    User(pType ty)
-        : Val(ty) { }
+    User(pType ty) : Val(ty) {}
 
-    virtual ~User() {
-        user_release(this);
-    }
+    virtual ~User() { user_release(this); }
 
     void add_operand(pVal val);
-    void add_operand(Val* val);
-    void change_operand(size_t index, Val* val);
+    void add_operand(Val *val);
+    void change_operand(size_t index, Val *val);
     void change_operand(size_t index, pVal val);
-    
+
     pUse operand(size_t index) const;
     size_t operand_size() const;
 
@@ -69,13 +63,12 @@ struct User : public Val {
 typedef Pointer<User> pUser;
 
 struct Use {
-    Use(User* user, Val* val)
-        : user(user), usee(val) { }
+    Use(User *user, Val *val) : user(user), usee(val) {}
 
     // do NOT modify it except "ir_val.cpp"
-    User* user;
+    User *user;
     // do NOT modify it except "ir_val.cpp"
-    Val* usee;
+    Val *usee;
 };
 
-} // namespace ir
+} // namespace Ir

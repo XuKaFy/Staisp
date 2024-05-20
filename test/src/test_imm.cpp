@@ -1,5 +1,5 @@
-#include "gtest/gtest.h"
 #include "imm.h"
+#include "gtest/gtest.h"
 
 TEST(test_imm, imm_map) {
     EXPECT_EQ(gSymToImmType.find("f64")->second, IMM_F64);
@@ -47,57 +47,57 @@ TEST(test_imm, imm_utility) {
 TEST(test_imm, imm_opr_int) {
     ImmValue a(13);
     ImmValue b(4);
-    EXPECT_EQ((a+b).val.ival, 17);
-    EXPECT_EQ((a-b).val.ival, 9);
-    EXPECT_EQ((a*b).val.ival, 52);
-    EXPECT_EQ((a/b).val.ival, 3);
-    EXPECT_EQ((a%b).val.ival, 1);
-    EXPECT_EQ((a&&b).val.ival, 1);
-    EXPECT_EQ((a||b).val.ival, 1);
-    EXPECT_EQ((a&b).val.ival, 4);
-    EXPECT_EQ((a|b).val.ival, 13);
-    EXPECT_EQ((a<b).val.ival, 0);
-    EXPECT_EQ((a>b).val.ival, 1);
-    EXPECT_EQ((a<=b).val.ival, 0);
-    EXPECT_EQ((a>=b).val.ival, 1);
-    EXPECT_EQ((a==b).val.ival, 0);
-    EXPECT_EQ((a!=b).val.ival, 1);
+    EXPECT_EQ((a + b).val.ival, 17);
+    EXPECT_EQ((a - b).val.ival, 9);
+    EXPECT_EQ((a * b).val.ival, 52);
+    EXPECT_EQ((a / b).val.ival, 3);
+    EXPECT_EQ((a % b).val.ival, 1);
+    EXPECT_EQ((a && b).val.ival, 1);
+    EXPECT_EQ((a || b).val.ival, 1);
+    EXPECT_EQ((a & b).val.ival, 4);
+    EXPECT_EQ((a | b).val.ival, 13);
+    EXPECT_EQ((a < b).val.ival, 0);
+    EXPECT_EQ((a > b).val.ival, 1);
+    EXPECT_EQ((a <= b).val.ival, 0);
+    EXPECT_EQ((a >= b).val.ival, 1);
+    EXPECT_EQ((a == b).val.ival, 0);
+    EXPECT_EQ((a != b).val.ival, 1);
 }
 
 TEST(test_imm, imm_opr_float) {
     ImmValue a((double)13.0);
     ImmValue b((double)4.0);
-    EXPECT_EQ((a+b).val.f64val, 17);
-    EXPECT_EQ((a-b).val.f64val, 9);
-    EXPECT_EQ((a*b).val.f64val, 52);
-    EXPECT_EQ((a/b).val.f64val, 3.25);
+    EXPECT_EQ((a + b).val.f64val, 17);
+    EXPECT_EQ((a - b).val.f64val, 9);
+    EXPECT_EQ((a * b).val.f64val, 52);
+    EXPECT_EQ((a / b).val.f64val, 3.25);
     try {
-        (a%b).val.f64val;
+        (a % b).val.f64val;
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
         EXPECT_STREQ(e.object, "ImmValue");
     }
-    EXPECT_EQ((a&&b).val.ival, 1);
-    EXPECT_EQ((a||b).val.ival, 1);
+    EXPECT_EQ((a && b).val.ival, 1);
+    EXPECT_EQ((a || b).val.ival, 1);
     try {
-        (a&b).val.f64val;
+        (a & b).val.f64val;
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
         EXPECT_STREQ(e.object, "ImmValue");
     }
     try {
-        (a|b).val.f64val;
+        (a | b).val.f64val;
         EXPECT_TRUE(false);
     } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
         EXPECT_STREQ(e.object, "ImmValue");
     }
-    EXPECT_EQ((a<b).val.ival, 0);
-    EXPECT_EQ((a>b).val.ival, 1);
-    EXPECT_EQ((a<=b).val.ival, 0);
-    EXPECT_EQ((a>=b).val.ival, 1);
-    EXPECT_EQ((a==b).val.ival, 0);
-    EXPECT_EQ((a!=b).val.ival, 1);
+    EXPECT_EQ((a < b).val.ival, 0);
+    EXPECT_EQ((a > b).val.ival, 1);
+    EXPECT_EQ((a <= b).val.ival, 0);
+    EXPECT_EQ((a >= b).val.ival, 1);
+    EXPECT_EQ((a == b).val.ival, 0);
+    EXPECT_EQ((a != b).val.ival, 1);
 }

@@ -9,63 +9,58 @@
 // 在某一层作用域内，保存一个 String -> T 的映射
 // 所有的查找都将在本层和上层（若本层未找到）进行
 // 但修改只会在本层
-template<typename T>
-class Env {
+template <typename T> class Env {
 public:
     typedef Pointer<Env> pEnv;
 
-    Env(pEnv parent = pEnv())
-        : _parent(parent) { }
+    Env(pEnv parent = pEnv()) : _parent(parent) {}
 
-    bool count_current(Symbol sym) {
-        return _var_map.count(sym);
-    }
+    bool count_current(Symbol sym) { return _var_map.count(sym); }
 
     bool count(Symbol sym) {
-        if(count_current(sym)) {
+        if (count_current(sym)) {
             return true;
         }
-        if(_parent) return _parent->count(sym);
+        if (_parent)
+            return _parent->count(sym);
         return false;
     }
 
-    T& operator [](Symbol sym) {
-        if(sym == nullptr)
+    T &operator[](Symbol sym) {
+        if (sym == nullptr)
             throw Exception(2, "Env", "empty symbol");
         return find(sym);
     }
 
-    const T& operator [](Symbol sym) const {
-        if(sym == nullptr)
+    const T &operator[](Symbol sym) const {
+        if (sym == nullptr)
             throw Exception(2, "Env", "empty symbol");
         return find(sym);
     }
 
-    T& find(Symbol sym) {
-        if(sym == nullptr)
+    T &find(Symbol sym) {
+        if (sym == nullptr)
             throw Exception(2, "Env", "empty symbol");
-        if(_var_map.count(sym)) {
+        if (_var_map.count(sym)) {
             return _var_map[sym];
         }
-        if(_parent)
+        if (_parent)
             return _parent->find(sym);
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
-    const T& find(Symbol sym) const {
-        if(sym == nullptr)
+    const T &find(Symbol sym) const {
+        if (sym == nullptr)
             throw Exception(2, "Env", "empty symbol");
-        if(_var_map.count(sym)) {
+        if (_var_map.count(sym)) {
             return _var_map[sym];
         }
-        if(_parent)
+        if (_parent)
             return _parent->find(sym);
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
-    void set(Symbol sym, T i) {
-        _var_map[sym] = i;
-    }
+    void set(Symbol sym, T i) { _var_map[sym] = i; }
 
 private:
     pEnv _parent;
@@ -75,43 +70,38 @@ private:
 // EnvWrapper<T> 即每层都记录 String -> T 的映射的多层作用域
 // 内部用栈实现，使用 push_env 和 end_env 模拟作用域进入和退出的过程
 // push_env 时，新创建的作用域将会自动以上一层的作用域作为父节点
-template<typename T>
-class EnvWrapper
-{
+template <typename T> class EnvWrapper {
 public:
     typedef Env<T> tEnv;
     typedef Pointer<tEnv> pEnv;
 
     pEnv env() {
-        if(env_count()) {
+        if (env_count()) {
             return _env.top();
         }
         throw Exception(1, "EnvWrapper", "current environment is empty");
     }
 
-    size_t env_count() {
-        return _env.size();
-    }
+    size_t env_count() { return _env.size(); }
 
     void push_env() {
-        if(env_count())
+        if (env_count())
             _env.push(pEnv(new tEnv(env())));
         else
             _env.push(pEnv(new tEnv()));
     }
 
     void end_env() {
-        if(_env.empty())
+        if (_env.empty())
             throw Exception(2, "EnvWrapper", "environment stack is empty");
         _env.pop();
     }
 
     void clear_env() {
-        while(env_count())
+        while (env_count())
             end_env();
     }
 
 private:
     Stack<pEnv> _env;
 };
-

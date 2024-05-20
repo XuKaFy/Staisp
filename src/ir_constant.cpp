@@ -2,9 +2,6 @@
 
 namespace Ir {
 
-pVal make_constant(Value var)
-{
-    return pVal(new Const(var));
-}
+pVal make_constant(Value var) { return pVal(new Const(var)); }
 
-} // namespace ir
+} // namespace Ir

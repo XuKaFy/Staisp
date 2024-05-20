@@ -1,244 +1,218 @@
 #include "type.h"
 #include "def.h"
 
-Symbol BasicType::type_name() const
-{
-    return gImmName[ty];
-}
+Symbol BasicType::type_name() const { return gImmName[ty]; }
 
-Symbol PointerType::type_name() const
-{
+Symbol PointerType::type_name() const {
     return to_symbol(String(pointed_type->type_name()) + "*");
 }
 
-Symbol ArrayType::type_name() const
-{
+Symbol ArrayType::type_name() const {
     static char tmp[256];
-    sprintf(tmp, "[%llu x %s]", (unsigned long long) elem_count, elem_type->type_name());
+    sprintf(tmp, "[%llu x %s]", (unsigned long long)elem_count,
+            elem_type->type_name());
     return to_symbol(String(tmp));
 }
 
-pType make_void_type()
-{
-    return pType(new Type());
-}
+pType make_void_type() { return pType(new Type()); }
 
-pType make_ir_type(VoidIrType ir_ty)
-{
-    return pType(new IrType(ir_ty));
-}
+pType make_ir_type(VoidIrType ir_ty) { return pType(new IrType(ir_ty)); }
 
-pType make_basic_type(ImmType ty)
-{
-    return pType(new BasicType(ty));
-}
+pType make_basic_type(ImmType ty) { return pType(new BasicType(ty)); }
 
-pType make_function_type(pType ret_type, Vector<pType> arg_type)
-{
+pType make_function_type(pType ret_type, Vector<pType> arg_type) {
     return pType(new FunctionType(ret_type, arg_type));
 }
 
-pType make_pointer_type(pType ty)
-{
-    return pType(new PointerType(ty));
-}
+pType make_pointer_type(pType ty) { return pType(new PointerType(ty)); }
 
-pType make_array_type(pType ty, size_t count)
-{
+pType make_array_type(pType ty, size_t count) {
     return pType(new ArrayType(ty, count));
 }
 
-pType join_type(pType a1, pType a2)
-{
+pType join_type(pType a1, pType a2) {
     my_assert(a1 && a2, "how");
-    if(is_same_type(a1, a2))
+    if (is_same_type(a1, a2))
         return a1;
     // 指针可以和基本整型进行运算，并且最后的结果是 ARCH_USED_POINTER_TYPE
     // 一般来说，会变成 IMM_U64
-    if(is_pointer(a1) && is_basic_type(a2) && is_imm_integer(to_basic_type(a2)->ty))
+    if (is_pointer(a1) && is_basic_type(a2) &&
+        is_imm_integer(to_basic_type(a2)->ty))
         return make_basic_type(ARCH_USED_POINTER_TYPE);
-    if(is_pointer(a2) && is_basic_type(a1) && is_imm_integer(to_basic_type(a1)->ty))
+    if (is_pointer(a2) && is_basic_type(a1) &&
+        is_imm_integer(to_basic_type(a1)->ty))
         return make_basic_type(ARCH_USED_POINTER_TYPE);
     // 其他情况下，认为结构体和数组和基本类型和指针之间不可运算
-    if(a1->type_type() != a2->type_type()) {
+    if (a1->type_type() != a2->type_type()) {
         return pType();
     }
-    switch(a1->type_type()) {
+    switch (a1->type_type()) {
     case TYPE_BASIC_TYPE:
-        return make_basic_type(join_imm_type(to_basic_type(a1)->ty,
-                to_basic_type(a2)->ty));
-    default: break;
+        return make_basic_type(
+            join_imm_type(to_basic_type(a1)->ty, to_basic_type(a2)->ty));
+    default:
+        break;
     }
     return pType();
 }
 
 // 只要两个类型的字符表达一致，就一定是同一类型
-bool is_same_type(pType a1, pType a2)
-{
-    if(!a1) {
+bool is_same_type(pType a1, pType a2) {
+    if (!a1) {
         throw Exception(1, "is_same_type", "arg1 is empty");
     }
-    if(!a2) {
+    if (!a2) {
         throw Exception(2, "is_same_type", "arg2 is empty");
     }
     return strcmp(a1->type_name(), a2->type_name()) == 0;
 }
 
-bool is_castable(pType from, pType to)
-{
-    if(is_same_type(from, to)) return true;
+bool is_castable(pType from, pType to) {
+    if (is_same_type(from, to))
+        return true;
     // 基本类型之间可以互相转换
-    if(is_basic_type(from) && is_basic_type(to))
+    if (is_basic_type(from) && is_basic_type(to))
         return true;
     // 注意，若涉及转换，那么指针只能和 64 位基本整型进行互相转化
-    if(is_pointer(from) && is_basic_type(to) && is_imm_integer(to_basic_type(to)->ty) && bytes_of_imm_type(to_basic_type(to)->ty) == ARCH_BYTES) {
+    if (is_pointer(from) && is_basic_type(to) &&
+        is_imm_integer(to_basic_type(to)->ty) &&
+        bytes_of_imm_type(to_basic_type(to)->ty) == ARCH_BYTES) {
         return true;
     }
-    if(is_pointer(to) && is_basic_type(from) && is_imm_integer(to_basic_type(from)->ty) && bytes_of_imm_type(to_basic_type(from)->ty) == ARCH_BYTES) {
+    if (is_pointer(to) && is_basic_type(from) &&
+        is_imm_integer(to_basic_type(from)->ty) &&
+        bytes_of_imm_type(to_basic_type(from)->ty) == ARCH_BYTES) {
         return true;
     }
     return false;
 }
 
-bool is_pointer(pType p)
-{
-    if(p->type_type() != TYPE_COMPOUND_TYPE) return false;
-    if(std::static_pointer_cast<CompoundType>(p)->compound_type_type() != COMPOUND_TYPE_POINTER)
+bool is_pointer(pType p) {
+    if (p->type_type() != TYPE_COMPOUND_TYPE)
+        return false;
+    if (std::static_pointer_cast<CompoundType>(p)->compound_type_type() !=
+        COMPOUND_TYPE_POINTER)
         return false;
     return true;
 }
 
-bool is_array(pType p)
-{
-    if(p->type_type() != TYPE_COMPOUND_TYPE) return false;
-    if(std::static_pointer_cast<CompoundType>(p)->compound_type_type() != COMPOUND_TYPE_ARRAY)
+bool is_array(pType p) {
+    if (p->type_type() != TYPE_COMPOUND_TYPE)
+        return false;
+    if (std::static_pointer_cast<CompoundType>(p)->compound_type_type() !=
+        COMPOUND_TYPE_ARRAY)
         return false;
     return true;
 }
 
-bool is_struct(pType p)
-{
-    if(p->type_type() != TYPE_COMPOUND_TYPE) return false;
-    if(std::static_pointer_cast<CompoundType>(p)->compound_type_type() != COMPOUND_TYPE_STRUCT)
+bool is_struct(pType p) {
+    if (p->type_type() != TYPE_COMPOUND_TYPE)
+        return false;
+    if (std::static_pointer_cast<CompoundType>(p)->compound_type_type() !=
+        COMPOUND_TYPE_STRUCT)
         return false;
     return true;
 }
 
-bool is_basic_type(pType p)
-{
-    return p->type_type() == TYPE_BASIC_TYPE;
-}
+bool is_basic_type(pType p) { return p->type_type() == TYPE_BASIC_TYPE; }
 
-bool is_signed_type(pType ty)
-{
-    if(ty->type_type() == TYPE_BASIC_TYPE)
+bool is_signed_type(pType ty) {
+    if (ty->type_type() == TYPE_BASIC_TYPE)
         return is_imm_signed(to_basic_type(ty)->ty);
     return false;
 }
 
-bool is_float(pType ty)
-{
-    if(ty->type_type() == TYPE_BASIC_TYPE)
+bool is_float(pType ty) {
+    if (ty->type_type() == TYPE_BASIC_TYPE)
         return is_imm_float(to_basic_type(ty)->ty);
     return false;
 }
 
-bool is_integer(pType ty)
-{
-    if(ty->type_type() == TYPE_BASIC_TYPE)
+bool is_integer(pType ty) {
+    if (ty->type_type() == TYPE_BASIC_TYPE)
         return is_imm_integer(to_basic_type(ty)->ty);
     return false;
 }
 
-size_t bytes_of_type(pType ty)
-{
-    switch(ty->type_type()) {
+size_t bytes_of_type(pType ty) {
+    switch (ty->type_type()) {
     case TYPE_BASIC_TYPE:
         return bytes_of_imm_type(to_basic_type(ty)->ty);
     case TYPE_COMPOUND_TYPE:
-        if(is_struct(ty))
+        if (is_struct(ty))
             return to_struct_type(ty)->length();
-        if(is_pointer(ty))
+        if (is_pointer(ty))
             return to_pointer_type(ty)->length();
-        if(is_array(ty))
+        if (is_array(ty))
             return to_array_type(ty)->length();
-       //  my_assert(false, "how");
-    default: break;
+        //  my_assert(false, "how");
+    default:
+        break;
     }
     return 0;
 }
 
-Pointer<PointerType> to_pointer_type(pType p)
-{
+Pointer<PointerType> to_pointer_type(pType p) {
     auto j = std::static_pointer_cast<PointerType>(p);
-    if(!j)
+    if (!j)
         throw Exception(1, "to_pointer_type", "not castable");
     return j;
 }
 
-pType to_pointed_type(pType p)
-{
-    if(!is_pointer(p)) {
+pType to_pointed_type(pType p) {
+    if (!is_pointer(p)) {
         throw Exception(1, "to_pointed_type", "not a pointer");
     }
     return to_pointer_type(p)->pointed_type;
 }
 
-Pointer<ArrayType> to_array_type(pType p)
-{
+Pointer<ArrayType> to_array_type(pType p) {
     auto j = std::static_pointer_cast<ArrayType>(p);
-    if(!j)
+    if (!j)
         throw Exception(1, "to_array_type", "not castable");
     return j;
 }
 
-pType to_elem_type(pType p)
-{
-    return to_array_type(p)->elem_type;
-}
+pType to_elem_type(pType p) { return to_array_type(p)->elem_type; }
 
-Pointer<StructType> to_struct_type(pType p)
-{
+Pointer<StructType> to_struct_type(pType p) {
     auto j = std::static_pointer_cast<StructType>(p);
-    if(!j)
+    if (!j)
         throw Exception(1, "to_struct_type", "not castable");
     return j;
 }
 
-Pointer<BasicType> to_basic_type(pType p)
-{
+Pointer<BasicType> to_basic_type(pType p) {
     auto j = std::static_pointer_cast<BasicType>(p);
-    if(!j)
+    if (!j)
         throw Exception(1, "to_basic_type", "not castable");
     return j;
 }
 
-Pointer<FunctionType> to_function_type(pType p)
-{
+Pointer<FunctionType> to_function_type(pType p) {
     auto j = std::static_pointer_cast<FunctionType>(p);
-    if(!j)
+    if (!j)
         throw Exception(1, "to_function_type", "not castable");
     return j;
 }
 
-VoidIrType to_ir_type(pType p)
-{
+VoidIrType to_ir_type(pType p) {
     auto j = std::static_pointer_cast<IrType>(p);
-    if(!j)
+    if (!j)
         throw Exception(1, "to_ir_type", "not castable");
     return j->ir_ty;
 }
 
-bool is_ir_type(pType p, VoidIrType ty)
-{
+bool is_ir_type(pType p, VoidIrType ty) {
     auto j = std::static_pointer_cast<IrType>(p);
-    if(!j) return false;
+    if (!j)
+        return false;
     return j->ir_ty == ty;
 }
 
-bool is_ir_type(pType p)
-{
+bool is_ir_type(pType p) {
     auto j = std::static_pointer_cast<IrType>(p);
-    if(!j) return false;
+    if (!j)
+        return false;
     return true;
 }

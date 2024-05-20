@@ -6,8 +6,7 @@
 
 namespace Asm {
 
-struct Reg
-{
+struct Reg {
     Immediate id;
     Symbol name;
 };
@@ -20,4 +19,4 @@ struct Regs {
     Reg pc;
 };
 
-} // namespace asm
+} // namespace Asm

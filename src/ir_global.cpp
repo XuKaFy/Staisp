@@ -2,8 +2,7 @@
 
 namespace Ir {
 
-Symbol Global::print_global() const
-{
+Symbol Global::print_global() const {
     String ans = name();
     ans += " = global ";
     ans += to_pointed_type(ty)->type_name();
@@ -12,9 +11,8 @@ Symbol Global::print_global() const
     return to_symbol(ans);
 }
 
-pGlobal make_global(TypedSym val, Const con, bool is_const)
-{
+pGlobal make_global(TypedSym val, Const con, bool is_const) {
     return pGlobal(new Global(val, con, is_const));
 }
 
-} // ir
+} // namespace Ir

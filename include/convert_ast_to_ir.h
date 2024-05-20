@@ -6,10 +6,10 @@
 #include "env.h"
 
 #include "ast_node.h"
+#include "ir_cmp_instr.h"
 #include "ir_instr.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
-#include "ir_cmp_instr.h"
 
 namespace AstToIr {
 
@@ -23,8 +23,7 @@ struct LoopEnv {
 
 typedef Stack<pLoopEnv> LoopEnvStack;
 
-struct MaybeConstInstr
-{
+struct MaybeConstInstr {
     Ir::pInstr instr;
     bool is_const;
 };
@@ -32,14 +31,16 @@ struct MaybeConstInstr
 class Convertor {
 public:
     Ir::pModule generate(AstProg asts);
-    
-    static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root, pType ty);
+
+    static Ir::BinInstrType fromBinaryOpr(Pointer<Ast::BinaryNode> root,
+                                          pType ty);
     static Ir::CmpType fromCmpOpr(Pointer<Ast::BinaryNode> root, pType tr);
 
 private:
     static void throw_error(pNode root, int id, Symbol msg);
 
-    Ir::pVal find_left_value(pNode root, Symbol sym, bool request_not_const = false);
+    Ir::pVal find_left_value(pNode root, Symbol sym,
+                             bool request_not_const = false);
     ImmValue find_const_value(pNode root, Symbol sym);
 
     ImmValue constant_eval(pNode node);
@@ -53,7 +54,8 @@ private:
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);
     bool analyze_statement_node(pNode root);
-    void copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t, Pointer<Ast::ArrayDefNode> n);
+    void copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
+                       Pointer<Ast::ArrayDefNode> n);
     Ir::pVal analyze_opr(Pointer<Ast::BinaryNode> root);
     Ir::pVal cast_to_type(pNode root, Ir::pVal val, pType tr);
 
@@ -66,7 +68,7 @@ private:
 
     EnvWrapper<MaybeConstInstr> _env;
     EnvWrapper<ImmValue> _const_env;
-    
+
     void set_func(Symbol sym, Ir::pFunc fun);
     bool func_count(Symbol sym);
     Ir::pFunc find_func(Symbol sym);
@@ -85,5 +87,4 @@ private:
     AstProg _prog;
 };
 
-
-} // namespace ast_to_ir
+} // namespace AstToIr

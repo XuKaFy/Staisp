@@ -7,12 +7,12 @@
 #include "ir_cast_instr.h"
 #include "ir_cmp_instr.h"
 #include "ir_constant.h"
+#include "ir_control_instr.h"
 #include "ir_func.h"
 #include "ir_instr.h"
+#include "ir_mem_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_ptr_instr.h"
-#include "ir_control_instr.h"
-#include "ir_mem_instr.h"
 
 #include "imm.h"
 #include "type.h"
@@ -24,50 +24,46 @@
 
 namespace AstToIr {
 
-void Convertor::throw_error(pNode root, int id, Symbol msg)
-{
+void Convertor::throw_error(pNode root, int id, Symbol msg) {
     root->throw_error(id, "Convertor", msg);
 }
 
-Ir::pModule Convertor::module() const
-{
-    return _mod;
-}
+Ir::pModule Convertor::module() const { return _mod; }
 
-bool Convertor::current_block_end() const
-{
+bool Convertor::current_block_end() const {
     return _cur_func->body.back()->is_end_of_block();
 }
 
-Ir::pInstr Convertor::add_instr(Ir::pInstr instr)
-{
+Ir::pInstr Convertor::add_instr(Ir::pInstr instr) {
     _cur_func->add_body(instr);
     return instr;
 }
 
-Ir::pVal Convertor::find_left_value(pNode root, Symbol sym, bool request_not_const)
-{
+Ir::pVal Convertor::find_left_value(pNode root, Symbol sym,
+                                    bool request_not_const) {
     Ir::pInstr found_instr;
-    if(_env.env()->count(sym)) { // local
+    if (_env.env()->count(sym)) { // local
         MaybeConstInstr found = _env.env()->find(sym);
         // const value is error
-        if(!is_pointer(found.instr->ty) || (request_not_const && found.is_const))
+        if (!is_pointer(found.instr->ty) ||
+            (request_not_const && found.is_const))
             throw_error(root, 10, "assignment to a local const value");
         // no-const value should be loaded
         found_instr = found.instr;
     } else { // global
-        for(auto i : module()->globs) {
-            if(strcmp(i->name()+1, sym) == 0) {
-                if(request_not_const && i->is_const)
+        for (auto i : module()->globs) {
+            if (strcmp(i->name() + 1, sym) == 0) {
+                if (request_not_const && i->is_const)
                     throw_error(root, 11, "assignment to a global const value");
-                auto sym_node = Ir::make_sym_instr(TypedSym(to_symbol(String("@") + sym), i->ty));
+                auto sym_node = Ir::make_sym_instr(
+                    TypedSym(to_symbol(String("@") + sym), i->ty));
                 _cur_func->add_imm(sym_node);
                 found_instr = sym_node;
                 break;
             }
         }
     }
-    if(!found_instr) {
+    if (!found_instr) {
         printf("Warning: left-value \"%s\" not found.\n", sym);
         throw_error(root, 1, "left value cannot be found");
     }
@@ -75,24 +71,27 @@ Ir::pVal Convertor::find_left_value(pNode root, Symbol sym, bool request_not_con
     return found_instr;
 }
 
-Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty)
-{
-    if(is_same_type(val->ty, ty)) return val;
+Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty) {
+    if (is_same_type(val->ty, ty))
+        return val;
     // decay
-    if(is_pointer(ty) && is_pointer(val->ty) 
-        && is_same_type(to_pointed_type(ty), to_elem_type(to_pointed_type(val->ty)))) {
-        // printf("found %s decay from %s to %s\n", val->name(), val->ty->type_name(), ty->type_name());
+    if (is_pointer(ty) && is_pointer(val->ty) &&
+        is_same_type(to_pointed_type(ty),
+                     to_elem_type(to_pointed_type(val->ty)))) {
+        // printf("found %s decay from %s to %s\n", val->name(),
+        // val->ty->type_name(), ty->type_name());
         auto imm = Ir::make_constant(ImmValue(0));
         auto r = Ir::make_item_instr(val, {imm});
-        if(!is_same_type(ty, r->ty)) {
+        if (!is_same_type(ty, r->ty)) {
             throw_error(root, -1, "decay error?");
         }
         add_instr(r);
         _cur_func->add_imm(imm);
         return r;
     }
-    if(!is_castable(val->ty, ty)) {
-        printf("Message: not castable from %s to %s\n", val->ty->type_name(), ty->type_name());
+    if (!is_castable(val->ty, ty)) {
+        printf("Message: not castable from %s to %s\n", val->ty->type_name(),
+               ty->type_name());
         throw_error(root, 13, "[Convertor] error 13: not castable");
     }
     auto r = Ir::make_cast_instr(ty, val);
@@ -100,26 +99,27 @@ Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty)
     return r;
 }
 
-pType Convertor::analyze_type(pNode root)
-{
-    switch(root->type) {
+pType Convertor::analyze_type(pNode root) {
+    switch (root->type) {
     case NODE_ARRAY_TYPE: {
         auto r = std::static_pointer_cast<Ast::ArrayTypeNode>(root);
-        return make_array_type(analyze_type(r->n), constant_eval(r->index).val.uval);
+        return make_array_type(analyze_type(r->n),
+                               constant_eval(r->index).val.uval);
     }
     case NODE_BASIC_TYPE:
         return std::static_pointer_cast<Ast::BasicTypeNode>(root)->ty;
     case NODE_POINTER_TYPE:
-        return make_pointer_type(analyze_type(std::static_pointer_cast<Ast::PointerTypeNode>(root)->n));
-    default: break;
+        return make_pointer_type(analyze_type(
+            std::static_pointer_cast<Ast::PointerTypeNode>(root)->n));
+    default:
+        break;
     }
     throw_error(root, 28, "not a type");
     return {};
 }
 
-Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
-{
-    switch(root->type) {
+Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root) {
+    switch (root->type) {
     case OPR_ADD:
     case OPR_SUB:
     case OPR_MUL:
@@ -128,11 +128,15 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
         auto a1 = analyze_value(root->lhs);
         auto a2 = analyze_value(root->rhs);
         auto joined_type = join_type(a1->ty, a2->ty);
-        if(!joined_type) {
-            printf("Warning: try to join %s and %s.\n", a1->ty->type_name(), a2->ty->type_name());
+        if (!joined_type) {
+            printf("Warning: try to join %s and %s.\n", a1->ty->type_name(),
+                   a2->ty->type_name());
             throw_error(root, 18, "type has no joined type");
         }
-        auto ir = Ir::make_binary_instr(fromBinaryOpr(root, joined_type), cast_to_type(root->lhs, a1, joined_type), cast_to_type(root->rhs, a2, joined_type));
+        auto ir =
+            Ir::make_binary_instr(fromBinaryOpr(root, joined_type),
+                                  cast_to_type(root->lhs, a1, joined_type),
+                                  cast_to_type(root->rhs, a2, joined_type));
         add_instr(ir);
         return ir;
     }
@@ -170,8 +174,9 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
         auto L3 = Ir::make_label_instr();
 
         add_instr(a0);
-        auto a1 = cast_to_type(root->lhs, analyze_value(root->lhs), make_basic_type(IMM_I1));
-        if(root->type == OPR_AND) {
+        auto a1 = cast_to_type(root->lhs, analyze_value(root->lhs),
+                               make_basic_type(IMM_I1));
+        if (root->type == OPR_AND) {
             add_instr(Ir::make_br_cond_instr(a1, L2, L1));
         } else {
             add_instr(Ir::make_br_cond_instr(a1, L1, L2));
@@ -184,7 +189,8 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
         add_instr(Ir::make_br_instr(L3));
         add_instr(L2);
         auto a2 = analyze_value(root->rhs);
-        add_instr(Ir::make_store_instr(a0, cast_to_type(root->rhs, a2, make_basic_type(IMM_I32))));
+        add_instr(Ir::make_store_instr(
+            a0, cast_to_type(root->rhs, a2, make_basic_type(IMM_I32))));
         add_instr(Ir::make_br_instr(L3));
         add_instr(L3);
 
@@ -199,9 +205,11 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
         auto a1 = analyze_value(root->lhs);
         auto a2 = analyze_value(root->rhs);
         auto ty = join_type(a1->ty, a2->ty);
-        if(!ty)
+        if (!ty)
             throw_error(root, 18, "type has no joined type");
-        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty), cast_to_type(root->lhs, a1, ty), cast_to_type(root->rhs, a2, ty));
+        auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty),
+                                     cast_to_type(root->lhs, a1, ty),
+                                     cast_to_type(root->rhs, a2, ty));
         add_instr(ir);
         return ir;
     }
@@ -211,17 +219,15 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root)
     }
 }
 
-ImmValue Convertor::find_const_value(pNode root, Symbol sym)
-{
-    if(!_const_env.env()->count(sym)) {
+ImmValue Convertor::find_const_value(pNode root, Symbol sym) {
+    if (!_const_env.env()->count(sym)) {
         throw_error(root, 29, "not a constant");
     }
     return _const_env.env()->find(sym);
 }
 
-ImmValue Convertor::constant_eval(pNode node)
-{
-    switch(node->type) {
+ImmValue Convertor::constant_eval(pNode node) {
+    switch (node->type) {
     case NODE_SYM: {
         auto name = std::static_pointer_cast<Ast::SymNode>(node)->sym;
         return find_const_value(node, name);
@@ -231,10 +237,13 @@ ImmValue Convertor::constant_eval(pNode node)
     case NODE_UNARY: {
         auto r = std::static_pointer_cast<Ast::UnaryNode>(node);
         auto imm = constant_eval(r->ch);
-        switch(r->type) {
-        case OPR_NOT: return !imm;
-        case OPR_NEG: return 0 - imm;
-        case OPR_POS: break;
+        switch (r->type) {
+        case OPR_NOT:
+            return !imm;
+        case OPR_NEG:
+            return 0 - imm;
+        case OPR_POS:
+            break;
         }
         return imm;
     }
@@ -242,31 +251,44 @@ ImmValue Convertor::constant_eval(pNode node)
         auto r = std::static_pointer_cast<Ast::BinaryNode>(node);
         auto lc = constant_eval(r->lhs);
         auto rc = constant_eval(r->rhs);
-        switch(r->type) {
-        case OPR_ADD:   return lc + rc;
-        case OPR_DIV:   return lc / rc;
-        case OPR_EQ:    return lc == rc;
-        case OPR_GE:    return lc >= rc;
-        case OPR_GT:    return lc > rc;
-        case OPR_LE:    return lc <= rc;
-        case OPR_LT:    return lc < rc;
-        case OPR_MUL:   return lc * rc;
-        case OPR_NE:    return lc != rc;
-        case OPR_REM:   return lc % rc;
-        case OPR_SUB:   return lc - rc;
-        case OPR_AND:   return lc && rc;
-        case OPR_OR:    return lc || rc;
+        switch (r->type) {
+        case OPR_ADD:
+            return lc + rc;
+        case OPR_DIV:
+            return lc / rc;
+        case OPR_EQ:
+            return lc == rc;
+        case OPR_GE:
+            return lc >= rc;
+        case OPR_GT:
+            return lc > rc;
+        case OPR_LE:
+            return lc <= rc;
+        case OPR_LT:
+            return lc < rc;
+        case OPR_MUL:
+            return lc * rc;
+        case OPR_NE:
+            return lc != rc;
+        case OPR_REM:
+            return lc % rc;
+        case OPR_SUB:
+            return lc - rc;
+        case OPR_AND:
+            return lc && rc;
+        case OPR_OR:
+            return lc || rc;
         }
     }
-    default: break;
+    default:
+        break;
     }
     throw_error(node, 1, "not implemented");
     return 0;
 }
 
-Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const)
-{
-    switch(root->type) {
+Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const) {
+    switch (root->type) {
     case NODE_ITEM: {
         /*
         int fun(int a[]) { // i32* %a
@@ -281,15 +303,15 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const)
         */
         auto r = std::static_pointer_cast<Ast::ItemNode>(root);
         auto array = analyze_value(r->v, request_not_const);
-        if(!is_pointer(array->ty)) {
+        if (!is_pointer(array->ty)) {
             printf("Message: type is %s\n", array->ty->type_name());
             throw_error(r->v, 25, "not an array");
         }
         // printf("Array Type: %s\n", array->ty->type_name());
         Vector<Ir::pVal> indexs;
-        for(auto i : r->index) {
+        for (auto i : r->index) {
             indexs.push_back(analyze_value(i));
-            if(!is_integer(indexs.back()->ty))
+            if (!is_integer(indexs.back()->ty))
                 throw_error(i, 14, "type of index should be integer");
         }
         auto itemptr = Ir::make_item_instr(array, indexs);
@@ -317,15 +339,14 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const)
     return Ir::make_empty_instr();
 }
 
-Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
-{
-    switch(root->type) {
+Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const) {
+    switch (root->type) {
     case NODE_DEREF:
     case NODE_ITEM:
     case NODE_SYM: {
         auto lv = analyze_left_value(root, request_not_const);
         // printf("analyze value: from lv %s\n", lv->ty->type_name());
-        if(is_array(to_pointed_type(lv->ty))) { // 数组不能解引用传递
+        if (is_array(to_pointed_type(lv->ty))) { // 数组不能解引用传递
             return lv;
         }
         return add_instr(Ir::make_load_instr(lv));
@@ -336,7 +357,8 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
     }
     case NODE_CAST: {
         auto r = std::static_pointer_cast<Ast::CastNode>(root);
-        auto res = Ir::make_cast_instr(analyze_type(r->ty), analyze_value(r->val));
+        auto res =
+            Ir::make_cast_instr(analyze_type(r->ty), analyze_value(r->val));
         add_instr(res);
         return res;
     }
@@ -348,7 +370,7 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
         auto r = std::static_pointer_cast<Ast::UnaryNode>(root);
         auto ch = r->ch;
         auto val = analyze_value(ch);
-        switch(r->type) {
+        switch (r->type) {
         case OPR_POS: {
             return val;
         }
@@ -358,13 +380,15 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
             return add_instr(Ir::make_cmp_instr(Ir::CMP_EQ, val, imm));
         }
         case OPR_NEG: {
-            if(is_float(val->ty)) {
+            if (is_float(val->ty)) {
                 return add_instr(Ir::make_unary_instr(val));
-            } else if(is_integer(val->ty)) {
+            } else if (is_integer(val->ty)) {
                 auto imm = Ir::make_constant(ImmValue(0));
                 auto ty = join_type(val->ty, imm->ty);
                 _cur_func->add_imm(imm);
-                return add_instr(Ir::make_binary_instr(Ir::INSTR_SUB, cast_to_type(root, imm, ty), cast_to_type(root, val, ty)));
+                return add_instr(Ir::make_binary_instr(
+                    Ir::INSTR_SUB, cast_to_type(root, imm, ty),
+                    cast_to_type(root, val, ty)));
             }
             throw_error(root, 21, "neg an non-number");
         }
@@ -378,19 +402,20 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
     }
     case NODE_CALL: {
         auto r = std::static_pointer_cast<Ast::CallNode>(root);
-        if(!func_count(r->name)) {
+        if (!func_count(r->name)) {
             throw_error(r, 20, "function not found");
         }
         auto func = find_func(r->name);
         Vector<Ir::pVal> args;
         // assert size equal
         size_t length = func->functon_type()->arg_type.size();
-        if(!func->variant_length && length != r->ch.size())
+        if (!func->variant_length && length != r->ch.size())
             throw_error(root, 8, "wrong count of arguments");
-        for(size_t i=0; i<r->ch.size(); ++i) {
+        for (size_t i = 0; i < r->ch.size(); ++i) {
             Ir::pVal cur_arg = analyze_value(r->ch[i]);
-            if(i < length) {
-                args.push_back(cast_to_type(r->ch[i], cur_arg, func->functon_type()->arg_type[i]));
+            if (i < length) {
+                args.push_back(cast_to_type(r->ch[i], cur_arg,
+                                            func->functon_type()->arg_type[i]));
             } else {
                 args.push_back(cur_arg);
             }
@@ -403,11 +428,9 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const)
     return Ir::make_empty_instr();
 }
 
-struct InitializerVisitor
-{
-    InitializerVisitor(Pointer<Ast::ArrayDefNode> vst)
-        : vst(vst) {
-        if(vst) {
+struct InitializerVisitor {
+    InitializerVisitor(Pointer<Ast::ArrayDefNode> vst) : vst(vst) {
+        if (vst) {
             begin = vst->nums.begin();
             end = vst->nums.end();
             is_empty = false;
@@ -417,21 +440,23 @@ struct InitializerVisitor
     }
 
     InitializerVisitor(InitializerVisitor &a)
-        : vst(a.vst), begin(a.begin), end(a.end), is_empty(a.is_empty) { }
+        : vst(a.vst), begin(a.begin), end(a.end), is_empty(a.is_empty) {}
 
     pNode peek() {
-        if(begin == end) {
+        if (begin == end) {
             return nullptr;
         }
-        if(is_empty) return nullptr;
+        if (is_empty)
+            return nullptr;
         return *begin;
     }
 
     pNode get() {
-        if(begin == end) {
+        if (begin == end) {
             return nullptr;
         }
-        if(is_empty) return nullptr;
+        if (is_empty)
+            return nullptr;
         return *(begin++);
     }
 
@@ -444,13 +469,13 @@ struct InitializerVisitor
 
 Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
     Vector<pNode> ans;
-    size_t size  = type->elem_count;
+    size_t size = type->elem_count;
     pType elem_ty = type->elem_type;
 
-    if(elem_ty->type_type() == TYPE_BASIC_TYPE) {
-        for(size_t i=0; i<size; ++i) {
+    if (elem_ty->type_type() == TYPE_BASIC_TYPE) {
+        for (size_t i = 0; i < size; ++i) {
             auto elem = list.get();
-            if(elem) {
+            if (elem) {
                 ans.push_back(elem);
             } else {
                 ans.push_back(Ast::new_imm_node(nullptr, 0));
@@ -459,50 +484,53 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
         return ans;
     }
 
-    for(size_t i=0; i<size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
         auto elem = list.peek();
-        if(elem && elem->type == NODE_ARRAY_VAL) {
+        if (elem && elem->type == NODE_ARRAY_VAL) {
             elem = list.get();
-            InitializerVisitor new_v(std::dynamic_pointer_cast<Ast::ArrayDefNode>(elem));
-            Vector<pNode> inner = flatten(new_v,
-                std::static_pointer_cast<ArrayType>(elem_ty));
+            InitializerVisitor new_v(
+                std::dynamic_pointer_cast<Ast::ArrayDefNode>(elem));
+            Vector<pNode> inner =
+                flatten(new_v, std::static_pointer_cast<ArrayType>(elem_ty));
             ans.insert(ans.end(), inner.begin(), inner.end());
         } else {
-            Vector<pNode> inner = flatten(list, 
-                std::static_pointer_cast<ArrayType>(elem_ty));
+            Vector<pNode> inner =
+                flatten(list, std::static_pointer_cast<ArrayType>(elem_ty));
             ans.insert(ans.end(), inner.begin(), inner.end());
         }
     }
-    
+
     return ans;
 }
 
-Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer, Pointer<ArrayType> type) {
+Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer,
+                      Pointer<ArrayType> type) {
     InitializerVisitor new_v(initializer);
     return flatten(new_v, type);
 }
 
-void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t, Pointer<Ast::ArrayDefNode> n)
-{
-    if(!is_pointer(addr->ty)) {
+void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
+                              Pointer<Ast::ArrayDefNode> n) {
+    if (!is_pointer(addr->ty)) {
         throw_error(root, 16, "list should initialize type that is pointed");
     }
     Vector<pNode> flat = flatten(n, t);
     Vector<Ir::pVal> indexes;
     auto begin = flat.begin();
     std::function<void(pType t)> fn = [&](pType t) -> void {
-        if(is_basic_type(t)) {
+        if (is_basic_type(t)) {
             auto val = analyze_value(*(begin++));
             auto item = Ir::make_item_instr(addr, indexes);
             add_instr(item);
             auto store = Ir::make_store_instr(item, val);
             add_instr(store);
-            return ;
+            return;
         }
         size_t length = to_array_type(t)->elem_count;
         pType next_ty = to_array_type(t)->elem_type;
-        for(size_t i=0; i<length; ++i) {
-            auto index = Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32));
+        for (size_t i = 0; i < length; ++i) {
+            auto index =
+                Ir::make_constant(ImmValue((unsigned long long)i, IMM_I32));
             _cur_func->add_imm(index);
             indexes.push_back(index);
             fn(next_ty);
@@ -512,10 +540,9 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
     fn(t);
 }
 
-bool Convertor::analyze_statement_node(pNode root)
-{
+bool Convertor::analyze_statement_node(pNode root) {
     bool is_end = false;
-    switch(root->type) {
+    switch (root->type) {
     case NODE_ARRAY_TYPE:
     case NODE_BASIC_TYPE:
     case NODE_POINTER_TYPE: {
@@ -532,35 +559,39 @@ bool Convertor::analyze_statement_node(pNode root)
         */
         auto r = std::static_pointer_cast<Ast::AssignNode>(root);
         auto lv = analyze_left_value(r->lv, true);
-        if(is_array(to_pointed_type(lv->ty))) {
+        if (is_array(to_pointed_type(lv->ty))) {
             throw_error(r->lv, 23, "array cannot be left value");
         }
         auto rv = analyze_value(r->val);
-        add_instr(Ir::make_store_instr(lv, cast_to_type(r->val, rv, to_pointed_type(lv->ty))));
+        add_instr(Ir::make_store_instr(
+            lv, cast_to_type(r->val, rv, to_pointed_type(lv->ty))));
         break;
     }
     case NODE_DEF_VAR: {
         auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
         auto ty = analyze_type(r->var.n);
-        if(is_array(ty)) {
+        if (is_array(ty)) {
             add_instr(tmp = Ir::make_alloc_instr(ty));
             _env.env()->set(r->var.name, {tmp, r->is_const});
-            if(r->val) {
-                if(r->val->type != NODE_ARRAY_VAL)
-                    throw_error(r->val, 17, "array should be initialized by a list");
+            if (r->val) {
+                if (r->val->type != NODE_ARRAY_VAL)
+                    throw_error(r->val, 17,
+                                "array should be initialized by a list");
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
                 copy_to_array(r, tmp, to_array_type(ty), rrr);
             }
             break;
         }
         add_instr(tmp = Ir::make_alloc_instr(ty));
-        if(r->val) {
-            if(r->is_const) {
+        if (r->val) {
+            if (r->is_const) {
                 _const_env.env()->set(r->var.name, constant_eval(r->val));
-                // printf("[1] Set Const Value: %s\n", _const_env.env()->find(r->var.name).print());
+                // printf("[1] Set Const Value: %s\n",
+                // _const_env.env()->find(r->var.name).print());
             }
-            add_instr(Ir::make_store_instr(tmp, cast_to_type(r->val, analyze_value(r->val), ty)));
+            add_instr(Ir::make_store_instr(
+                tmp, cast_to_type(r->val, analyze_value(r->val), ty)));
         }
         _env.env()->set(r->var.name, {tmp, r->is_const});
         break;
@@ -570,7 +601,7 @@ bool Convertor::analyze_statement_node(pNode root)
         auto if_begin = Ir::make_label_instr();
         auto if_end = Ir::make_label_instr();
         auto if_else_end = Ir::make_label_instr();
-        if(r->elsed) {
+        if (r->elsed) {
             /*
                 br xxx IF_BEGIN, ELSE_BEGIN
                 IF_BEGIN:
@@ -582,20 +613,23 @@ bool Convertor::analyze_statement_node(pNode root)
                 ELSE_END:
             */
             bool need_label = false;
-            add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
+            add_instr(
+                Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond),
+                                                    make_basic_type(IMM_I1)),
+                                       if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if(_cur_func->body.size() && !current_block_end()) {
+            if (_cur_func->body.size() && !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_else_end));
                 need_label = true;
             }
             add_instr(if_end);
             analyze_statement_node(r->elsed);
-            if(_cur_func->body.size() && !current_block_end()) {
+            if (_cur_func->body.size() && !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_else_end));
                 need_label = true;
             }
-            if(need_label) {
+            if (need_label) {
                 add_instr(if_else_end);
             } else {
                 is_end = true;
@@ -608,10 +642,13 @@ bool Convertor::analyze_statement_node(pNode root)
                     GOTO IF_END:
                 IF_END:
             */
-            add_instr(Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)), if_begin, if_end));
+            add_instr(
+                Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond),
+                                                    make_basic_type(IMM_I1)),
+                                       if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if(_cur_func->body.size() && !current_block_end()) {
+            if (_cur_func->body.size() && !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_end));
             }
             add_instr(if_end);
@@ -634,14 +671,16 @@ bool Convertor::analyze_statement_node(pNode root)
         auto while_end = Ir::make_label_instr();
         add_instr(Ir::make_br_instr(while_cond));
         add_instr(while_cond);
-        auto cond = cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1));
+        auto cond =
+            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1));
         add_instr(Ir::make_br_cond_instr(cond, while_begin, while_end));
         add_instr(while_begin);
         push_loop_env(while_cond, while_end);
         analyze_statement_node(r->body);
         // add_instr(Ir::make_br_instr(while_cond));
-        if(_cur_func->body.size() && !current_block_end()) {
-            add_instr(Ir::make_br_instr(while_cond)); // who will write "while(xxx) return 0"?
+        if (_cur_func->body.size() && !current_block_end()) {
+            add_instr(Ir::make_br_instr(
+                while_cond)); // who will write "while(xxx) return 0"?
         }
         add_instr(while_end);
         end_loop_env();
@@ -688,14 +727,14 @@ bool Convertor::analyze_statement_node(pNode root)
         break;
     }
     case NODE_BREAK:
-        if(!has_loop_env()) {
+        if (!has_loop_env()) {
             throw_error(root, 9, "no outer loops");
         }
         add_instr(Ir::make_br_instr(loop_env()->loop_end));
         add_instr(Ir::make_label_instr());
         break;
     case NODE_CONTINUE:
-        if(!has_loop_env()) {
+        if (!has_loop_env()) {
             throw_error(root, 9, "no outer loops");
         }
         add_instr(Ir::make_br_instr(loop_env()->loop_begin));
@@ -703,9 +742,10 @@ bool Convertor::analyze_statement_node(pNode root)
         break;
     case NODE_RETURN: {
         auto r = std::static_pointer_cast<Ast::ReturnNode>(root);
-        if(r->ret) {
+        if (r->ret) {
             auto res = analyze_value(r->ret);
-            add_instr(Ir::make_ret_instr(cast_to_type(r, res, _cur_func->functon_type()->ret_type)));
+            add_instr(Ir::make_ret_instr(
+                cast_to_type(r, res, _cur_func->functon_type()->ret_type)));
         } else {
             add_instr(Ir::make_ret_instr());
         }
@@ -716,9 +756,9 @@ bool Convertor::analyze_statement_node(pNode root)
         auto r = std::static_pointer_cast<Ast::BlockNode>(root);
         _env.push_env();
         _const_env.push_env();
-        for(auto i : r->body) {
+        for (auto i : r->body) {
             bool ret = analyze_statement_node(i);
-            if(ret) {
+            if (ret) {
                 is_end = true;
                 break;
             }
@@ -741,40 +781,40 @@ bool Convertor::analyze_statement_node(pNode root)
         break;
     case NODE_DEF_FUNC:
         // impossible
-        throw_error(root, -1, "statement calculation not implemented - impossible");
+        throw_error(root, -1,
+                    "statement calculation not implemented - impossible");
     }
     return is_end;
 }
 
-void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
-{
+void Convertor::generate_function(Pointer<Ast::FuncDefNode> root) {
     _env.push_env();
     _const_env.push_env();
     Ir::pFuncDefined func;
     {
         Vector<pType> types;
         Vector<Symbol> syms;
-        for(auto i : root->args) {
+        for (auto i : root->args) {
             auto ty = analyze_type(i.n);
-            if(is_array(ty)) {
+            if (is_array(ty)) {
                 printf("Warning: %s is array.\n", i.name);
                 throw_error(root, 24, "array cannot be argument");
             }
             types.push_back(ty);
             syms.push_back(i.name);
         }
-        TypedSym root_var (root->var.name, analyze_type(root->var.n));
+        TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
-        for(size_t i=0; i<root->args.size(); ++i) {
+        for (size_t i = 0; i < root->args.size(); ++i) {
             /*
                 由于 sysy 语法中函数参数没有 const
                 所以这里一定是 false
             */
-            if(_env.env()->count(root->args[i].name)) {
+            if (_env.env()->count(root->args[i].name)) {
                 printf("Warning: %s repeated.\n", root->args[i].name);
                 throw_error(root, 26, "repeated argument name");
             }
-            _env.env()->set(root->args[i].name, { func->args[i], false });
+            _env.env()->set(root->args[i].name, {func->args[i], false});
         }
         set_func(func->name(), func);
     }
@@ -786,19 +826,19 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root)
     _env.end_env();
 }
 
-Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType> t)
-{
+Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n,
+                                Pointer<ArrayType> t) {
     Vector<pNode> flat = flatten(n, t);
     auto begin = flat.begin();
     std::function<Value(pType t)> fn = [&](pType t) -> Value {
-        if(is_basic_type(t)) {
+        if (is_basic_type(t)) {
             return constant_eval(*(begin++)).cast_to(to_basic_type(t)->ty);
         }
         size_t length = to_array_type(t)->elem_count;
         pType next_ty = to_array_type(t)->elem_type;
         ArrayValue v;
         v.ty = next_ty;
-        for(size_t i=0; i<length; ++i) {
+        for (size_t i = 0; i < length; ++i) {
             v.arr.push_back(make_value(fn(next_ty)));
         }
         return v;
@@ -806,40 +846,45 @@ Value Convertor::from_array_def(Pointer<Ast::ArrayDefNode> n, Pointer<ArrayType>
     return fn(t);
 }
 
-void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root)
-{
+void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root) {
     TypedSym root_var = TypedSym(root->var.name, analyze_type(root->var.n));
-    if(is_integer(root_var.ty)) {
-        if(root->val) {
+    if (is_integer(root_var.ty)) {
+        if (root->val) {
             auto imm = constant_eval(root->val);
-            module()->add_global(Ir::make_global(root_var, Value(imm), root->is_const));
-            if(root->is_const) {
+            module()->add_global(
+                Ir::make_global(root_var, Value(imm), root->is_const));
+            if (root->is_const) {
                 _const_env.env()->set(root_var.sym, imm);
                 // printf("[2] Set Const Value: %s\n", imm.print());
             }
         } else {
-            module()->add_global(Ir::make_global(root_var, 
-                Value(0), root->is_const));
-            if(root->is_const) {
+            module()->add_global(
+                Ir::make_global(root_var, Value(0), root->is_const));
+            if (root->is_const) {
                 _const_env.env()->set(root_var.sym, ImmValue(0));
-                // printf("[3] Set Const Value: %s\n", _const_env.env()->find(root_var.sym).print());
+                // printf("[3] Set Const Value: %s\n",
+                // _const_env.env()->find(root_var.sym).print());
             }
         }
     } else {
-        if(root->val) {
-            module()->add_global(Ir::make_global(root_var, 
-                Value(from_array_def(std::static_pointer_cast<Ast::ArrayDefNode>(root->val), 
-                    to_array_type(root_var.ty))), root->is_const));
+        if (root->val) {
+            module()->add_global(Ir::make_global(
+                root_var,
+                Value(from_array_def(
+                    std::static_pointer_cast<Ast::ArrayDefNode>(root->val),
+                    to_array_type(root_var.ty))),
+                root->is_const));
         } else {
-            module()->add_global(Ir::make_global(root_var, 
-                Value(from_array_def(nullptr, to_array_type(root_var.ty))), root->is_const));
+            module()->add_global(Ir::make_global(
+                root_var,
+                Value(from_array_def(nullptr, to_array_type(root_var.ty))),
+                root->is_const));
         }
     }
 }
 
-void Convertor::generate_single(pNode root)
-{
-    switch(root->type) {
+void Convertor::generate_single(pNode root) {
+    switch (root->type) {
     case NODE_DEF_FUNC:
         generate_function(std::static_pointer_cast<Ast::FuncDefNode>(root));
         break;
@@ -851,8 +896,7 @@ void Convertor::generate_single(pNode root)
     }
 }
 
-Ir::pModule Convertor::generate(AstProg asts)
-{
+Ir::pModule Convertor::generate(AstProg asts) {
     _env.clear_env();
     _const_env.clear_env();
     _const_env.push_env();
@@ -867,122 +911,119 @@ Ir::pModule Convertor::generate(AstProg asts)
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("getarray", i32), { make_pointer_type(i32) }));
+    _mod->add_func_declaration(
+        Ir::make_func(TypedSym("getarray", i32), {make_pointer_type(i32)}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getfloat", f32), {}));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("getfarray", i32), { make_pointer_type(f32) }));
-    
-    _mod->add_func_declaration(Ir::make_func(TypedSym("putint", vd), { i32 }));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("putch", vd), { i32 }));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("putarray", vd), { i32, make_pointer_type(i32) }));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("putfloat", vd), { f32 }));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("putfarray", vd), { i32, make_pointer_type(f32) }));
-    
-    _mod->add_func_declaration(Ir::make_func(TypedSym("putf", vd), { make_pointer_type(i8) }, true)); // 可变
-    
-    for(auto &&i : _mod->funsDeclared) {
+    _mod->add_func_declaration(
+        Ir::make_func(TypedSym("getfarray", i32), {make_pointer_type(f32)}));
+
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putint", vd), {i32}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putch", vd), {i32}));
+    _mod->add_func_declaration(
+        Ir::make_func(TypedSym("putarray", vd), {i32, make_pointer_type(i32)}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putfloat", vd), {f32}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("putfarray", vd),
+                                             {i32, make_pointer_type(f32)}));
+
+    _mod->add_func_declaration(Ir::make_func(
+        TypedSym("putf", vd), {make_pointer_type(i8)}, true)); // 可变
+
+    for (auto &&i : _mod->funsDeclared) {
         set_func(i->name(), i);
     }
-    
-    for(auto i : asts) {
+
+    for (auto i : asts) {
         generate_single(i);
     }
-    
+
     _const_env.end_env();
     return _mod;
 }
 
-Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root, pType ty)
-{
+Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root,
+                                          pType ty) {
     bool is_signed = is_signed_type(ty);
-#define SELECT(x) case OPR_##x: return Ir::INSTR_##x;
-    switch(root->type) {
-    SELECT(ADD)
-    SELECT(SUB)
-    SELECT(MUL)
-    SELECT(DIV)
-//    SELECT(AND)
-//    SELECT(OR)
+#define SELECT(x)                                                              \
+    case OPR_##x:                                                              \
+        return Ir::INSTR_##x;
+    switch (root->type) {
+        SELECT(ADD)
+        SELECT(SUB)
+        SELECT(MUL)
+        SELECT(DIV)
+        //    SELECT(AND)
+        //    SELECT(OR)
     case OPR_REM: {
-        if(is_signed)
+        if (is_signed)
             return Ir::INSTR_SREM;
         return Ir::INSTR_UREM;
     }
     default:
-        throw_error(root, -1, "binary operation conversion from ast to ir not implemented");
+        throw_error(
+            root, -1,
+            "binary operation conversion from ast to ir not implemented");
     }
 #undef SELECT
     return Ir::INSTR_ADD;
 }
 
-Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::BinaryNode> root, pType ty)
-{
+Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::BinaryNode> root, pType ty) {
     bool is_signed = is_signed_type(ty);
     bool is_flt = is_float(ty);
-    switch(root->type) {
-#define SELECT(x) \
-    case OPR_##x: { \
-        if(is_flt) { \
-            return Ir::CMP_O##x; \
-        } \
-        return Ir::CMP_##x; \
+    switch (root->type) {
+#define SELECT(x)                                                              \
+    case OPR_##x: {                                                            \
+        if (is_flt) {                                                          \
+            return Ir::CMP_O##x;                                               \
+        }                                                                      \
+        return Ir::CMP_##x;                                                    \
     }
-    SELECT(EQ)
-    SELECT(NE)
+        SELECT(EQ)
+        SELECT(NE)
 #undef SELECT
-#define SELECT_US(x) \
-    case OPR_##x: { \
-        if(is_flt) { \
-            return Ir::CMP_S##x; \
-        } else if(is_signed) { \
-            return Ir::CMP_S##x; \
-        } else { \
-            return Ir::CMP_U##x; \
-        } \
-        break; \
+#define SELECT_US(x)                                                           \
+    case OPR_##x: {                                                            \
+        if (is_flt) {                                                          \
+            return Ir::CMP_S##x;                                               \
+        } else if (is_signed) {                                                \
+            return Ir::CMP_S##x;                                               \
+        } else {                                                               \
+            return Ir::CMP_U##x;                                               \
+        }                                                                      \
+        break;                                                                 \
     }
-    SELECT_US(LE)
-    SELECT_US(GE)
-    SELECT_US(LT)
-    SELECT_US(GT)
+        SELECT_US(LE)
+        SELECT_US(GE)
+        SELECT_US(LT)
+        SELECT_US(GT)
 #undef SELECT
     default:
-        throw_error(root, 7, "comparasion operation conversion from ast to ir not implemented");
+        throw_error(
+            root, 7,
+            "comparasion operation conversion from ast to ir not implemented");
     }
     return Ir::CMP_EQ;
 }
 
-pLoopEnv Convertor::loop_env() {
-    return _loop_env_stack.top();
-}
+pLoopEnv Convertor::loop_env() { return _loop_env_stack.top(); }
 
 void Convertor::push_loop_env(Ir::pInstr begin, Ir::pInstr end) {
-    _loop_env_stack.push(pLoopEnv(new LoopEnv {begin, end}));
+    _loop_env_stack.push(pLoopEnv(new LoopEnv{begin, end}));
 }
 
-bool Convertor::has_loop_env() const {
-    return !_loop_env_stack.empty();
-}
-    
-void Convertor::end_loop_env() {
-    _loop_env_stack.pop();
-}
-    
+bool Convertor::has_loop_env() const { return !_loop_env_stack.empty(); }
+
+void Convertor::end_loop_env() { _loop_env_stack.pop(); }
+
 void Convertor::clear_loop_env() {
-    while(!_loop_env_stack.empty())
+    while (!_loop_env_stack.empty())
         _loop_env_stack.pop();
 }
 
-void Convertor::set_func(Symbol sym, Ir::pFunc fun) {
-    _func_map[sym] = fun;
-}
+void Convertor::set_func(Symbol sym, Ir::pFunc fun) { _func_map[sym] = fun; }
 
-bool Convertor::func_count(Symbol sym) {
-    return _func_map.count(sym);
-}
+bool Convertor::func_count(Symbol sym) { return _func_map.count(sym); }
 
-Ir::pFunc Convertor::find_func(Symbol sym) {
-    return _func_map[sym];
-}
+Ir::pFunc Convertor::find_func(Symbol sym) { return _func_map[sym]; }
 
-} // namespace ast_to_ir
-
+} // namespace AstToIr

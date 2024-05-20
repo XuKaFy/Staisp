@@ -43,18 +43,19 @@ struct Instr : public User {
     virtual InstrType instr_type() const { return INSTR_SYM; }
 
     bool is_end_of_block() const {
-        switch(instr_type()) {
+        switch (instr_type()) {
         case INSTR_RET:
         case INSTR_BR:
         case INSTR_BR_COND:
             return true;
-        default: break;
+        default:
+            break;
         }
         return false;
     }
 
 private:
-    Symbol instr_str_form { nullptr };
+    Symbol instr_str_form{nullptr};
 };
 
 // 所有只要操作数为常量就可以计算出值的操作

@@ -2,27 +2,20 @@
 
 namespace Ir {
 
-Symbol CmpInstr::instr_print_impl() const
-{
+Symbol CmpInstr::instr_print_impl() const {
     return to_symbol(
-        String(name())
-        + (is_float(operand(0)->usee->ty) ? " = fcmp " : " = icmp ")
-        + gCmpInstrName[cmp_type]
-        + " " 
-        + operand(0)->usee->ty->type_name()
-        + " "
-        + operand(0)->usee->name()
-        + ", "
-        + operand(1)->usee->name());
+        String(name()) +
+        (is_float(operand(0)->usee->ty) ? " = fcmp " : " = icmp ") +
+        gCmpInstrName[cmp_type] + " " + operand(0)->usee->ty->type_name() +
+        " " + operand(0)->usee->name() + ", " + operand(1)->usee->name());
 }
 
-ImmValue CmpInstr::calculate(Vector<ImmValue> v) const
-{
+ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 2, "?");
     ImmValue &a1 = v[0];
     ImmValue &a2 = v[1];
 
-    switch(cmp_type) {
+    switch (cmp_type) {
     case CMP_EQ:
     case CMP_OEQ:
         return a1 == a2;
@@ -50,9 +43,8 @@ ImmValue CmpInstr::calculate(Vector<ImmValue> v) const
     return 0;
 }
 
-pInstr make_cmp_instr(CmpType cmp_type, pVal a1, pVal a2)
-{
+pInstr make_cmp_instr(CmpType cmp_type, pVal a1, pVal a2) {
     return pInstr(new CmpInstr(cmp_type, a1, a2));
 }
 
-} // namespace ir
+} // namespace Ir

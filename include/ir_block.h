@@ -11,32 +11,32 @@ typedef Pointer<Block> pBlock;
 typedef Vector<pBlock> Blocks;
 
 struct Block : public Val {
-    Block()
-        : Val(make_void_type()) { }
+    Block() : Val(make_void_type()) {}
 
     // block 析构时，将自己从 in_block 的 out_block
     // 和 out_block 的 in_block 中删除
     virtual ~Block() {
-        for(auto i : in_block) {
+        for (auto i : in_block) {
             i->out_block.erase(this);
         }
-        for(auto i : out_block) {
+        for (auto i : out_block) {
             i->in_block.erase(this);
         }
     }
 
     // 当该块的指令仅有一条跳转时，将块的 in_block 与 out_block 直接相连
     void connect_in_and_out();
-    // 当该块的最后一条指令是 conditional br 时，指定其 cond 内的值，把 cond br 更改为 br
+    // 当该块的最后一条指令是 conditional br 时，指定其 cond 内的值，把 cond br
+    // 更改为 br
     void squeeze_out(bool selected);
-    // 当 out_block 含有 before 时，将其替换为 out（即同时修改 out_block 与 br 指令的指向对象）
-    // 最后一条指令必须是 cond br 或者 br
-    void replace_out(Block* before, Block* out);
+    // 当 out_block 含有 before 时，将其替换为 out（即同时修改 out_block 与 br
+    // 指令的指向对象） 最后一条指令必须是 cond br 或者 br
+    void replace_out(Block *before, Block *out);
 
     // 打印该 block
     Symbol print_block() const;
 
-    // 该块的 label，默认为第一条 instr    
+    // 该块的 label，默认为第一条 instr
     pInstr label() const;
     // 该块的最后一条指令，一般为 ret、br 或者 cond br
     pInstr back() const;
@@ -49,21 +49,18 @@ struct Block : public Val {
     void push_back(pInstr instr);
     // 将 this 与 next 连接起来
     // 只修改 in_block 与 out_block
-    void connect(Block* next);
+    void connect(Block *next);
 
     Instrs body;
 
-    virtual ValType type() const {
-        return VAL_BLOCK;
-    }
+    virtual ValType type() const { return VAL_BLOCK; }
 
-    Set<Block*> in_block;
-    Set<Block*> out_block;
+    Set<Block *> in_block;
+    Set<Block *> out_block;
     Vector<pVal> imms;
 };
 
-struct BlockedProgram
-{
+struct BlockedProgram {
     // 从 instrs 构建 CFG
     void from_instrs(Instrs &instrs);
     // 在最后一个块上加入最后一条语句

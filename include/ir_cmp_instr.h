@@ -4,51 +4,44 @@
 
 namespace Ir {
 
-#define CMP_INSTR_TABLE \
-    ENTRY(EQ, eq) \
-    ENTRY(NE, ne) \
-    ENTRY(UGT, ugt) \
-    ENTRY(UGE, uge) \
-    ENTRY(ULT, ult) \
-    ENTRY(ULE, ule) \
-    ENTRY(SGT, sgt) \
-    ENTRY(SGE, sge) \
-    ENTRY(SLT, slt) \
-    ENTRY(SLE, sle) \
-    ENTRY(OEQ, oeq) \
-    ENTRY(ONE, one) \
-    ENTRY(OGT, ogt) \
-    ENTRY(OGE, oge) \
-    ENTRY(OLT, olt) \
-    ENTRY(OLE, ole) \
+#define CMP_INSTR_TABLE                                                        \
+    ENTRY(EQ, eq)                                                              \
+    ENTRY(NE, ne)                                                              \
+    ENTRY(UGT, ugt)                                                            \
+    ENTRY(UGE, uge)                                                            \
+    ENTRY(ULT, ult)                                                            \
+    ENTRY(ULE, ule)                                                            \
+    ENTRY(SGT, sgt)                                                            \
+    ENTRY(SGE, sge)                                                            \
+    ENTRY(SLT, slt)                                                            \
+    ENTRY(SLE, sle)                                                            \
+    ENTRY(OEQ, oeq)                                                            \
+    ENTRY(ONE, one)                                                            \
+    ENTRY(OGT, ogt)                                                            \
+    ENTRY(OGE, oge)                                                            \
+    ENTRY(OLT, olt)                                                            \
+    ENTRY(OLE, ole)
 
 #define ENTRY(x, y) CMP_##x,
-enum CmpType {
-    CMP_INSTR_TABLE
-};
+enum CmpType { CMP_INSTR_TABLE };
 #undef ENTRY
 
 #define ENTRY(x, y) #y,
-const Symbol gCmpInstrName[] = {
-    CMP_INSTR_TABLE
-};
+const Symbol gCmpInstrName[] = {CMP_INSTR_TABLE};
 #undef ENTRY
 
 #undef CMP_INSTR_TABLE
 
 // 默认所有的操作数的类型都一致
-struct CmpInstr : public CalculatableInstr
-{
+struct CmpInstr : public CalculatableInstr {
     CmpInstr(CmpType cmp_type, pVal a1, pVal a2)
         : CalculatableInstr(make_basic_type(IMM_I1)), cmp_type(cmp_type) {
         add_operand(a1);
         add_operand(a2);
     }
 
-    virtual InstrType instr_type() const override {
-        return INSTR_CMP;
-    }
-    
+    virtual InstrType instr_type() const override { return INSTR_CMP; }
+
     virtual Symbol instr_print_impl() const override;
 
     virtual ImmValue calculate(Vector<ImmValue> v) const override;
@@ -60,4 +53,4 @@ typedef Pointer<CmpInstr> pCmpInstr;
 
 pInstr make_cmp_instr(CmpType cmp_type, pVal a1, pVal a2);
 
-} // namespace ir
+} // namespace Ir

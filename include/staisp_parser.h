@@ -7,41 +7,40 @@
 #include "env.h"
 #include "type.h"
 
-#include "staisp_lexer.h"
 #include "common_node.h"
+#include "staisp_lexer.h"
 
 namespace Staisp {
 
 // 关键字列表
-#define BUILDIN_SYM_LIST \
-    ENTRY(IF) \
-    ENTRY(IFE) \
-    ENTRY(ASSIGN) \
-    ENTRY(RETURN) \
-    ENTRY(RET_VOID) \
-    ENTRY(WHILE) \
-    ENTRY(FOR) \
-    ENTRY(DEFVAR) \
-    ENTRY(DEFFUNC) \
-    ENTRY(BREAK) \
-    ENTRY(CONTINUE) \
-    ENTRY(CAST) \
-    ENTRY(REF) \
-    ENTRY(DEREF) \
-    ENTRY(ITEM) \
+#define BUILDIN_SYM_LIST                                                       \
+    ENTRY(IF)                                                                  \
+    ENTRY(IFE)                                                                 \
+    ENTRY(ASSIGN)                                                              \
+    ENTRY(RETURN)                                                              \
+    ENTRY(RET_VOID)                                                            \
+    ENTRY(WHILE)                                                               \
+    ENTRY(FOR)                                                                 \
+    ENTRY(DEFVAR)                                                              \
+    ENTRY(DEFFUNC)                                                             \
+    ENTRY(BREAK)                                                               \
+    ENTRY(CONTINUE)                                                            \
+    ENTRY(CAST)                                                                \
+    ENTRY(REF)                                                                 \
+    ENTRY(DEREF)                                                               \
+    ENTRY(ITEM)                                                                \
     ENTRY(BLOCK)
 
 // 所有关键字组成的枚举
-enum BuildinSym
-{
+enum BuildinSym {
 #define ENTRY(x) BUILDIN_##x,
     BUILDIN_SYM_LIST
 #undef ENTRY
 };
 
 // 将关键字映射到节点类型
-const Map<String, BuildinSym> gBuildinSymType {
-#define ENTRY(x) { #x, BUILDIN_##x },
+const Map<String, BuildinSym> gBuildinSymType{
+#define ENTRY(x) {#x, BUILDIN_##x},
     BUILDIN_SYM_LIST
 #undef ENTRY
 };
@@ -49,32 +48,31 @@ const Map<String, BuildinSym> gBuildinSymType {
 #undef BUILDIN_SYM_LIST
 
 // 所有二元计算的节点类型
-#define BUILDIN_BINARY_OPR_LIST \
-    ENTRY(ADD, add) \
-    ENTRY(SUB, sub) \
-    ENTRY(MUL, mul) \
-    ENTRY(DIV, div) \
-    ENTRY(REM, rem) \
-    ENTRY(AND, and) \
-    ENTRY(OR, or) \
-    ENTRY(EQ, eq) \
-    ENTRY(NE, ne) \
-    ENTRY(GT, gt) \
-    ENTRY(GE, ge) \
-    ENTRY(LT, lt) \
+#define BUILDIN_BINARY_OPR_LIST                                                \
+    ENTRY(ADD, add)                                                            \
+    ENTRY(SUB, sub)                                                            \
+    ENTRY(MUL, mul)                                                            \
+    ENTRY(DIV, div)                                                            \
+    ENTRY(REM, rem)                                                            \
+    ENTRY(AND, and)                                                            \
+    ENTRY(OR, or)                                                              \
+    ENTRY(EQ, eq)                                                              \
+    ENTRY(NE, ne)                                                              \
+    ENTRY(GT, gt)                                                              \
+    ENTRY(GE, ge)                                                              \
+    ENTRY(LT, lt)                                                              \
     ENTRY(LE, le)
 
 // 所有二元计算的枚举
-enum BuildinBinaryOprType
-{
+enum BuildinBinaryOprType {
 #define ENTRY(x, y) BUILDIN_##x,
     BUILDIN_BINARY_OPR_LIST
 #undef ENTRY
 };
 
 // 将二元运算关键字转化为**操作节点**类型
-const Map<String, BinaryType> gBuildinBinaryOprType {
-#define ENTRY(x, y) { #x, OPR_##x },
+const Map<String, BinaryType> gBuildinBinaryOprType{
+#define ENTRY(x, y) {#x, OPR_##x},
     BUILDIN_BINARY_OPR_LIST
 #undef ENTRY
 };
@@ -109,7 +107,7 @@ private:
     Pointer<StaispToken> peek_p() const;
     void consume_token(TokenType t);
     bool has_token() const;
-    
+
     pNode parse_buildin_sym(Symbol sym, bool in_global = false);
     pNode parse_function_call(Symbol sym);
     pNode parse_block();
@@ -123,7 +121,7 @@ private:
     pNode parse_type();
     pNode parse_single_value_list();
     bool parse_const();
-    
+
     bool is_type_ended() const;
 
     Vector<TypedNodeSym> parse_typed_sym_list();
@@ -141,5 +139,4 @@ private:
     AstProg _result;
 };
 
-
-} // namespace staisp
+} // namespace Staisp

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "ir_func.h"
 #include "ir_block.h"
+#include "ir_func.h"
 
 namespace Ir {
 
@@ -28,6 +28,7 @@ struct FuncDefined : public Func {
 
 typedef Pointer<FuncDefined> pFuncDefined;
 
-pFuncDefined make_func_defined(TypedSym var, Vector<pType> arg_types, Vector<Symbol> syms);
+pFuncDefined make_func_defined(TypedSym var, Vector<pType> arg_types,
+                               Vector<Symbol> syms);
 
-} // namespace ir
+} // namespace Ir

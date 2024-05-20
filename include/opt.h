@@ -7,4 +7,3 @@ namespace Optimize {
 void optimize(Ir::pModule mod);
 
 } // namespace Optimize
-

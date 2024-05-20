@@ -2,44 +2,29 @@
 #include "imm.h"
 #include "type.h"
 
-namespace Ir
-{
+namespace Ir {
 
-Symbol UnaryInstr::instr_print_impl() const
-{
-    return to_symbol(
-        String(name())
-        + " = "
-        + "fneg"
-        + " " 
-        + ty->type_name()
-        + " "
-        + operand(0)->usee->name());
+Symbol UnaryInstr::instr_print_impl() const {
+    return to_symbol(String(name()) + " = " + "fneg" + " " + ty->type_name() +
+                     " " + operand(0)->usee->name());
 }
 
-Symbol BinInstr::instr_print_impl() const
-{
+Symbol BinInstr::instr_print_impl() const {
     return to_symbol(
-        String(name())
-        + " = "
-        + (is_float(ty) ? "f" : 
-            (binType == INSTR_DIV ? (is_signed_type(ty) ? "s" : "u") : "")) 
-        + gBinInstrName[binType] 
-        + " " 
-        + ty->type_name()
-        + " "
-        + operand(0)->usee->name()
-        + ", "
-        + operand(1)->usee->name());
+        String(name()) + " = " +
+        (is_float(ty)
+             ? "f"
+             : (binType == INSTR_DIV ? (is_signed_type(ty) ? "s" : "u") : "")) +
+        gBinInstrName[binType] + " " + ty->type_name() + " " +
+        operand(0)->usee->name() + ", " + operand(1)->usee->name());
 }
 
-ImmValue BinInstr::calculate(Vector<ImmValue> v) const
-{
+ImmValue BinInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 2, "?");
     ImmValue &a0 = v[0];
     ImmValue &a1 = v[1];
 
-    switch(binType) {
+    switch (binType) {
     case INSTR_ADD:
         return a0 + a1;
     case INSTR_SUB:
@@ -62,23 +47,18 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const
     return 0;
 }
 
-ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const
-{
+ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 1, "?");
-    if(v[0].ty == IMM_F32) {
+    if (v[0].ty == IMM_F32) {
         return ImmValue(-v[0].val.f32val);
     }
     return ImmValue(-v[0].val.f64val);
 }
 
-pInstr make_unary_instr(pVal oprd)
-{
-    return pInstr(new UnaryInstr(oprd));
-}
+pInstr make_unary_instr(pVal oprd) { return pInstr(new UnaryInstr(oprd)); }
 
-pInstr make_binary_instr(BinInstrType type, pVal oprd1, pVal oprd2)
-{
+pInstr make_binary_instr(BinInstrType type, pVal oprd1, pVal oprd2) {
     return pInstr(new BinInstr(type, oprd1, oprd2));
 }
 
-} // namespace ir
+} // namespace Ir

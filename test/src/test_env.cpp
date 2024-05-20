@@ -1,25 +1,25 @@
-#include "gtest/gtest.h"
 #include "env.h"
+#include "gtest/gtest.h"
 
 TEST(test_env, basic_env) {
     Env<int> a;
     try {
         a.find("hello");
         EXPECT_TRUE(false);
-    } catch(Exception e) {
+    } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
         EXPECT_STREQ(e.object, "Env");
     }
     a.set("hello", 10);
     try {
         EXPECT_EQ(a.find("hello"), 10);
-    } catch(Exception e) {
+    } catch (Exception e) {
         EXPECT_TRUE(false);
     }
     try {
         a.find("hello_world");
         EXPECT_TRUE(false);
-    } catch(Exception e) {
+    } catch (Exception e) {
         EXPECT_EQ(e.id, 1);
         EXPECT_STREQ(e.object, "Env");
     }
@@ -30,7 +30,7 @@ TEST(test_env, env_found_empty) {
     try {
         a.find(nullptr);
         EXPECT_TRUE(false);
-    } catch(Exception e) {
+    } catch (Exception e) {
         EXPECT_EQ(e.id, 2);
         EXPECT_STREQ(e.object, "Env");
     }

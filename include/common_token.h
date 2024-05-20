@@ -15,10 +15,10 @@
 
 #include "def.h"
 
-struct Token 
-{
+struct Token {
 public:
-    Token(pCode code, String::iterator token_begin, String::iterator token_end, int line);
+    Token(pCode code, String::iterator token_begin, String::iterator token_end,
+          int line);
 
     // 打印报错信息后，throw 一个 Exception
     void throw_error(int id, Symbol object, Symbol error_code);

@@ -1,19 +1,17 @@
 #include "test_framework.h"
 #include <gtest/gtest.h>
 
-#define run_sysy_test(s) \
-TEST(test_sysy, s) \
-{ \
-    prepare(); \
-    run_sysy("sysy_tests/functional/" #s); \
-}
+#define run_sysy_test(s)                                                       \
+    TEST(test_sysy, s) {                                                       \
+        prepare();                                                             \
+        run_sysy("sysy_tests/functional/" #s);                                 \
+    }
 
-#define run_sysy_hidden_test(s) \
-TEST(test_hidden_sysy, s) \
-{ \
-    prepare(); \
-    run_sysy("sysy_tests/hidden_functional/" #s); \
-}
+#define run_sysy_hidden_test(s)                                                \
+    TEST(test_hidden_sysy, s) {                                                \
+        prepare();                                                             \
+        run_sysy("sysy_tests/hidden_functional/" #s);                          \
+    }
 
 run_sysy_test(00_main);
 run_sysy_test(01_var_defn2);

@@ -7,8 +7,8 @@
 namespace Opt2 {
 
 struct BlockValue {
-    bool operator == (const BlockValue &b);
-    bool operator != (const BlockValue &b);
+    bool operator==(const BlockValue &b);
+    bool operator!=(const BlockValue &b);
 
     void cup(const BlockValue &v);
 
@@ -19,8 +19,8 @@ struct BlockValue {
 
 struct Utils {
     // transfer function
-    void operator () (Ir::Block* p, BlockValue &v);
-    int operator () (Ir::Block* p, const BlockValue &IN, const BlockValue &OUT);
+    void operator()(Ir::Block *p, BlockValue &v);
+    int operator()(Ir::Block *p, const BlockValue &IN, const BlockValue &OUT);
 };
 
-} // namespace Optimize
+} // namespace Opt2
