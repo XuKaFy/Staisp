@@ -45,9 +45,6 @@ template <typename T> using Opt = std::optional<T>;
 
 template <typename T, typename U> using Pair = std::pair<T, U>;
 
-typedef float Float32;
-typedef double Float64;
-
 typedef std::string String;
 typedef Pointer<String> pString;
 

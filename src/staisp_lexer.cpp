@@ -84,8 +84,8 @@ pToken Lexer::lexer_number(String::value_type head) {
 }
 
 pToken Lexer::lexer_float(long long head) {
-    Float64 var = head;
-    Float64 small = 0.1;
+    double var = head;
+    double small = 0.1;
     while (has_char() && !isspace(peek())) {
         if (isalpha(peek())) {
             StaispToken(var, _p_code, _begin, _current, _line_count)
