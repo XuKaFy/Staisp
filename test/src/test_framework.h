@@ -22,7 +22,6 @@ void prepare() {
     static bool flag = false;
     if (!flag) {
         EXPECT_FALSE(system("clang -S -emit-llvm ../../lib/sylib.c"));
-        EXPECT_FALSE(system("cp ../../lib/sylib.ll sylib.ll"));
         EXPECT_FALSE(system("llvm-as sylib.ll -o sylib.bc"));
         flag = true;
     }
