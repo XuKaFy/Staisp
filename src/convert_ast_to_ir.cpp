@@ -480,7 +480,7 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
     if (elem_ty->type_type() == TYPE_BASIC_TYPE) {
         for (size_t i = 0; i < size; ++i) {
             auto elem = list.get();
-            if(!elem && list.is_root)
+            if (!elem && list.is_root)
                 break;
             ans.push_back(elem); // possibly nullptr
         }
@@ -525,13 +525,16 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
     auto begin = flat.begin();
     auto end = flat.end();
     std::function<void(pType t)> fn = [&](pType t) -> void {
-        if(begin == end) return ;
+        if (begin == end)
+            return;
         if (is_basic_type(t)) {
             if(constant) {
                 auto cur = *(begin++);
-                if(!cur) return ;
+                if(!cur)
+                    return;
                 auto val = constant_eval(cur);
-                if(!val) return ;
+                if(!val)
+                    return;
                 auto item = Ir::make_item_instr(addr, indexes);
                 auto imm = Ir::make_constant(val);
                 add_instr(item);
@@ -541,7 +544,8 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
                 return ;
             }
             auto cur = *(begin++);
-            if(!cur) return ;
+            if(!cur)
+                return;
             auto val = analyze_value(cur);
             auto item = Ir::make_item_instr(addr, indexes);
             add_instr(item);
