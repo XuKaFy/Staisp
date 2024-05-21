@@ -28,7 +28,9 @@ FuncDefined::FuncDefined(TypedSym var, Vector<pType> arg_types,
     }
 }
 
-void FuncDefined::add_body(pInstr instr) { body.push_back(instr); }
+void FuncDefined::add_body(pInstr instr) {
+    body.push_back(instr);
+}
 
 void FuncDefined::add_imm(pVal val) { imms.push_back(val); }
 
@@ -42,8 +44,19 @@ void FuncDefined::end_function() {
             body.push_back(make_ret_instr(imm));
         }
     }
+    Instrs final;
+    final.push_back(Ir::make_label_instr());
+    for(auto i : body) {
+        if(i->instr_type() == INSTR_ALLOCA)
+            final.push_back(i);
+    }
+    final.push_back(Ir::make_br_instr(body.front()));
+    for(auto i : body) {
+        if(i->instr_type() != INSTR_ALLOCA)
+            final.push_back(i);
+    }
     // printf("function: %s\n", name());
-    p.from_instrs(body);
+    p.from_instrs(final);
 }
 
 String FuncDefined::print_func() const {
