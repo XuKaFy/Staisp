@@ -110,10 +110,10 @@ struct ImmValue {
     }
     ImmValue(int val) : ty(IMM_I32), val((long long)val) {}
     ImmValue(long long val,
-             ImmType ty = IMM_I64) // 构造时支持降格，例如代入 IMM_I32/16/8/1
+             ImmType ty = IMM_I32) // 构造时支持降格，例如代入 IMM_I32/16/8/1
         : ty(ty), val(val) {}
     ImmValue(unsigned int val) : ty(IMM_U32), val((unsigned long long)val) {}
-    ImmValue(unsigned long long val, ImmType ty = IMM_U64) : ty(ty), val(val) {}
+    ImmValue(unsigned long long val, ImmType ty = IMM_U32) : ty(ty), val(val) {}
     ImmValue(float val) : ty(IMM_F32), val(val) {}
     ImmValue(double val) : ty(IMM_F64), val(val) {}
 
