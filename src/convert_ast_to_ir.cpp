@@ -3,12 +3,14 @@
 #include "ast_node.h"
 #include "common_node.h"
 #include "def.h"
+#include "env.h"
 #include "ir_call_instr.h"
 #include "ir_cast_instr.h"
 #include "ir_cmp_instr.h"
 #include "ir_constant.h"
 #include "ir_control_instr.h"
 #include "ir_func.h"
+#include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
 #include "ir_opr_instr.h"
@@ -21,6 +23,8 @@
 #include <memory>
 
 #include <functional>
+
+#define BUILTIN_INITIALIZER "__buildin_initializer"
 
 namespace AstToIr {
 
@@ -403,6 +407,7 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const) {
     case NODE_CALL: {
         auto r = std::static_pointer_cast<Ast::CallNode>(root);
         if (!func_count(r->name)) {
+            printf("Warning: function %s not found\n", r->name.c_str());
             throw_error(r, 20, "function not found");
         }
         auto func = find_func(r->name);
@@ -509,8 +514,8 @@ Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer,
     return flatten(new_v, type);
 }
 
-void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
-                              Pointer<Ast::ArrayDefNode> n) {
+void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
+                              Pointer<Ast::ArrayDefNode> n, bool complete) {
     if (!is_pointer(addr->ty)) {
         throw_error(root, 16, "list should initialize type that is pointed");
     }
@@ -519,6 +524,17 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
     auto begin = flat.begin();
     std::function<void(pType t)> fn = [&](pType t) -> void {
         if (is_basic_type(t)) {
+            if(!complete) {
+                auto val = constant_eval(*(begin++));
+                if(!val) return ;
+                auto item = Ir::make_item_instr(addr, indexes);
+                auto imm = Ir::make_constant(val);
+                add_instr(item);
+                auto store = Ir::make_store_instr(item, cast_to_type(root, imm, t));
+                add_instr(store);
+                _cur_func->add_imm(imm);
+                return ;
+            }
             auto val = analyze_value(*(begin++));
             auto item = Ir::make_item_instr(addr, indexes);
             add_instr(item);
@@ -819,6 +835,9 @@ void Convertor::generate_function(Pointer<Ast::FuncDefNode> root) {
         set_func(func->name(), func);
     }
     _cur_func = func;
+    if(root->var.name == "main") {
+        analyze_statement_node(Ast::new_call_node(NULL, BUILTIN_INITIALIZER, {}));
+    }
     analyze_statement_node(root->body);
     func->end_function();
     module()->add_func(func);
@@ -870,14 +889,20 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root) {
         if (root->val) {
             module()->add_global(Ir::make_global(
                 root_var,
+                /*
                 Value(from_array_def(
                     std::static_pointer_cast<Ast::ArrayDefNode>(root->val),
                     to_array_type(root_var.ty))),
+                */
+                Value(),
                 root->is_const));
+
+                add_initialization(root_var, std::static_pointer_cast<Ast::ArrayDefNode>(root->val));
         } else {
             module()->add_global(Ir::make_global(
                 root_var,
-                Value(from_array_def(nullptr, to_array_type(root_var.ty))),
+                // Value(from_array_def(nullptr, to_array_type(root_var.ty))),
+                Value(),
                 root->is_const));
         }
     }
@@ -909,6 +934,10 @@ Ir::pModule Convertor::generate(AstProg asts) {
     auto f32 = make_basic_type(IMM_F32);
     auto vd = make_void_type();
 
+    _initializer_func = Ir::make_func_defined(TypedSym(BUILTIN_INITIALIZER, vd), {}, {});
+    _mod->add_func(_initializer_func);
+    set_func(BUILTIN_INITIALIZER, _initializer_func);
+
     _mod->add_func_declaration(Ir::make_func(TypedSym("_sysy_starttime", vd), { i32 }));
     _mod->add_func_declaration(Ir::make_func(TypedSym("_sysy_stoptime", vd), { i32 }));
 
@@ -939,8 +968,27 @@ Ir::pModule Convertor::generate(AstProg asts) {
         generate_single(i);
     }
 
+    _initializer_func->end_function();
+
     _const_env.end_env();
     return _mod;
+}
+
+void Convertor::add_initialization(TypedSym var, Pointer<Ast::ArrayDefNode> node)
+{
+    EnvWrapper<MaybeConstInstr> env = _env;
+    auto cur_func = _cur_func;
+    
+    _cur_func = _initializer_func;
+    _env = EnvWrapper<MaybeConstInstr>();
+    _env.push_env();
+    
+    auto arr = find_left_value(node, var.sym);
+    copy_to_array(node, arr, to_array_type(to_pointed_type(arr->ty)), node, false);
+    
+    _cur_func = cur_func;
+    _env.end_env();
+    _env = env;
 }
 
 Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root,

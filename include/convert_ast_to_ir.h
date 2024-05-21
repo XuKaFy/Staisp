@@ -7,9 +7,11 @@
 
 #include "ast_node.h"
 #include "ir_cmp_instr.h"
+#include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
+#include "type.h"
 
 namespace AstToIr {
 
@@ -54,8 +56,8 @@ private:
     void generate_global_var(Pointer<Ast::VarDefNode> root);
     void generate_function(Pointer<Ast::FuncDefNode> root);
     bool analyze_statement_node(pNode root);
-    void copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
-                       Pointer<Ast::ArrayDefNode> n);
+    void copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
+                       Pointer<Ast::ArrayDefNode> n, bool complete = true);
     Ir::pVal analyze_opr(Pointer<Ast::BinaryNode> root);
     Ir::pVal cast_to_type(pNode root, Ir::pVal val, pType tr);
 
@@ -81,9 +83,12 @@ private:
     void end_loop_env();
     void clear_loop_env();
 
+    void add_initialization(TypedSym var, Pointer<Ast::ArrayDefNode> node);
+
     LoopEnvStack _loop_env_stack;
     Ir::pModule _mod;
     Ir::pFuncDefined _cur_func;
+    Ir::pFuncDefined _initializer_func;
     AstProg _prog;
 };
 

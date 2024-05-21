@@ -1,5 +1,6 @@
 #include "value.h"
 #include "def.h"
+#include "type.h"
 
 Value::operator bool() const {
     switch (type()) {
@@ -39,6 +40,9 @@ bool Value::is_static() const {
 }
 
 String Value::to_string() const {
+    if (ty->type_type() == TYPE_VOID_TYPE) {
+        return "zeroinitializer";
+    }
     switch (type()) {
     case VALUE_IMM:
         return imm_value().print();
