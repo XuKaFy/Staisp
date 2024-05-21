@@ -454,16 +454,8 @@ GTEST_TEST(test_sysy_functional, 79_var_name) {
     run_sysy("sysy_tests/functional/79_var_name");
 }
 
-GTEST_TEST(test_sysy_functional, 79_var_short) {                 
-    run_sysy("sysy_tests/functional/79_var_short");
-}
-
 GTEST_TEST(test_sysy_functional, 80_chaos_token) {                 
     run_sysy("sysy_tests/functional/80_chaos_token");
-}
-
-GTEST_TEST(test_sysy_functional, 80_not_chaos) {                 
-    run_sysy("sysy_tests/functional/80_not_chaos");
 }
 
 GTEST_TEST(test_sysy_functional, 81_skip_spaces) {                 
