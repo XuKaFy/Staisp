@@ -10,9 +10,15 @@ struct Val {
     Val() : ty(NAC), v(0) {}
     Val(ImmValue v) : ty(VALUE), v(v) {}
 
-    bool operator==(const Val &val) const { return v == val.v; }
+    bool operator==(const Val &val) const {
+        if(ty != val.ty)
+            return false;
+        if(ty == NAC)
+            return true;
+        return v == val.v;
+    }
 
-    bool operator!=(const Val &val) const { return v != val.v; }
+    bool operator!=(const Val &val) const { return !((*this) == val); }
 
     enum {
         VALUE,

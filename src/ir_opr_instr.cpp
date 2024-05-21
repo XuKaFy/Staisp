@@ -49,10 +49,7 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const {
 
 ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 1, "?");
-    if (v[0].ty == IMM_F32) {
-        return ImmValue(-v[0].val.f32val);
-    }
-    return ImmValue(-v[0].val.f64val);
+    return v[0].neg();
 }
 
 pInstr make_unary_instr(pVal oprd) { return pInstr(new UnaryInstr(oprd)); }

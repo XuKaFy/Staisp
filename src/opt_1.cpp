@@ -1,7 +1,10 @@
 #include "opt_1.h"
 
 #include "ir_constant.h"
+#include "ir_global.h"
 #include "ir_mem_instr.h"
+#include "ir_val.h"
+#include <memory>
 
 namespace Opt1 {
 
@@ -62,8 +65,13 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_LOAD: {
             auto r = std::static_pointer_cast<Ir::LoadInstr>(i);
             auto from = r->operand(0)->usee;
-            v.val[i->name()] = v.val[from->name()];
-            v.val[i->name()].ir = i;
+            if(from->type() == Ir::VAL_GLOBAL && !static_cast<Ir::Global*>(from)->is_const) {
+                // all global val must be VAC, except const
+                v.val[i->name()] = Val();
+            } else {
+                v.val[i->name()] = v.val[from->name()];
+                v.val[i->name()].ir = i;
+            }
             // printf("LOAD %s, ty = %d\n", i->name(), v.val[i->name()].ty);
             break;
         }
@@ -127,19 +135,20 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
 int Utils::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     int ans = 0;
-    // printf("In Block %s\n", p->name());
+    // printf("In Block %s\n", p->name().c_str());
     for (auto i : OUT.val) {
         if (i.second.ty == Val::VALUE &&
             i.second.ir) { // has value, is a constant
-            // printf("    instr: %s\n", i.second.ir->instr_print());
+            // printf("    instr: %s\n", i.second.ir->instr_print().c_str());
             // printf("    constant %s = %s\n", i.first.c_str(),
-            // i.second.v.print());
+            //     i.second.v.print().c_str());
             auto imm = Ir::make_constant(i.second.v);
             p->add_imm(imm);
             i.second.ir->replace_self(imm.get());
             ++ans;
         }
     }
+    // printf("%s\n", p->print_block().c_str());
     return ans;
 }
 

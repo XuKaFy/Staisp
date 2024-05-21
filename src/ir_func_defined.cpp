@@ -39,7 +39,7 @@ void FuncDefined::end_function() {
         if (ty->type_type() == TYPE_VOID_TYPE) {
             body.push_back(make_ret_instr());
         } else if (is_basic_type(ty)) {            // for while(1), more a label
-            auto imm = make_constant(ImmValue(0)); // TODO：如果是浮点数怎么办
+            auto imm = make_constant(ImmValue(to_basic_type(ty)->ty)); // TODO：如果是浮点数怎么办
             add_imm(imm);
             body.push_back(make_ret_instr(imm));
         }

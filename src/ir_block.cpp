@@ -294,7 +294,7 @@ void BlockedProgram::opt_remove_dead_code() {
 
         auto con = static_cast<Ir::Const *>(cond);
         if (con->v.type() == VALUE_IMM) {
-            i->squeeze_out((bool)con);
+            i->squeeze_out((bool)con->v);
         }
     }
 }
