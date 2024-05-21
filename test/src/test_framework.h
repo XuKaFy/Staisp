@@ -25,15 +25,21 @@ std::string normalizeLineEndings(const std::string &str) {
     for (size_t i = 0; i < str.size(); ++i) {
         if (str[i] == '\r') {
             if (i + 1 < str.size() && str[i + 1] == '\n') {
-                result += '\n';
                 ++i; // Skip '\n'
-            } else {
-                result += '\n';
             }
+            while(!result.empty() && isspace(result.back()))
+                result.pop_back();
+            result += '\n';
         } else {
+            if(str[i] == '\n') {
+                while(!result.empty() && isspace(result.back()))
+                    result.pop_back();
+            }
             result += str[i];
         }
     }
+    while(!result.empty() && (result.back() == '\n' || isspace(result.back())))
+        result.pop_back();
     return result;
 }
 
