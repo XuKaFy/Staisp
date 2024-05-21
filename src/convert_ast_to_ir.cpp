@@ -909,8 +909,8 @@ Ir::pModule Convertor::generate(AstProg asts) {
     auto f32 = make_basic_type(IMM_F32);
     auto vd = make_void_type();
 
-    _mod->add_func_declaration(Ir::make_func(TypedSym("starttime", vd), {}));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("stoptime", vd), {}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("_sysy_starttime", vd), { i32 }));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("_sysy_stoptime", vd), { i32 }));
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));

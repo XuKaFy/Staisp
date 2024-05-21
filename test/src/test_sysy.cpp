@@ -13,6 +13,12 @@
         run_sysy("sysy_tests/hidden_functional/" #s);                          \
     }
 
+#define run_sysy_performance_test(s)                                                \
+    TEST(test_performance_sysy, s) {                                                \
+        prepare();                                                             \
+        run_sysy("sysy_tests/performance/" #s);                          \
+    }
+
 run_sysy_test(00_main);
 run_sysy_test(01_var_defn2);
 run_sysy_test(02_var_defn3);
@@ -154,3 +160,60 @@ run_sysy_hidden_test(36_rotate);
 run_sysy_hidden_test(37_dct);
 run_sysy_hidden_test(38_light2d);
 run_sysy_hidden_test(39_fp_params);
+
+run_sysy_performance_test(00_bitset1);
+run_sysy_performance_test(00_bitset2);
+run_sysy_performance_test(00_bitset3);
+run_sysy_performance_test(01_mm1);
+run_sysy_performance_test(01_mm2);
+run_sysy_performance_test(01_mm3);
+run_sysy_performance_test(02_mv1);
+run_sysy_performance_test(02_mv2);
+run_sysy_performance_test(02_mv3);
+run_sysy_performance_test(03_sort1);
+run_sysy_performance_test(04_spmv1);
+run_sysy_performance_test(04_spmv2);
+run_sysy_performance_test(04_spmv3);
+// run_sysy_performance_test(brainfuck-bootstrap);
+// run_sysy_performance_test(brainfuck-mandelbrot-nerf);
+// run_sysy_performance_test(brainfuck-pi-nerf);
+run_sysy_performance_test(conv0);
+run_sysy_performance_test(conv1);
+run_sysy_performance_test(conv2);
+// run_sysy_performance_test(crypto-1);
+// run_sysy_performance_test(crypto-2);
+// run_sysy_performance_test(crypto-3);
+// run_sysy_performance_test(dead-code-elimination-1);
+// run_sysy_performance_test(dead-code-elimination-2);
+// run_sysy_performance_test(dead-code-elimination-3);
+run_sysy_performance_test(fft0);
+run_sysy_performance_test(fft1);
+run_sysy_performance_test(fft2);
+// run_sysy_performance_test(floyd-0);
+// run_sysy_performance_test(floyd-1);
+// run_sysy_performance_test(floyd-2);
+// run_sysy_performance_test(gameoflife-gosper);
+// run_sysy_performance_test(gameoflife-oscillator);
+// run_sysy_performance_test(gameoflife-p61glidergun);
+// run_sysy_performance_test(hoist-1);
+// run_sysy_performance_test(hoist-2);
+// run_sysy_performance_test(hoist-3);
+// run_sysy_performance_test(instruction-combining-1);
+// run_sysy_performance_test(instruction-combining-2);
+// run_sysy_performance_test(instruction-combining-3);
+// run_sysy_performance_test(integer-divide-optimization-1);
+// run_sysy_performance_test(integer-divide-optimization-2);
+// run_sysy_performance_test(integer-divide-optimization-3);
+run_sysy_performance_test(median0);
+run_sysy_performance_test(median1);
+run_sysy_performance_test(median2);
+run_sysy_performance_test(shuffle0);
+run_sysy_performance_test(shuffle1);
+run_sysy_performance_test(sl1);
+run_sysy_performance_test(sl2);
+run_sysy_performance_test(sl3);
+run_sysy_performance_test(stencil0);
+run_sysy_performance_test(stencil1);
+run_sysy_performance_test(transpose0);
+run_sysy_performance_test(transpose1);
+run_sysy_performance_test(transpose2);

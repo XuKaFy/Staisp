@@ -181,15 +181,10 @@ void SSA_pass::transform_func() {
 
         // instruction without impletementation / unrelated
         case Ir::INSTR_SYM:
-        case Ir::INSTR_IF:
-        case Ir::INSTR_WHILE:
-        case Ir::INSTR_BREAK:
-        case Ir::INSTR_CONTINUE:
         case Ir::INSTR_LABEL:
         case Ir::INSTR_BR:
         case Ir::INSTR_BR_COND:
         case Ir::INSTR_FUNC:
-        case Ir::INSTR_GLOBAL:
             break;
         };
     };
@@ -223,15 +218,10 @@ void SSA_pass::transform_func() {
         case Ir::INSTR_PHI:
             break;
         case Ir::INSTR_SYM:
-        case Ir::INSTR_IF:
-        case Ir::INSTR_WHILE:
-        case Ir::INSTR_BREAK:
-        case Ir::INSTR_CONTINUE:
         case Ir::INSTR_LABEL:
         case Ir::INSTR_BR:
         case Ir::INSTR_BR_COND:
         case Ir::INSTR_FUNC:
-        case Ir::INSTR_GLOBAL:
             break;
         };
     };

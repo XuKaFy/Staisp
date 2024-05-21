@@ -11,10 +11,12 @@ struct Module {
     String print_module() const;
     void add_func(pFuncDefined f);
     void add_func_declaration(pFunc f);
+    void add_hidden_func(pFunc f);
     void add_global(pGlobal g);
 
     Vector<pFuncDefined> funsDefined;
     Vector<pGlobal> globs;
+    Vector<pFunc> funcHidden;
     Vector<pFunc> funsDeclared;
 };
 

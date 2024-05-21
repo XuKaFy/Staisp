@@ -10,15 +10,10 @@ namespace Ir {
 
 enum InstrType {
     INSTR_SYM,
-    INSTR_IF,
-    INSTR_WHILE,
-    INSTR_BREAK,
-    INSTR_CONTINUE,
     INSTR_LABEL,
     INSTR_BR,
     INSTR_BR_COND,
     INSTR_FUNC,
-    INSTR_GLOBAL,
     INSTR_CALL,
     INSTR_RET,
     INSTR_CAST,
