@@ -435,7 +435,8 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const) {
 }
 
 struct InitializerVisitor {
-    InitializerVisitor(Pointer<Ast::ArrayDefNode> vst) : vst(vst) {
+    InitializerVisitor(Pointer<Ast::ArrayDefNode> vst, bool is_root = false)
+        : vst(vst), is_root(is_root) {
         if (vst) {
             begin = vst->nums.begin();
             end = vst->nums.end();
@@ -444,9 +445,6 @@ struct InitializerVisitor {
             is_empty = true;
         }
     }
-
-    InitializerVisitor(InitializerVisitor &a)
-        : vst(a.vst), begin(a.begin), end(a.end), is_empty(a.is_empty) {}
 
     pNode peek() {
         if (begin == end) {
@@ -471,6 +469,7 @@ struct InitializerVisitor {
     Vector<pNode>::iterator end;
 
     bool is_empty;
+    bool is_root;
 };
 
 Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
@@ -481,6 +480,8 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
     if (elem_ty->type_type() == TYPE_BASIC_TYPE) {
         for (size_t i = 0; i < size; ++i) {
             auto elem = list.get();
+            if(!elem && list.is_root)
+                break;
             ans.push_back(elem); // possibly nullptr
         }
         return ans;
@@ -488,6 +489,9 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
 
     for (size_t i = 0; i < size; ++i) {
         auto elem = list.peek();
+        if (!elem && list.is_root) {
+            break;
+        }
         if (elem && elem->type == NODE_ARRAY_VAL) {
             elem = list.get();
             InitializerVisitor new_v(
@@ -507,7 +511,7 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
 
 Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer,
                       Pointer<ArrayType> type) {
-    InitializerVisitor new_v(initializer);
+    InitializerVisitor new_v(initializer, true);
     return flatten(new_v, type);
 }
 
@@ -519,7 +523,9 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
     Vector<pNode> flat = flatten(n, t);
     Vector<Ir::pVal> indexes;
     auto begin = flat.begin();
+    auto end = flat.end();
     std::function<void(pType t)> fn = [&](pType t) -> void {
+        if(begin == end) return ;
         if (is_basic_type(t)) {
             if(constant) {
                 auto cur = *(begin++);
