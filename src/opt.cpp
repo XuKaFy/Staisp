@@ -17,8 +17,8 @@ void optimize(Ir::pModule mod) {
     for (auto i : mod->funsDefined) {
         size_t cnt = 0;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && opt_cnt; ++cnt) {
-            opt_cnt = from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
-            i->p.normal_opt();
+            // opt_cnt = from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+            // i->p.normal_opt();
             opt_cnt +=
                 from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             i->p.normal_opt();

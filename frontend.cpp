@@ -25,14 +25,14 @@ int main(int argc, char *argv[]) {
         Ir::pModule mod = AstToIr::Convertor().generate(root);
 
         std::ofstream out;
-        out.open(String(argv[1]) + ".ll", std::fstream::out);
-        out << mod->print_module();
-        out.close();
+        // out.open(String(argv[1]) + ".ll", std::fstream::out);
+        // out << mod->print_module();
+        // out.close();
 
         // optimize
         Optimize::optimize(mod);
 
-        out.open(String(argv[1]) + ".opt.ll", std::fstream::out);
+        out.open(String(argv[1]) + ".ll", std::fstream::out);
         out << mod->print_module();
         out.close();
     } catch (Exception e) {
