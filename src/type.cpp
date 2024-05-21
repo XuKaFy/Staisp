@@ -73,6 +73,9 @@ bool is_castable(pType from, pType to) {
     // 基本类型之间可以互相转换
     if (is_basic_type(from) && is_basic_type(to))
         return true;
+    // 指针之间可以互相转换
+    if (is_pointer(from) && is_pointer(to))
+        return true;
     // 注意，若涉及转换，那么指针只能和 64 位基本整型进行互相转化
     if (is_pointer(from) && is_basic_type(to) &&
         is_imm_integer(to_basic_type(to)->ty) &&

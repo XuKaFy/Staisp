@@ -25,6 +25,7 @@
 #include <functional>
 
 #define BUILTIN_INITIALIZER "__buildin_initializer"
+#define MEMSET "llvm.memset.p0i8.i64"
 
 namespace AstToIr {
 
@@ -480,11 +481,7 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
     if (elem_ty->type_type() == TYPE_BASIC_TYPE) {
         for (size_t i = 0; i < size; ++i) {
             auto elem = list.get();
-            if (elem) {
-                ans.push_back(elem);
-            } else {
-                ans.push_back(Ast::new_imm_node(nullptr, 0));
-            }
+            ans.push_back(elem); // possibly nullptr
         }
         return ans;
     }
@@ -515,7 +512,7 @@ Vector<pNode> flatten(Pointer<Ast::ArrayDefNode> initializer,
 }
 
 void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
-                              Pointer<Ast::ArrayDefNode> n, bool complete) {
+                              Pointer<Ast::ArrayDefNode> n, bool constant) {
     if (!is_pointer(addr->ty)) {
         throw_error(root, 16, "list should initialize type that is pointed");
     }
@@ -524,8 +521,10 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
     auto begin = flat.begin();
     std::function<void(pType t)> fn = [&](pType t) -> void {
         if (is_basic_type(t)) {
-            if(!complete) {
-                auto val = constant_eval(*(begin++));
+            if(constant) {
+                auto cur = *(begin++);
+                if(!cur) return ;
+                auto val = constant_eval(cur);
                 if(!val) return ;
                 auto item = Ir::make_item_instr(addr, indexes);
                 auto imm = Ir::make_constant(val);
@@ -535,7 +534,9 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
                 _cur_func->add_imm(imm);
                 return ;
             }
-            auto val = analyze_value(*(begin++));
+            auto cur = *(begin++);
+            if(!cur) return ;
+            auto val = analyze_value(cur);
             auto item = Ir::make_item_instr(addr, indexes);
             add_instr(item);
             auto store = Ir::make_store_instr(item, cast_to_type(root, val, t));
@@ -595,7 +596,17 @@ bool Convertor::analyze_statement_node(pNode root) {
                     throw_error(r->val, 17,
                                 "array should be initialized by a list");
                 auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
-                copy_to_array(r, tmp, to_array_type(ty), rrr);
+                auto imm1 = Ir::make_constant(ImmValue(0ll, IMM_I8));
+                auto imm2 = Ir::make_constant(ImmValue((unsigned long long)to_array_type(ty)->length(), IMM_U64));
+                auto imm3 = Ir::make_constant(ImmValue(0ll, IMM_I1));
+                _cur_func->add_imm(imm1);
+                _cur_func->add_imm(imm2);
+                _cur_func->add_imm(imm3);
+                add_instr(Ir::make_call_instr(find_func(MEMSET), {
+                    cast_to_type(r, tmp, make_pointer_type(make_basic_type(IMM_I8))),
+                    imm1, imm2, imm3
+                }));
+                copy_to_array(r, tmp, to_array_type(ty), rrr, false);
             }
             break;
         }
@@ -929,8 +940,11 @@ Ir::pModule Convertor::generate(AstProg asts) {
     _prog = asts;
     _mod = Ir::pModule(new Ir::Module());
 
+    auto i1 = make_basic_type(IMM_I1);
     auto i8 = make_basic_type(IMM_I8);
+    auto i8s = make_pointer_type(i8);
     auto i32 = make_basic_type(IMM_I32);
+    auto i64 = make_basic_type(IMM_I64);
     auto f32 = make_basic_type(IMM_F32);
     auto vd = make_void_type();
 
@@ -940,6 +954,8 @@ Ir::pModule Convertor::generate(AstProg asts) {
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("_sysy_starttime", vd), { i32 }));
     _mod->add_func_declaration(Ir::make_func(TypedSym("_sysy_stoptime", vd), { i32 }));
+
+    _mod->add_func_declaration(Ir::make_func(TypedSym(MEMSET, vd), { i8s, i8, i64, i1 } ));
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));
@@ -984,7 +1000,7 @@ void Convertor::add_initialization(TypedSym var, Pointer<Ast::ArrayDefNode> node
     _env.push_env();
     
     auto arr = find_left_value(node, var.sym);
-    copy_to_array(node, arr, to_array_type(to_pointed_type(arr->ty)), node, false);
+    copy_to_array(node, arr, to_array_type(to_pointed_type(arr->ty)), node, true);
     
     _cur_func = cur_func;
     _env.end_env();

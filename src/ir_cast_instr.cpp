@@ -11,6 +11,10 @@ String CastInstr::instr_print() const {
     if (is_same_type(tsrc, tdest)) {
         throw Exception(1, "CastInstr", "no need to cast");
     }
+    // 第 -1 种转换：指针互转
+    if (is_pointer(tsrc) && is_pointer(tdest)) {
+        return use("bitcast");
+    }
     // 第零种转换：转化为 bool
     if (is_basic_type(tsrc) && is_basic_type(tdest) &&
         (to_basic_type(tdest)->ty == IMM_I1 ||

@@ -57,7 +57,7 @@ private:
     void generate_function(Pointer<Ast::FuncDefNode> root);
     bool analyze_statement_node(pNode root);
     void copy_to_array(pNode root, Ir::pVal addr, Pointer<ArrayType> t,
-                       Pointer<Ast::ArrayDefNode> n, bool complete = true);
+                       Pointer<Ast::ArrayDefNode> n, bool constant);
     Ir::pVal analyze_opr(Pointer<Ast::BinaryNode> root);
     Ir::pVal cast_to_type(pNode root, Ir::pVal val, pType tr);
 
