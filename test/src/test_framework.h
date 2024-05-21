@@ -46,17 +46,21 @@ std::string normalizeLineEndings(const std::string &str) {
     return result;
 }
 
+const bool interpret = true;
+
 void cmp(String id) {
     prepare();
-    system(("llvm-as " + id + ".sy.ll -o " + id + "_out.bc").c_str());
-    system(("llvm-link " + id + "_out.bc sylib.bc -o " + id + "_final.bc").c_str());
-    system(("lli " + id + "_final.bc < " + id + ".std.in > " + id + ".out ; echo $? > " + id + ".out.ret").c_str());
+    system(("llvm-as " + id + ".sy.ll -o " + id + ".sy.bc").c_str());
+    system(("llvm-link " + id + ".sy.bc sylib.bc -o " + id + "_final.bc").c_str());
+    if (interpret) {
+        system(("lli " + id + "_final.bc < " + id + ".std.in > " + id + ".out ; echo $? >> " + id + ".out").c_str());
+    } else {
+        system(("llc " + id + "_final.bc -o " + id + ".s").c_str());
+        system(("gcc " + id + ".s -no-pie -o " + id).c_str());
+        system(("./" + id + " < " + id + ".std.in > " + id + ".out ; echo $? >> " + id + ".out").c_str());
+    }
     String actual = read(id + ".out");
-    String tret = read(id + ".out.ret");
     String expected = read(id + ".std.out");
-    if (!actual.empty() && actual.back() != '\n')
-        actual += "\n";
-    actual += tret;
     EXPECT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
 }
 
