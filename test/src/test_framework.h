@@ -18,15 +18,6 @@ String read(String file) {
     return code;
 }
 
-void prepare() {
-    static bool flag = false;
-    if (!flag) {
-        EXPECT_FALSE(system("clang -S -emit-llvm ../../lib/sylib.c"));
-        EXPECT_FALSE(system("llvm-as sylib.ll -o sylib.bc"));
-        flag = true;
-    }
-}
-
 std::string normalizeLineEndings(const std::string &str) {
     std::string result;
     result.reserve(str.size());
@@ -46,18 +37,19 @@ std::string normalizeLineEndings(const std::string &str) {
     return result;
 }
 
-const bool interpret = true;
+const bool interpret = false;
 
-void cmp(String id) {
-    prepare();
-    system(("llvm-as " + id + ".sy.ll -o " + id + ".sy.bc").c_str());
-    system(("llvm-link " + id + ".sy.bc sylib.bc -o " + id + "_final.bc").c_str());
+void judge(String id) {
+    ASSERT_FALSE(system(("clang -S -emit-llvm ../../lib/sylib.c -o " + id + ".sylib.ll").c_str()));
+    ASSERT_FALSE(system(("llvm-as " + id + ".sylib.ll -o " + id + ".sylib.bc").c_str()));
+    ASSERT_FALSE(system(("llvm-as " + id + ".sy.ll -o " + id + ".sy.bc").c_str()));
+    ASSERT_FALSE(system(("llvm-link " + id + ".sy.bc " + id + ".sylib.bc -o " + id + "_final.bc").c_str()));
     int code;
     if (interpret) {
         code = system(("lli " + id + "_final.bc < " + id + ".std.in > " + id + ".out").c_str());
     } else {
-        system(("llc " + id + "_final.bc -o " + id + ".s").c_str());
-        system(("gcc " + id + ".s -no-pie -o " + id).c_str());
+        ASSERT_FALSE(system(("llc " + id + "_final.bc -o " + id + ".s").c_str()));
+        ASSERT_FALSE(system(("gcc " + id + ".s -no-pie -o " + id).c_str()));
         code = system(("./" + id + " < " + id + ".std.in > " + id + ".out").c_str());
     }
     code = WEXITSTATUS(code);
@@ -67,7 +59,22 @@ void cmp(String id) {
         actual += "\n";
     actual += std::to_string(code);
     actual += "\n";
-    EXPECT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
+
+    // always remove
+    remove((id + ".sylib.ll").c_str());
+    remove((id + ".sylib.bc").c_str());
+    remove((id + ".sy.bc").c_str());
+    remove((id + ".std.in").c_str());
+    remove((id + ".std.out").c_str());
+
+    ASSERT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
+
+    // remove if success
+    remove((id + ".out").c_str());
+    remove((id + ".sy.ll").c_str());
+    remove((id + ".s").c_str());
+    remove((id + "_final.bc").c_str());
+    remove((id).c_str());
 }
 
 String get_id(String path) {
@@ -92,8 +99,7 @@ void mov(String path, String id, String suffix1, String suffix2) {
 
 void run_sysy(String path) {
     // in ./build/test
-    int res = system(("../frontend/SysYFrontend ../../"+ path + ".sy").c_str());
-    ASSERT_EQ(res, 0);
+    ASSERT_FALSE(system(("../frontend/SysYFrontend ../../"+ path + ".sy").c_str()));
 
     auto id = get_id(path);
 
@@ -101,18 +107,6 @@ void run_sysy(String path) {
     mov(path, id, ".in", ".std.in");
     mov(path, id, ".sy.ll", ".sy.ll");
     printf("running %s.sy\n", path.c_str());
-    cmp(id);
+    judge(id);
 }
 
-//void run_staisp(String file) {
-//    int res =
-//        system((String("../staisp_frontend ../..") + file + ".sta").c_str());
-//    ASSERT_EQ(res, 0);
-//    system((String("cp ../../") + file + ".out 1.std.out").c_str());
-//    system((String("cp ../../") + file + ".in 1.std.in").c_str());
-//    system((String("cp ../../") + file + ".sta.opt.ll 1.sta.opt.ll").c_str());
-//    system((String("cp ../../") + file + ".sta.ll 1.sta.ll").c_str());
-//    printf("running %s.sta\n", file.c_str());
-//    cmp("1.sta.ll");
-//    cmp("1.sta.opt.ll");
-//}

@@ -3,19 +3,16 @@
 
 #define run_sysy_test(s)                                                       \
     TEST(test_sysy, s) {                                                       \
-        prepare();                                                             \
         run_sysy("sysy_tests/functional/" #s);                                 \
     }
 
 #define run_sysy_hidden_test(s)                                                \
     TEST(test_hidden_sysy, s) {                                                \
-        prepare();                                                             \
         run_sysy("sysy_tests/hidden_functional/" #s);                          \
     }
 
 #define run_sysy_performance_test(s)                                                \
     TEST(test_performance_sysy, s) {                                                \
-        prepare();                                                             \
         run_sysy("sysy_tests/performance/" #s);                          \
     }
 
