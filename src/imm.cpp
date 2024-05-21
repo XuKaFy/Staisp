@@ -264,41 +264,33 @@ OPR_DEF_LOGICAL(!=)
 #undef OPR_DEF_INT
 
 String ImmValue::print() const {
-    static char buf[256] = {0};
     switch (ty) {
-    case IMM_I1:
-    case IMM_I8:
-    case IMM_I16:
-    case IMM_I32:
-    case IMM_I64:
-        sprintf(buf, "%lld", val.ival);
-        break;
-    case IMM_U1:
-    case IMM_U8:
-    case IMM_U16:
-    case IMM_U32:
-    case IMM_U64:
-        sprintf(buf, "%llu", val.uval);
-        break;
-    case IMM_F32: {
-        union {
-            float fx;
-            unsigned int ix;
-        };
-        fx = val.f32val;
-        sprintf(buf, "0x%08x", ix);
-        break;
+        case IMM_I1:
+        case IMM_I8:
+        case IMM_I16:
+        case IMM_I32:
+        case IMM_I64:
+            return std::to_string(val.ival);
+        case IMM_U1:
+        case IMM_U8:
+        case IMM_U16:
+        case IMM_U32:
+        case IMM_U64:
+            return std::to_string(val.uval);
+        case IMM_F32:
+        case IMM_F64: {
+            char buf[20];
+            union {
+                double d;
+                unsigned long long u;
+            };
+            u = 0;
+            d = ty == IMM_F32 ? val.f32val : val.f64val;
+            sprintf(buf, "0x%016llx", u);
+            return buf;
+        }
     }
-    case IMM_F64:
-        union {
-            double fx;
-            unsigned long long ix;
-        };
-        fx = val.f64val;
-        sprintf(buf, "0x%016llx", ix);
-        
-    }
-    return buf;
+    return "";
 }
 
 ImmValue ImmValue::neg() const

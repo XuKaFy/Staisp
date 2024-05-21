@@ -52,15 +52,21 @@ void cmp(String id) {
     prepare();
     system(("llvm-as " + id + ".sy.ll -o " + id + ".sy.bc").c_str());
     system(("llvm-link " + id + ".sy.bc sylib.bc -o " + id + "_final.bc").c_str());
+    int code;
     if (interpret) {
-        system(("lli " + id + "_final.bc < " + id + ".std.in > " + id + ".out ; echo $? >> " + id + ".out").c_str());
+        code = system(("lli " + id + "_final.bc < " + id + ".std.in > " + id + ".out").c_str());
     } else {
         system(("llc " + id + "_final.bc -o " + id + ".s").c_str());
         system(("gcc " + id + ".s -no-pie -o " + id).c_str());
-        system(("./" + id + " < " + id + ".std.in > " + id + ".out ; echo $? >> " + id + ".out").c_str());
+        code = system(("./" + id + " < " + id + ".std.in > " + id + ".out").c_str());
     }
+    code = WEXITSTATUS(code);
     String actual = read(id + ".out");
     String expected = read(id + ".std.out");
+    if (!actual.empty() && actual.back() != '\n')
+        actual += "\n";
+    actual += std::to_string(code);
+    actual += "\n";
     EXPECT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
 }
 

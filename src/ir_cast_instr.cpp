@@ -15,9 +15,10 @@ String CastInstr::instr_print() const {
     if (is_basic_type(tsrc) && is_basic_type(tdest) &&
         (to_basic_type(tdest)->ty == IMM_I1 ||
          to_basic_type(tdest)->ty == IMM_U1)) {
-        return name() + " = " + " icmp " +
-               (is_imm_integer(to_basic_type(tsrc)->ty) ? "ne" : "one") + " " +
-               tsrc->type_name() + " " + val->name() + ", 0";
+        bool isInt = is_imm_integer(to_basic_type(tsrc)->ty);
+        return name() + " = " + (isInt ? "icmp" : "fcmp") + " " +
+               (isInt ? "ne" : "une") + " " +
+               tsrc->type_name() + " " + val->name() + ", " + (isInt ? "0" : "0x0000000000000000");
     }
     // 第一种转换：在整数和指针之间转换
     if (is_pointer(tsrc) && is_basic_type(tdest) &&

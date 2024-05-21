@@ -120,9 +120,6 @@ struct ImmValue {
     ImmType ty;
     ImmValueOnly val;
 
-    // cast_to 利用**重新构造**一个 ImmValue 实现
-    // 例如，将 F64 类型的 0 转化为 I64
-    // 其值仍然是 0，而不是浮点数标准下的 0
     ImmValue cast_to(ImmType new_ty) const;
 
     operator bool() const;

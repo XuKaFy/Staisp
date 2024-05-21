@@ -167,7 +167,7 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root) {
                 br L3
             L3:
         */
-        auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I32));
+        auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I1));
         auto L1 = Ir::make_label_instr();
         auto L2 = Ir::make_label_instr();
         auto L3 = Ir::make_label_instr();
@@ -181,7 +181,7 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root) {
             add_instr(Ir::make_br_cond_instr(a1, L1, L2));
         }
         add_instr(L1);
-        int num = (root->type == OPR_AND ? 0 : 1);
+        bool num = root->type != OPR_AND;
         auto constant = Ir::make_constant(ImmValue(num));
         add_instr(Ir::make_store_instr(a0, constant));
         _cur_func->add_imm(constant);
@@ -189,7 +189,7 @@ Ir::pVal Convertor::analyze_opr(Pointer<Ast::BinaryNode> root) {
         add_instr(L2);
         auto a2 = analyze_value(root->rhs);
         add_instr(Ir::make_store_instr(
-            a0, cast_to_type(root->rhs, a2, make_basic_type(IMM_I32))));
+            a0, cast_to_type(root->rhs, a2, make_basic_type(IMM_I1))));
         add_instr(Ir::make_br_instr(L3));
         add_instr(L3);
 
@@ -374,9 +374,10 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const) {
             return val;
         }
         case OPR_NOT: {
-            auto imm = Ir::make_constant(ImmValue(0));
+            auto imm_ty = to_basic_type(val->ty)->ty;
+            auto imm = Ir::make_constant(ImmValue(0).cast_to(imm_ty));
             _cur_func->add_imm(imm);
-            return add_instr(Ir::make_cmp_instr(Ir::CMP_EQ, val, imm));
+            return add_instr(Ir::make_cmp_instr(is_imm_integer(imm_ty) ? Ir::CMP_EQ : Ir::CMP_OEQ, val, imm));
         }
         case OPR_NEG: {
             if (is_float(val->ty)) {
@@ -521,7 +522,7 @@ void Convertor::copy_to_array(pNode root, Ir::pInstr addr, Pointer<ArrayType> t,
             auto val = analyze_value(*(begin++));
             auto item = Ir::make_item_instr(addr, indexes);
             add_instr(item);
-            auto store = Ir::make_store_instr(item, val);
+            auto store = Ir::make_store_instr(item, cast_to_type(root, val, t));
             add_instr(store);
             return;
         }
@@ -585,7 +586,7 @@ bool Convertor::analyze_statement_node(pNode root) {
         add_instr(tmp = Ir::make_alloc_instr(ty));
         if (r->val) {
             if (r->is_const) {
-                _const_env.env()->set(r->var.name, constant_eval(r->val));
+                _const_env.env()->set(r->var.name, constant_eval(r->val).cast_to(to_basic_type(ty)->ty));
                 // printf("[1] Set Const Value: %s\n",
                 // _const_env.env()->find(r->var.name).print());
             }
@@ -849,7 +850,7 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root) {
     TypedSym root_var = TypedSym(root->var.name, analyze_type(root->var.n));
     if (is_basic_type(root_var.ty)) {
         if (root->val) {
-            auto imm = constant_eval(root->val);
+            auto imm = constant_eval(root->val).cast_to(to_basic_type(root_var.ty)->ty);
             module()->add_global(
                 Ir::make_global(root_var, Value(imm), root->is_const));
             if (root->is_const) {
@@ -973,20 +974,23 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::BinaryNode> root, pType ty) {
     bool is_signed = is_signed_type(ty);
     bool is_flt = is_float(ty);
     switch (root->type) {
-#define SELECT(x)                                                              \
-    case OPR_##x: {                                                            \
-        if (is_flt) {                                                          \
-            return Ir::CMP_O##x;                                               \
-        }                                                                      \
-        return Ir::CMP_##x;                                                    \
-    }
-        SELECT(EQ)
-        SELECT(NE)
+        case OPR_EQ: {
+            if (is_flt) {
+                return Ir::CMP_OEQ;
+            }
+            return Ir::CMP_EQ;
+        }
+        case OPR_NE: {
+            if (is_flt) {
+                return Ir::CMP_UNE;
+            }
+            return Ir::CMP_NE;
+        }
 #undef SELECT
 #define SELECT_US(x)                                                           \
     case OPR_##x: {                                                            \
         if (is_flt) {                                                          \
-            return Ir::CMP_S##x;                                               \
+            return Ir::CMP_O##x;                                               \
         } else if (is_signed) {                                                \
             return Ir::CMP_S##x;                                               \
         } else {                                                               \

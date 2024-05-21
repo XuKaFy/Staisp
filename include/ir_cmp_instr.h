@@ -20,7 +20,8 @@ namespace Ir {
     ENTRY(OGT, ogt)                                                            \
     ENTRY(OGE, oge)                                                            \
     ENTRY(OLT, olt)                                                            \
-    ENTRY(OLE, ole)
+    ENTRY(OLE, ole)                                                            \
+    ENTRY(UNE, une)
 
 #define ENTRY(x, y) CMP_##x,
 enum CmpType { CMP_INSTR_TABLE };
