@@ -14,12 +14,15 @@ template <typename BlockValue, typename Utils>
 int from_button_analysis(Ir::BlockedProgram &p);
 
 void optimize(Ir::pModule mod) {
-    // printf("%s\n", mod->print_module().c_str());
-    for (auto i : mod->funsDefined) {
-        size_t cnt = 0;
+    for (auto &&i : mod->funsDefined) {
         i->p.normal_opt();
+    }
+    // printf("%s\n", mod->print_module().c_str());
+    for (auto &&i : mod->funsDefined) {
+        size_t cnt = 0;
+        // printf("Optimizing function %s\n", i->name().c_str());
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && opt_cnt; ++cnt) {
-            // printf("Optimize: %lu\n", cnt);
+            // printf("  Loop: %lu\n", cnt);
             opt_cnt = from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             i->p.normal_opt();
             opt_cnt += from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);

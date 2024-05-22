@@ -19,6 +19,7 @@ void Block::squeeze_out(bool selected) {
     // 0->trueTo
     // 1->falseTo
     auto will_remove = end->operand(selected + 1)->usee;
+    // printf("%s\n", std::static_pointer_cast<Ir::BrCondInstr>(end)->instr_print().c_str());
     auto new_br =
         std::static_pointer_cast<Ir::BrCondInstr>(end)->select(1 - selected);
     for (auto i : out_block) {
@@ -30,6 +31,7 @@ void Block::squeeze_out(bool selected) {
     }
     body.pop_back();
     body.push_back(new_br);
+    // printf("    changed to %s\n", new_br->instr_print().c_str());
 }
 
 void Block::connect_in_and_out() {

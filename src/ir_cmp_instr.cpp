@@ -12,34 +12,42 @@ ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 2, "?");
     ImmValue &a1 = v[0];
     ImmValue &a2 = v[1];
+    ImmValue ans;
 
     switch (cmp_type) {
     case CMP_EQ:
     case CMP_OEQ:
-        return a1 == a2;
+        ans = a1 == a2;
+        break;
     case CMP_NE:
     case CMP_ONE:
     case CMP_UNE:
-        return a1 != a2;
+        ans = a1 != a2;
+        break;
     case CMP_OLT:
     case CMP_SLT:
     case CMP_ULT:
-        return a1 < a2;
+        ans = a1 < a2;
+        break;
     case CMP_OGT:
     case CMP_SGT:
     case CMP_UGT:
-        return a1 > a2;
+        ans = a1 > a2;
+        break;
     case CMP_OLE:
     case CMP_SLE:
     case CMP_ULE:
-        return a1 <= a2;
+        ans = a1 <= a2;
+        break;
     case CMP_OGE:
     case CMP_SGE:
     case CMP_UGE:
-        return a1 >= a2;
+        ans = a1 >= a2;
+        break;
     }
-    throw Exception(1, "CmpInstr::calculate", "?");
-    return 0;
+    // printf("%s\n", instr_print().c_str());
+    // printf("    result = %s\n", ans.print().c_str());
+    return ans;
 }
 
 pInstr make_cmp_instr(CmpType cmp_type, pVal a1, pVal a2) {

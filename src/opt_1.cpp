@@ -17,7 +17,8 @@ void BlockValue::clear() { val.clear(); }
 void BlockValue::cup(const BlockValue &v) {
     for (auto i : v.val) {
         if (!val.count(i.first)) {
-            val[i.first] = i.second;
+            // undef + constant = undef;
+            // val[i.first] = i.second;
         } else {
             if (i.second.ty == Val::NAC || val[i.first].ty == Val::NAC) {
                 val[i.first] = Val(); // one NAC, all NAC
@@ -38,6 +39,11 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             auto r = std::static_pointer_cast<Ir::StoreInstr>(i);
             auto to = r->operand(0)->usee;
             auto val = r->operand(1)->usee;
+            if(to->type() == Ir::VAL_GLOBAL) {
+                // store to global val but we dont know its value after this store
+                v.val[to->name()] = Val();
+                continue;
+            }
             switch (val->type()) {
             case Ir::VAL_CONST: {
                 auto con = static_cast<Ir::Const *>(val);
@@ -121,26 +127,27 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             break;
         }
     }
-    /* printf("In Block %s\n", p->name());
+    /*
+    printf("In Block %s\n", p->name().c_str());
     for(auto i : v.val) {
-        if(i.second.ty == Val::VALUE && i.second.ir) { // has value, is a
-    constant
+        if(i.second.ty == Val::VALUE && i.second.ir) { // has value, is a constant
             // printf("    instr: %s\n", i.second.ir->instr_print());
             printf("    constant %s = %s\n", i.first.c_str(),
-    i.second.v.print());
+                i.second.v.print().c_str());
         }
-    } */
+    }
+    */
 }
 
 int Utils::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     int ans = 0;
-    // printf("In Block %s\n", p->name().c_str());
+    // printf("    In Block %s\n", p->name().c_str());
     for (auto i : OUT.val) {
         if (i.second.ty == Val::VALUE &&
             i.second.ir) { // has value, is a constant
-            // printf("    instr: %s\n", i.second.ir->instr_print().c_str());
-            // printf("    constant %s = %s\n", i.first.c_str(),
+            // printf("        instr: %s\n", i.second.ir->instr_print().c_str());
+            // printf("        constant %s = %s\n", i.first.c_str(),
             //     i.second.v.print().c_str());
             auto imm = Ir::make_constant(i.second.v);
             p->add_imm(imm);

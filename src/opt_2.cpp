@@ -2,6 +2,7 @@
 
 #include "ir_mem_instr.h"
 #include "ir_ptr_instr.h"
+#include "ir_val.h"
 
 namespace Opt2 {
 
@@ -42,7 +43,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             if (to->type() == Ir::VAL_INSTR) {
                 auto to_instr = static_cast<Ir::Instr *>(to);
                 if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
-                    break; // shouldn't be killed
+                    continue; // shouldn't be killed
                 }
             }
             v.uses.erase(to->name());
@@ -91,9 +92,11 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
             if (to->type() == Ir::VAL_INSTR) {
                 auto to_instr = static_cast<Ir::Instr *>(to);
                 if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
-                    break; // shouldn't be killed
+                    goto Ignore; // shouldn't be killed
                 }
             }
+            if (to->type() == Ir::VAL_GLOBAL)
+                goto Ignore;
             if (!uses.count(name)) { // this def is useless
                 // printf("    Not used def %s\n", r->instr_print());
                 j = p->body.erase(j);
@@ -108,6 +111,7 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
         default:
             break;
         }
+    Ignore:
         ++j;
     End:
         continue;

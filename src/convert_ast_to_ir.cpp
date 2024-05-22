@@ -46,7 +46,7 @@ Ir::pInstr Convertor::add_instr(Ir::pInstr instr) {
 
 Ir::pVal Convertor::find_left_value(pNode root, String sym,
                                     bool request_not_const) {
-    Ir::pInstr found_instr;
+    Ir::pVal found_instr;
     if (_env.env()->count(sym)) { // local
         MaybeConstInstr found = _env.env()->find(sym);
         // const value is error
@@ -60,9 +60,7 @@ Ir::pVal Convertor::find_left_value(pNode root, String sym,
             if (i->name() == "@" + sym) {
                 if (request_not_const && i->is_const)
                     throw_error(root, 11, "assignment to a global const value");
-                auto sym_node = Ir::make_sym_instr(TypedSym("@" + sym, i->ty));
-                _cur_func->add_imm(sym_node);
-                found_instr = sym_node;
+                found_instr = i;
                 break;
             }
         }
