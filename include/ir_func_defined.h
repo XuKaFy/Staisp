@@ -22,7 +22,6 @@ struct FuncDefined : public Func {
     Vector<pVal> imms;
     Instrs args;
     Instrs body;
-    Instrs allocs;
 
     BlockedProgram p;
 };

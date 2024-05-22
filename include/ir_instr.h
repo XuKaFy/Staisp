@@ -58,7 +58,7 @@ struct CalculatableInstr : public Instr {
 };
 
 typedef Pointer<Instr> pInstr;
-typedef Vector<pInstr> Instrs;
+typedef List<pInstr> Instrs;
 
 pInstr make_empty_instr();
 pInstr make_sym_instr(TypedSym sym);
