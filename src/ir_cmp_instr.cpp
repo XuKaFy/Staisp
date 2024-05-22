@@ -45,7 +45,7 @@ ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {
         ans = a1 >= a2;
         break;
     }
-    // printf("%s\n", instr_print().c_str());
+    // printf("[CmpInstr] %s\n", instr_print().c_str());
     // printf("    result = %s\n", ans.print().c_str());
     return ans;
 }

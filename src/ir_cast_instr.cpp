@@ -11,18 +11,9 @@ String CastInstr::instr_print() const {
     if (is_same_type(tsrc, tdest)) {
         throw Exception(1, "CastInstr", "no need to cast");
     }
-    // 第 -1 种转换：指针互转
+    // 第零种转换：指针互转
     if (is_pointer(tsrc) && is_pointer(tdest)) {
         return use("bitcast");
-    }
-    // 第零种转换：转化为 bool
-    if (is_basic_type(tsrc) && is_basic_type(tdest) &&
-        (to_basic_type(tdest)->ty == IMM_I1 ||
-         to_basic_type(tdest)->ty == IMM_U1)) {
-        bool isInt = is_imm_integer(to_basic_type(tsrc)->ty);
-        return name() + " = " + (isInt ? "icmp" : "fcmp") + " " +
-               (isInt ? "ne" : "une") + " " +
-               tsrc->type_name() + " " + val->name() + ", " + (isInt ? "0" : "0x0000000000000000");
     }
     // 第一种转换：在整数和指针之间转换
     if (is_pointer(tsrc) && is_basic_type(tdest) &&
@@ -67,7 +58,7 @@ String CastInstr::instr_print() const {
             return use("fpext");
         return use("fptrunc");
     }
-    printf("Converting type %s to type %s\n", tsrc->type_name().c_str(),
+    printf("Warning: Converting type %s to type %s\n", tsrc->type_name().c_str(),
            tdest->type_name().c_str());
     throw Exception(2, "CastInstr", "not castable");
 }
@@ -84,7 +75,11 @@ ImmValue CastInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 1, "?");
     ImmValue &from = v[0];
 
-    return from.cast_to(to_basic_type(ty)->ty);
+    ImmValue ans = from.cast_to(to_basic_type(ty)->ty);
+    // printf("[CastInstr] %s\n", instr_print().c_str());
+    // printf("    result = %s\n", ans.print().c_str());
+
+    return ans;
 }
 
 pInstr make_cast_instr(pType ty, pVal a1) {

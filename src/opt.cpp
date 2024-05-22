@@ -17,17 +17,13 @@ void optimize(Ir::pModule mod) {
     for (auto &&i : mod->funsDefined) {
         i->p.normal_opt();
     }
-    // printf("%s\n", mod->print_module().c_str());
     for (auto &&i : mod->funsDefined) {
         size_t cnt = 0;
-        // printf("Optimizing function %s\n", i->name().c_str());
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && opt_cnt; ++cnt) {
-            // printf("  Loop: %lu\n", cnt);
             opt_cnt = from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
             i->p.normal_opt();
             opt_cnt += from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
             i->p.normal_opt();
-            // printf("%s\n", mod->print_module().c_str());
         }
         // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name(), cnt);
@@ -63,8 +59,11 @@ int from_top_analysis(Ir::BlockedProgram &p) {
         BlockValue &OUT = OUTs[b];
 
         IN.clear();
-        for (auto i : b->in_block) {
-            IN.cup(OUTs[i]);
+        if(!b->in_block.empty()) {
+            IN = OUTs[*b->in_block.begin()];
+            for (auto i : b->in_block) {
+                IN.cup(OUTs[i]);
+            }
         }
 
         OUT = IN;
@@ -111,8 +110,11 @@ int from_button_analysis(Ir::BlockedProgram &p) {
         BlockValue &OUT = OUTs[b];
 
         OUT.clear();
-        for (auto i : b->out_block) {
-            OUT.cup(INs[i]);
+        if(!b->out_block.empty()) {
+            OUT = INs[*b->out_block.begin()];
+            for (auto i : b->out_block) {
+                OUT.cup(INs[i]);
+            }
         }
 
         IN = OUT;

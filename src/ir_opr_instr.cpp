@@ -24,32 +24,51 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const {
     ImmValue &a0 = v[0];
     ImmValue &a1 = v[1];
 
+    ImmValue ans;
+
     switch (binType) {
     case INSTR_ADD:
-        return a0 + a1;
+        ans = a0 + a1;
+        break;
     case INSTR_SUB:
-        return a0 - a1;
+        ans = a0 - a1;
+        break;
     case INSTR_MUL:
-        return a0 * a1;
+        ans = a0 * a1;
+        break;
     case INSTR_DIV:
-        return a0 / a1;
+        ans = a0 / a1;
+        break;
     case INSTR_SREM:
     case INSTR_UREM:
-        return a0 % a1;
+        ans = a0 % a1;
+        break;
     case INSTR_AND:
-        return a0 & a1;
+        ans = a0 & a1;
+        break;
     case INSTR_OR:
-        return a0 | a1;
+        ans = a0 | a1;
+        break;
     case INSTR_XOR:
-        return a0 ^ a1;
+        ans = a0 ^ a1;
+        break;
     }
-    throw Exception(1, "BinInstr::calculate", "?");
-    return 0;
+
+    // printf("[BinaryInstr] %s\n", instr_print().c_str());
+    // printf("    result = %s\n", ans.print().c_str());
+
+    return ans;
 }
 
 ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 1, "?");
-    return v[0].neg();
+
+    ImmValue ans = v[0].neg();
+
+    // printf("[UnaryInstr] %s\n", instr_print().c_str());
+    // printf("    result = %s\n", ans.print().c_str());
+
+    return ans;
 }
 
 pInstr make_unary_instr(pVal oprd) { return pInstr(new UnaryInstr(oprd)); }

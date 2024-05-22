@@ -15,24 +15,25 @@ bool BlockValue::operator!=(const BlockValue &b) { return !((*this) == b); }
 void BlockValue::clear() { val.clear(); }
 
 void BlockValue::cup(const BlockValue &v) {
+    Map<String, Val> copied_val;
     for (auto i : v.val) {
-        if (!val.count(i.first)) {
-            // undef + constant = undef;
-            // val[i.first] = i.second;
-        } else {
-            if (i.second.ty == Val::NAC || val[i.first].ty == Val::NAC) {
-                val[i.first] = Val(); // one NAC, all NAC
-            } else {
-                if (i.second != val[i.first]) { // different constant
-                    val[i.first] = Val();
-                }
-            }
+        if (!val.count(i.first)) { // undef + constant = undef;
+            continue;
         }
+        if (i.second.ty == Val::NAC || val[i.first].ty == Val::NAC) {
+            copied_val[i.first] = Val(); // one NAC, all NAC
+            continue;
+        }
+        if (i.second != val[i.first]) { // different constant
+            copied_val[i.first] = Val();
+            continue;
+        }
+        copied_val[i.first] = i.second;
     }
+    val = copied_val;
 }
 
 void Utils::operator()(Ir::Block *p, BlockValue &v) {
-    // printf("Start Block %s\n", p->name());
     for (auto i : p->body) {
         switch (i->instr_type()) {
         case Ir::INSTR_STORE: {
@@ -65,7 +66,6 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             case Ir::VAL_FUNC:
                 throw Exception(1, "Utils", "Impossible Value in Block");
             }
-            // printf("STORE %s, ty = %d\n", to->name(), v.val[to->name()].ty);
             break;
         }
         case Ir::INSTR_LOAD: {
@@ -78,7 +78,6 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
                 v.val[i->name()] = v.val[from->name()];
                 v.val[i->name()].ir = i;
             }
-            // printf("LOAD %s, ty = %d\n", i->name(), v.val[i->name()].ty);
             break;
         }
         case Ir::INSTR_ALLOCA:
@@ -115,47 +114,30 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
                 }
             }
             v.val[i->name()] = Val(
-                std::static_pointer_cast<Ir::CalculatableInstr>(i)->calculate(
+                std::dynamic_pointer_cast<Ir::CalculatableInstr>(i)->calculate(
                     vv));
             v.val[i->name()].ir = i;
         End:
-            // printf("CALCULATABLE %s, ty = %d\n", i->name(),
-            // v.val[i->name()].ty);
             break;
         }
         default:
             break;
         }
     }
-    /*
-    printf("In Block %s\n", p->name().c_str());
-    for(auto i : v.val) {
-        if(i.second.ty == Val::VALUE && i.second.ir) { // has value, is a constant
-            // printf("    instr: %s\n", i.second.ir->instr_print());
-            printf("    constant %s = %s\n", i.first.c_str(),
-                i.second.v.print().c_str());
-        }
-    }
-    */
 }
 
 int Utils::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     int ans = 0;
-    // printf("    In Block %s\n", p->name().c_str());
     for (auto i : OUT.val) {
         if (i.second.ty == Val::VALUE &&
             i.second.ir) { // has value, is a constant
-            // printf("        instr: %s\n", i.second.ir->instr_print().c_str());
-            // printf("        constant %s = %s\n", i.first.c_str(),
-            //     i.second.v.print().c_str());
             auto imm = Ir::make_constant(i.second.v);
             p->add_imm(imm);
             i.second.ir->replace_self(imm.get());
             ++ans;
         }
     }
-    // printf("%s\n", p->print_block().c_str());
     return ans;
 }
 

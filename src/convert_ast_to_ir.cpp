@@ -96,6 +96,15 @@ Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty) {
                val->ty->type_name().c_str(), ty->type_name().c_str());
         throw_error(root, 13, "[Convertor] error 13: not castable");
     }
+    // 第零种转换：转化为 bool
+    // 这个转换因为不是 CastInstr 而是 CmpInstr，所以必须放到这里来判断
+    if (is_basic_type(val->ty) && is_basic_type(ty) &&
+        (to_basic_type(ty)->ty == IMM_I1 ||
+         to_basic_type(ty)->ty == IMM_U1)) {
+        auto imm = Ir::make_constant(ImmValue(to_basic_type(val->ty)->ty));
+        _cur_func->add_imm(imm);
+        return add_instr(Ir::make_cmp_instr(Ir::CmpType::CMP_NE, val, imm));
+    }
     auto r = Ir::make_cast_instr(ty, val);
     add_instr(r);
     return r;
