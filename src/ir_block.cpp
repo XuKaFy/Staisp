@@ -5,6 +5,7 @@
 #include "ir_line_generator.h"
 
 #include "ir_constant.h"
+#include "ir_opr_instr.h"
 
 namespace Ir {
 
@@ -306,6 +307,27 @@ void BlockedProgram::normal_opt() {
     opt_connect_empty_block();
     opt_join_blocks();
     opt_remove_dead_code();
+}
+
+
+void BlockedProgram::opt_trivial() {
+    // this is not correct
+    for (auto block : blocks) {
+        for (auto instr : block->body) {
+            if (auto bin = std::dynamic_pointer_cast<Ir::BinInstr>(instr)) {
+                auto usee =  bin->operand(1)->usee;
+                if (bin->binType == INSTR_SDIV && usee->type() == VAL_CONST) {
+                    auto value = static_cast<Const*>(usee)->v;
+                    if (value.type() == ValueType::VALUE_IMM && value.imm_value().ty == IMM_I32 && value.imm_value().val.ival == 2) {
+                        bin->binType = INSTR_ASHR;
+                        auto imm = Ir::make_constant(ImmValue(1));
+                        block->add_imm(imm);
+                        bin->operand(1)->usee->replace_self(imm.get());
+                    }
+                }
+            }
+        }
+    }
 }
 
 } // namespace Ir

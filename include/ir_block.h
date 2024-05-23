@@ -85,6 +85,8 @@ struct BlockedProgram {
     void opt_remove_empty_block();  // 去除无用 basic block
     void opt_connect_empty_block(); // 连接只有强制跳转的 basic block
 
+    void opt_trivial();
+
     // 所有的 basic block
     Blocks blocks;
 };

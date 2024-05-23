@@ -9,12 +9,21 @@ namespace Ir {
     ENTRY(ADD, add)                                                            \
     ENTRY(SUB, sub)                                                            \
     ENTRY(MUL, mul)                                                            \
-    ENTRY(DIV, div)                                                            \
+    ENTRY(FADD, fadd)                                                            \
+    ENTRY(FSUB, fsub)                                                            \
+    ENTRY(FMUL, fmul)                                                            \
+    ENTRY(SDIV, sdiv)                                                            \
+    ENTRY(SREM, srem)                                                            \
+    ENTRY(UDIV, udiv)                                                            \
+    ENTRY(UREM, urem)                                                            \
+    ENTRY(FDIV, fdiv)                                                            \
+    ENTRY(FREM, frem)                                                            \
     ENTRY(XOR, xor)                                                            \
-    ENTRY(UREM, urem)                                                          \
-    ENTRY(SREM, srem)                                                          \
     ENTRY(AND, and)                                                            \
-    ENTRY(OR, or)
+    ENTRY(OR, or)                                                              \
+    ENTRY(ASHR, ashr)                                                          \
+    ENTRY(LSHR, lshr)                                                          \
+    ENTRY(SHL, shl)
 
 #define ENTRY(x, y) INSTR_##x,
 enum BinInstrType { BIN_INSTR_TABLE };

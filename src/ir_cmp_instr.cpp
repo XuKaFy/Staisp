@@ -20,7 +20,6 @@ ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {
         ans = a1 == a2;
         break;
     case CMP_NE:
-    case CMP_ONE:
     case CMP_UNE:
         ans = a1 != a2;
         break;

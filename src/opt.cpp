@@ -16,6 +16,7 @@ int from_button_analysis(Ir::BlockedProgram &p);
 void optimize(Ir::pModule mod) {
     for (auto &&i : mod->funsDefined) {
         i->p.normal_opt();
+//        i->p.re_generate();
     }
     for (auto &&i : mod->funsDefined) {
         size_t cnt = 0;

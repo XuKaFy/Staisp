@@ -1030,27 +1030,18 @@ void Convertor::add_initialization(TypedSym var, Pointer<Ast::ArrayDefNode> node
 Ir::BinInstrType Convertor::fromBinaryOpr(Pointer<Ast::BinaryNode> root,
                                           pType ty) {
     bool is_signed = is_signed_type(ty);
-#define SELECT(x)                                                              \
-    case OPR_##x:                                                              \
-        return Ir::INSTR_##x;
+    bool is_flt = is_float(ty);
     switch (root->type) {
-        SELECT(ADD)
-        SELECT(SUB)
-        SELECT(MUL)
-        SELECT(DIV)
-        //    SELECT(AND)
-        //    SELECT(OR)
-    case OPR_REM: {
-        if (is_signed)
-            return Ir::INSTR_SREM;
-        return Ir::INSTR_UREM;
-    }
+        case OPR_ADD: return is_flt ? Ir::INSTR_FADD : Ir::INSTR_ADD;
+        case OPR_SUB: return is_flt ? Ir::INSTR_FSUB : Ir::INSTR_SUB;
+        case OPR_MUL: return is_flt ? Ir::INSTR_FMUL : Ir::INSTR_MUL;
+        case OPR_DIV: return is_flt ? Ir::INSTR_FDIV : is_signed ? Ir::INSTR_SDIV : Ir::INSTR_UDIV;
+        case OPR_REM: return is_flt ? Ir::INSTR_FREM : is_signed ? Ir::INSTR_SREM : Ir::INSTR_UREM;
     default:
         throw_error(
             root, -1,
             "binary operation conversion from ast to ir not implemented");
     }
-#undef SELECT
     return Ir::INSTR_ADD;
 }
 
@@ -1059,34 +1050,23 @@ Ir::CmpType Convertor::fromCmpOpr(Pointer<Ast::BinaryNode> root, pType ty) {
     bool is_flt = is_float(ty);
     switch (root->type) {
         case OPR_EQ: {
-            if (is_flt) {
-                return Ir::CMP_OEQ;
-            }
-            return Ir::CMP_EQ;
+            return is_flt ? Ir::CMP_OEQ : Ir::CMP_EQ;
         }
         case OPR_NE: {
-            if (is_flt) {
-                return Ir::CMP_UNE;
-            }
-            return Ir::CMP_NE;
+            return is_flt ? Ir::CMP_UNE : Ir::CMP_NE;
         }
-#undef SELECT
-#define SELECT_US(x)                                                           \
-    case OPR_##x: {                                                            \
-        if (is_flt) {                                                          \
-            return Ir::CMP_O##x;                                               \
-        } else if (is_signed) {                                                \
-            return Ir::CMP_S##x;                                               \
-        } else {                                                               \
-            return Ir::CMP_U##x;                                               \
-        }                                                                      \
-        break;                                                                 \
-    }
-        SELECT_US(LE)
-        SELECT_US(GE)
-        SELECT_US(LT)
-        SELECT_US(GT)
-#undef SELECT
+        case OPR_LE: {
+            return is_flt ? Ir::CMP_OLE : is_signed ? Ir::CMP_SLE : Ir::CMP_ULE;
+        }
+        case OPR_GE: {
+            return is_flt ? Ir::CMP_OGE : is_signed ? Ir::CMP_SGE : Ir::CMP_UGE;
+        }
+        case OPR_LT: {
+            return is_flt ? Ir::CMP_OLT : is_signed ? Ir::CMP_SLT : Ir::CMP_ULT;
+        }
+        case OPR_GT: {
+            return is_flt ? Ir::CMP_OGT : is_signed ? Ir::CMP_SGT : Ir::CMP_UGT;
+        }
     default:
         throw_error(
             root, 7,

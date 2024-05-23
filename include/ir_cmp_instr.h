@@ -7,16 +7,18 @@ namespace Ir {
 #define CMP_INSTR_TABLE                                                        \
     ENTRY(EQ, eq)                                                              \
     ENTRY(NE, ne)                                                              \
+                                                                               \
     ENTRY(UGT, ugt)                                                            \
     ENTRY(UGE, uge)                                                            \
     ENTRY(ULT, ult)                                                            \
     ENTRY(ULE, ule)                                                            \
+                                                                               \
     ENTRY(SGT, sgt)                                                            \
     ENTRY(SGE, sge)                                                            \
     ENTRY(SLT, slt)                                                            \
     ENTRY(SLE, sle)                                                            \
+                                                                               \
     ENTRY(OEQ, oeq)                                                            \
-    ENTRY(ONE, one)                                                            \
     ENTRY(OGT, ogt)                                                            \
     ENTRY(OGE, oge)                                                            \
     ENTRY(OLT, olt)                                                            \

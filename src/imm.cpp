@@ -220,6 +220,8 @@ OPR_DEF_INT(%)
 OPR_DEF_INT(&)
 OPR_DEF_INT(|)
 OPR_DEF_INT(^)
+OPR_DEF_INT(>>)
+OPR_DEF_INT(<<)
 #undef OPR_DEF_INT
 
 #define OPR_DEF_LOGICAL(y)                                                     \
