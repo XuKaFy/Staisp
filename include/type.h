@@ -60,6 +60,7 @@ enum VoidIrType {
     IR_BR_COND,
     IR_RET,
     IR_LABEL,
+    IR_UNREACHABLE
 };
 
 // 为表达 Ir 指令类型所准备的类

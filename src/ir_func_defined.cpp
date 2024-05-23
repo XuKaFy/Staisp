@@ -38,10 +38,8 @@ void FuncDefined::end_function() {
     if (body.empty() || body.back()->instr_type() != INSTR_RET) {
         if (ty->type_type() == TYPE_VOID_TYPE) {
             body.push_back(make_ret_instr());
-        } else if (is_basic_type(ty)) {            // for while(1), more a label
-            auto imm = make_constant(ImmValue(to_basic_type(ty)->ty));
-            add_imm(imm);
-            body.push_back(make_ret_instr(imm));
+        } else {
+            body.push_back(make_unreachable_instr());
         }
     }
     Instrs final;
@@ -67,21 +65,14 @@ String FuncDefined::print_func() const {
 
     auto func_ty = functon_type();
 
-    if (args.empty())
-        goto PRINT_IMPL_END;
-
-    whole_function += func_ty->arg_type[0]->type_name();
-    whole_function += " %";
-    whole_function += arg_name[0];
-
-    for (size_t i = 1; i < args.size(); ++i) {
-        whole_function += ", ";
+    for (size_t i = 0; i < args.size(); ++i) {
+        if (i > 0)
+            whole_function += ", ";
         whole_function += func_ty->arg_type[i]->type_name();
         whole_function += " %";
         whole_function += arg_name[i];
     }
 
-PRINT_IMPL_END:
     whole_function += ")";
 
     whole_function += " {\n";

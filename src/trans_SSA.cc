@@ -179,12 +179,13 @@ void SSA_pass::transform_func() {
         case Ir::INSTR_ALLOCA:
             break;
 
-        // instruction without impletementation / unrelated
+        // instruction without implementation / unrelated
         case Ir::INSTR_SYM:
         case Ir::INSTR_LABEL:
         case Ir::INSTR_BR:
         case Ir::INSTR_BR_COND:
         case Ir::INSTR_FUNC:
+        case Ir::INSTR_UNREACHABLE:
             break;
         };
     };
@@ -222,6 +223,7 @@ void SSA_pass::transform_func() {
         case Ir::INSTR_BR:
         case Ir::INSTR_BR_COND:
         case Ir::INSTR_FUNC:
+        case Ir::INSTR_UNREACHABLE:
             break;
         };
     };

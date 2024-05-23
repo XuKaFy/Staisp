@@ -19,6 +19,7 @@ void LineGenerator::generate(const Instrs &body) {
                 case IR_BR_COND:
                 case IR_STORE:
                 case IR_RET:
+                case IR_UNREACHABLE:
                     break; // no need to alloc an id
                 }
                 break;
