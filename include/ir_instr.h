@@ -24,7 +24,8 @@ enum InstrType {
     INSTR_UNARY,
     INSTR_BINARY,
     INSTR_ITEM,
-    INSTR_PHI
+    INSTR_PHI,
+    INSTR_UNREACHABLE,
 };
 
 struct Block;

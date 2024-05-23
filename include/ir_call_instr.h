@@ -32,7 +32,16 @@ struct RetInstr : public Instr {
     virtual String instr_print() const override;
 };
 
+struct UnreachableInstr : Instr {
+    UnreachableInstr() : Instr(make_ir_type(IR_UNREACHABLE)) {}
+
+    InstrType instr_type() const override { return INSTR_UNREACHABLE; }
+
+    String instr_print() const override { return "unreachable"; }
+};
+
 pInstr make_call_instr(pFunc func, Vector<pVal> args);
 pInstr make_ret_instr(pVal oprd = {});
+pInstr make_unreachable_instr();
 
 } // namespace Ir

@@ -207,6 +207,7 @@ bool can_be_removed(Ir::InstrType t) {
     case Ir::INSTR_BR_COND:
     case Ir::INSTR_STORE:
     case Ir::INSTR_CALL:
+    case Ir::INSTR_UNREACHABLE:
         return false;
     default:
         return true;

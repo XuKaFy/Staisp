@@ -45,4 +45,6 @@ pInstr make_call_instr(pFunc func, Vector<pVal> args) {
 
 pInstr make_ret_instr(pVal oprd) { return pInstr(new RetInstr(oprd)); }
 
+pInstr make_unreachable_instr() { return pInstr(new UnreachableInstr()); }
+
 } // namespace Ir
