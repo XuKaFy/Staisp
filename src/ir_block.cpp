@@ -21,6 +21,7 @@ void Block::squeeze_out(bool selected) {
     auto end = body.back();
     auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(1 - selected);
     new_br->block = this;
+    // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
     body.pop_back();
     body.push_back(new_br);
 }
@@ -62,11 +63,14 @@ void Block::replace_out(Block *before, Block *out) {
             }
         }
         if (!flag) {
+            printf("Warning: for block %s, try to replace %s wiith %s\n", name().c_str(), before->name().c_str(), out->name().c_str());
+            printf("Current Block %s: \n%s\n", name().c_str(), print_block().c_str());
             throw Exception(2, "Block::replace_out", "not replaced");
         }
         break;
     }
     default:
+        printf("Warning: block %s's last instruction is type %d\n", name().c_str(), back->instr_type());
         throw Exception(1, "Block::replace_out", "not a br block");
     }
 }
@@ -114,17 +118,17 @@ void BlockedProgram::re_generate() const {
     }
 }
 
-Vector<Block*> Block::in_blocks() const
+Set<Block*> Block::in_blocks() const
 {
-    Vector<Block*> ans;
+    Set<Block*> ans;
     for(auto &&i : label()->users) {
         auto user = static_cast<Instr*>(i->user);
-        ans.push_back(user->block);
+        ans.insert(user->block);
     }
     return ans;
 }
 
-Vector<Block*> Block::out_blocks() const
+Set<Block*> Block::out_blocks() const
 {
     switch(back()->instr_type()) {
     case INSTR_BR:
@@ -159,8 +163,8 @@ void BlockedProgram::opt_join_blocks() {
             continue;
         }
     
-        // printf("Will remove %s\n", cur_block->name());
         // printf("Block {\n%s} connected with {\n%s}\n", next_block->print_block().c_str(), cur_block->print_block().c_str());
+        // printf("Block both connected\n\n");
             
         next_block->body.pop_back();
         for (auto j = cur_block->body.begin() + 1;
@@ -191,7 +195,6 @@ void BlockedProgram::opt_connect_empty_block() {
     my_assert(blocks.size(), "?");
     for (auto i = blocks.begin() + 1; i != blocks.end();) {
         if ((*i)->out_blocks().size() == 1 && (*i)->body.size() == 2) {
-            // printf("Remove Empty Br Block %s\n", (*i)->name());
             // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
             (*i)->connect_in_and_out();
             i = blocks.erase(i);

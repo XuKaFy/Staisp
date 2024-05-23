@@ -37,8 +37,8 @@ struct Block : public Val {
     void add_imm(pVal imm);
 
     // 通过 Label 读取块
-    Vector<Block*> in_blocks() const;
-    Vector<Block*> out_blocks() const;
+    Set<Block*> in_blocks() const;
+    Set<Block*> out_blocks() const;
 
     void push_back(pInstr instr);
     // 将 this 与 next 连接起来
