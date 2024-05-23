@@ -113,15 +113,15 @@ Ir::pVal Convertor::cast_to_type(pNode root, Ir::pVal val, pType ty) {
 pType Convertor::analyze_type(pNode root) {
     switch (root->type) {
     case NODE_ARRAY_TYPE: {
-        auto r = std::static_pointer_cast<Ast::ArrayTypeNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::ArrayTypeNode>(root);
         return make_array_type(analyze_type(r->n),
                                constant_eval(r->index).val.uval);
     }
     case NODE_BASIC_TYPE:
-        return std::static_pointer_cast<Ast::BasicTypeNode>(root)->ty;
+        return std::dynamic_pointer_cast<Ast::BasicTypeNode>(root)->ty;
     case NODE_POINTER_TYPE:
         return make_pointer_type(analyze_type(
-            std::static_pointer_cast<Ast::PointerTypeNode>(root)->n));
+            std::dynamic_pointer_cast<Ast::PointerTypeNode>(root)->n));
     default:
         break;
     }
@@ -240,13 +240,13 @@ ImmValue Convertor::find_const_value(pNode root, String sym) {
 ImmValue Convertor::constant_eval(pNode node) {
     switch (node->type) {
     case NODE_SYM: {
-        auto name = std::static_pointer_cast<Ast::SymNode>(node)->sym;
+        auto name = std::dynamic_pointer_cast<Ast::SymNode>(node)->sym;
         return find_const_value(node, name);
     }
     case NODE_IMM:
-        return std::static_pointer_cast<Ast::ImmNode>(node)->imm;
+        return std::dynamic_pointer_cast<Ast::ImmNode>(node)->imm;
     case NODE_UNARY: {
-        auto r = std::static_pointer_cast<Ast::UnaryNode>(node);
+        auto r = std::dynamic_pointer_cast<Ast::UnaryNode>(node);
         auto imm = constant_eval(r->ch);
         switch (r->type) {
         case OPR_NOT:
@@ -259,7 +259,7 @@ ImmValue Convertor::constant_eval(pNode node) {
         return imm;
     }
     case NODE_BINARY: {
-        auto r = std::static_pointer_cast<Ast::BinaryNode>(node);
+        auto r = std::dynamic_pointer_cast<Ast::BinaryNode>(node);
         auto lc = constant_eval(r->lhs);
         auto rc = constant_eval(r->rhs);
         switch (r->type) {
@@ -312,7 +312,7 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const) {
             b[1]:   %2 = gep [2 x i32], [2 x i32]* %1, i64 0, i64 1
         }
         */
-        auto r = std::static_pointer_cast<Ast::ItemNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::ItemNode>(root);
         auto array = analyze_value(r->v, request_not_const);
         if (!is_pointer(array->ty)) {
             printf("Message: type is %s\n", array->ty->type_name().c_str());
@@ -330,7 +330,7 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const) {
         return itemptr;
     }
     case NODE_SYM: {
-        auto r = std::static_pointer_cast<Ast::SymNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::SymNode>(root);
         return find_left_value(r, r->sym, request_not_const);
     }
     case NODE_DEREF: {
@@ -340,7 +340,7 @@ Ir::pVal Convertor::analyze_left_value(pNode root, bool request_not_const) {
             *y = 1;         | %1 = load i32** y
                             | store i32 1, i32* %1
         */
-        auto r = std::static_pointer_cast<Ast::DerefNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::DerefNode>(root);
         return add_instr(Ir::make_load_instr(analyze_left_value(r->val)));
     }
     default:
@@ -363,22 +363,22 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const) {
         return add_instr(Ir::make_load_instr(lv));
     }
     case NODE_REF: {
-        auto r = std::static_pointer_cast<Ast::RefNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::RefNode>(root);
         return analyze_left_value(r->v, true);
     }
     case NODE_CAST: {
-        auto r = std::static_pointer_cast<Ast::CastNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::CastNode>(root);
         auto res =
             Ir::make_cast_instr(analyze_type(r->ty), analyze_value(r->val));
         add_instr(res);
         return res;
     }
     case NODE_BINARY: {
-        auto ir = analyze_opr(std::static_pointer_cast<Ast::BinaryNode>(root));
+        auto ir = analyze_opr(std::dynamic_pointer_cast<Ast::BinaryNode>(root));
         return ir;
     }
     case NODE_UNARY: {
-        auto r = std::static_pointer_cast<Ast::UnaryNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::UnaryNode>(root);
         auto ch = r->ch;
         auto val = analyze_value(ch);
         switch (r->type) {
@@ -407,13 +407,13 @@ Ir::pVal Convertor::analyze_value(pNode root, bool request_not_const) {
         }
     }
     case NODE_IMM: {
-        auto r = std::static_pointer_cast<Ast::ImmNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::ImmNode>(root);
         auto res = Ir::make_constant(r->imm);
         _cur_func->add_imm(res);
         return res;
     }
     case NODE_CALL: {
-        auto r = std::static_pointer_cast<Ast::CallNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::CallNode>(root);
         if (!func_count(r->name)) {
             printf("Warning: function %s not found\n", r->name.c_str());
             throw_error(r, 20, "function not found");
@@ -504,11 +504,11 @@ Vector<pNode> flatten(InitializerVisitor &list, Pointer<ArrayType> type) {
             InitializerVisitor new_v(
                 std::dynamic_pointer_cast<Ast::ArrayDefNode>(elem));
             Vector<pNode> inner =
-                flatten(new_v, std::static_pointer_cast<ArrayType>(elem_ty));
+                flatten(new_v, std::dynamic_pointer_cast<ArrayType>(elem_ty));
             ans.insert(ans.end(), inner.begin(), inner.end());
         } else {
             Vector<pNode> inner =
-                flatten(list, std::static_pointer_cast<ArrayType>(elem_ty));
+                flatten(list, std::dynamic_pointer_cast<ArrayType>(elem_ty));
             ans.insert(ans.end(), inner.begin(), inner.end());
         }
     }
@@ -591,7 +591,7 @@ bool Convertor::analyze_statement_node(pNode root) {
                 const int a = 10;
                 int *b = &a; // reject
         */
-        auto r = std::static_pointer_cast<Ast::AssignNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::AssignNode>(root);
         auto lv = analyze_left_value(r->lv, true);
         if (is_array(to_pointed_type(lv->ty))) {
             throw_error(r->lv, 23, "array cannot be left value");
@@ -602,7 +602,7 @@ bool Convertor::analyze_statement_node(pNode root) {
         break;
     }
     case NODE_DEF_VAR: {
-        auto r = std::static_pointer_cast<Ast::VarDefNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::VarDefNode>(root);
         Ir::pInstr tmp;
         auto ty = analyze_type(r->var.n);
         if (is_array(ty)) {
@@ -612,7 +612,7 @@ bool Convertor::analyze_statement_node(pNode root) {
                 if (r->val->type != NODE_ARRAY_VAL)
                     throw_error(r->val, 17,
                                 "array should be initialized by a list");
-                auto rrr = std::static_pointer_cast<Ast::ArrayDefNode>(r->val);
+                auto rrr = std::dynamic_pointer_cast<Ast::ArrayDefNode>(r->val);
                 auto imm1 = Ir::make_constant(ImmValue(0ll, IMM_I8));
                 auto imm2 = Ir::make_constant(ImmValue((unsigned long long)to_array_type(ty)->length(), IMM_U64));
                 auto imm3 = Ir::make_constant(ImmValue(0ll, IMM_I1));
@@ -641,7 +641,7 @@ bool Convertor::analyze_statement_node(pNode root) {
         break;
     }
     case NODE_IF: {
-        auto r = std::static_pointer_cast<Ast::IfNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::IfNode>(root);
         auto if_begin = Ir::make_label_instr();
         auto if_end = Ir::make_label_instr();
         auto if_else_end = Ir::make_label_instr();
@@ -700,7 +700,7 @@ bool Convertor::analyze_statement_node(pNode root) {
         break;
     }
     case NODE_WHILE: {
-        auto r = std::static_pointer_cast<Ast::WhileNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::WhileNode>(root);
         /*
             br while_cond
             while_cond:
@@ -745,7 +745,7 @@ bool Convertor::analyze_statement_node(pNode root) {
                 br for_cond
             for_end:
         */
-        auto r = std::static_pointer_cast<Ast::ForNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::ForNode>(root);
         auto for_cond = Ir::make_label_instr();
         auto for_body = Ir::make_label_instr();
         auto for_exec = Ir::make_label_instr();
@@ -785,7 +785,7 @@ bool Convertor::analyze_statement_node(pNode root) {
         add_instr(Ir::make_label_instr());
         break;
     case NODE_RETURN: {
-        auto r = std::static_pointer_cast<Ast::ReturnNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::ReturnNode>(root);
         if (r->ret) {
             auto res = analyze_value(r->ret);
             add_instr(Ir::make_ret_instr(
@@ -797,7 +797,7 @@ bool Convertor::analyze_statement_node(pNode root) {
         break;
     }
     case NODE_BLOCK: {
-        auto r = std::static_pointer_cast<Ast::BlockNode>(root);
+        auto r = std::dynamic_pointer_cast<Ast::BlockNode>(root);
         _env.push_env();
         _const_env.push_env();
         for (auto i : r->body) {
@@ -919,13 +919,13 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root) {
                 root_var,
                 /*
                 Value(from_array_def(
-                    std::static_pointer_cast<Ast::ArrayDefNode>(root->val),
+                    std::dynamic_pointer_cast<Ast::ArrayDefNode>(root->val),
                     to_array_type(root_var.ty))),
                 */
                 Value(),
                 root->is_const));
 
-                add_initialization(root_var, std::static_pointer_cast<Ast::ArrayDefNode>(root->val));
+                add_initialization(root_var, std::dynamic_pointer_cast<Ast::ArrayDefNode>(root->val));
         } else {
             module()->add_global(Ir::make_global(
                 root_var,
@@ -939,10 +939,10 @@ void Convertor::generate_global_var(Pointer<Ast::VarDefNode> root) {
 void Convertor::generate_single(pNode root) {
     switch (root->type) {
     case NODE_DEF_FUNC:
-        generate_function(std::static_pointer_cast<Ast::FuncDefNode>(root));
+        generate_function(std::dynamic_pointer_cast<Ast::FuncDefNode>(root));
         break;
     case NODE_DEF_VAR:
-        generate_global_var(std::static_pointer_cast<Ast::VarDefNode>(root));
+        generate_global_var(std::dynamic_pointer_cast<Ast::VarDefNode>(root));
         break;
     default:
         throw_error(root, 5, "global operation has type that not implemented");

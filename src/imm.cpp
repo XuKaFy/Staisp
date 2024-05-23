@@ -292,7 +292,7 @@ String ImmValue::print() const {
             return buf;
         }
     }
-    return "";
+    return "[NOT A NUMBER]";
 }
 
 ImmValue ImmValue::neg() const

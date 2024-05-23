@@ -27,7 +27,7 @@ void optimize(Ir::pModule mod) {
             i->p.normal_opt();
         }
         // printf("Optimization loop count of function \"%s\": %lu\n",
-        // i->name(), cnt);
+        // i->name().c_str(), cnt);
         i->p.re_generate();
     }
 }
@@ -59,10 +59,11 @@ int from_top_analysis(Ir::BlockedProgram &p) {
         BlockValue &IN = INs[b];
         BlockValue &OUT = OUTs[b];
 
+        auto in_block = b->in_blocks();
         IN.clear();
-        if(!b->in_block.empty()) {
-            IN = OUTs[*b->in_block.begin()];
-            for (auto i : b->in_block) {
+        if(!in_block.empty()) {
+            IN = OUTs[*in_block.begin()];
+            for (auto i : in_block) {
                 IN.cup(OUTs[i]);
             }
         }
@@ -70,8 +71,9 @@ int from_top_analysis(Ir::BlockedProgram &p) {
         OUT = IN;
         util(b, OUT); // transfer function
 
+        auto out_block = b->in_blocks();
         if (old_OUT != OUT) {
-            for (auto i : b->out_block) {
+            for (auto i : out_block) {
                 blist.insert(i);
                 blist_seq.push_back(i);
             }
@@ -111,9 +113,10 @@ int from_button_analysis(Ir::BlockedProgram &p) {
         BlockValue &OUT = OUTs[b];
 
         OUT.clear();
-        if(!b->out_block.empty()) {
-            OUT = INs[*b->out_block.begin()];
-            for (auto i : b->out_block) {
+        auto out_block = b->out_blocks();
+        if(!out_block.empty()) {
+            OUT = INs[*out_block.begin()];
+            for (auto i : out_block) {
                 OUT.cup(INs[i]);
             }
         }
@@ -123,7 +126,8 @@ int from_button_analysis(Ir::BlockedProgram &p) {
 
         if (old_IN != IN) {
             // printf("Block %s changed\n", (b)->name());
-            for (auto i : b->in_block) {
+            auto in_block = b->in_blocks();
+            for (auto i : in_block) {
                 blist.insert(i);
                 blist_seq.push_back(i);
                 // printf("    Updating %s\n", i->name());

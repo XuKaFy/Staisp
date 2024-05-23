@@ -27,8 +27,10 @@ enum InstrType {
     INSTR_PHI
 };
 
+struct Block;
+
 struct Instr : public User {
-    Instr(pType ty) : User(ty) {}
+    Instr(pType ty) : User(ty), block(nullptr) {}
 
     virtual String instr_print() const;
 
@@ -47,6 +49,8 @@ struct Instr : public User {
         }
         return false;
     }
+
+    Block* block;
 };
 
 // 所有只要操作数为常量就可以计算出值的操作

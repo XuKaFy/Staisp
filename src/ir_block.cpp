@@ -1,15 +1,17 @@
 #include "ir_block.h"
 
-#include "ir_call_instr.h"
 #include "ir_control_instr.h"
+#include "ir_instr.h"
 #include "ir_line_generator.h"
 
 #include "ir_constant.h"
 #include "ir_opr_instr.h"
 
+#include <memory>
+
 namespace Ir {
 
-pInstr Block::label() const { return body.front(); }
+Pointer<LabelInstr> Block::label() const { return std::dynamic_pointer_cast<LabelInstr>(body.front()); }
 
 pInstr Block::back() const { return body.back(); }
 
@@ -17,32 +19,18 @@ void Block::add_imm(pVal imm) { imms.push_back(imm); }
 
 void Block::squeeze_out(bool selected) {
     auto end = body.back();
-    // 0->trueTo
-    // 1->falseTo
-    auto will_remove = end->operand(selected + 1)->usee;
-    // printf("%s\n", std::static_pointer_cast<Ir::BrCondInstr>(end)->instr_print().c_str());
-    auto new_br =
-        std::static_pointer_cast<Ir::BrCondInstr>(end)->select(1 - selected);
-    for (auto i : out_block) {
-        if (i->label().get() == will_remove) {
-            i->in_block.erase(this);
-            out_block.erase(i);
-            break;
-        }
-    }
+    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(1 - selected);
+    new_br->block = this;
     body.pop_back();
     body.push_back(new_br);
-    // printf("    changed to %s\n", new_br->instr_print().c_str());
 }
 
 void Block::connect_in_and_out() {
+    auto out_block = out_blocks();
     my_assert(out_block.size() == 1 && body.size() == 2, "?");
-    auto out = *out_block.begin();
-    for (auto j : in_block) {
-        j->replace_out(this, out);
-        out->in_block.insert(j);
+    for (auto j : in_blocks()) {
+        j->replace_out(this, *out_block.begin());
     }
-    out->in_block.erase(this);
 }
 
 String Block::print_block() const {
@@ -52,11 +40,6 @@ String Block::print_block() const {
         whole_block += "\n";
     }
     return whole_block;
-}
-
-void Block::connect(Block *next) {
-    next->in_block.insert(this);
-    out_block.insert(next);
 }
 
 void Block::push_back(pInstr instr) { body.push_back(instr); }
@@ -86,8 +69,6 @@ void Block::replace_out(Block *before, Block *out) {
     default:
         throw Exception(1, "Block::replace_out", "not a br block");
     }
-    out_block.erase(before);
-    out_block.insert(out);
 }
 
 void BlockedProgram::push_back(pInstr instr) {
@@ -120,11 +101,10 @@ void BlockedProgram::from_instrs(Instrs &instrs) {
         default:
             break;
         }
+        i->block = blocks.back().get();
         push_back(std::move(i));
     }
     instrs.clear();
-
-    generate_cfg();
 }
 
 void BlockedProgram::re_generate() const {
@@ -134,111 +114,73 @@ void BlockedProgram::re_generate() const {
     }
 }
 
-void BlockedProgram::generate_cfg() const {
-    Map<String, Block *> labelToBlock;
-
-    for (auto i : blocks) {
-        labelToBlock[i->label()->name()] = i.get();
-        i->in_block.clear();
-        i->out_block.clear();
+Vector<Block*> Block::in_blocks() const
+{
+    Vector<Block*> ans;
+    for(auto &&i : label()->users) {
+        auto user = static_cast<Instr*>(i->user);
+        ans.push_back(user->block);
     }
-
-    for (auto i : blocks) {
-        auto end = i->back();
-        my_assert(end->ty->type_type() == TYPE_IR_TYPE, "?");
-        switch (to_ir_type(end->ty)) {
-        case IR_RET: {
-            auto r = std::static_pointer_cast<RetInstr>(end);
-            break;
-        }
-        case IR_BR: {
-            auto r = std::static_pointer_cast<BrInstr>(end);
-            auto dest = static_cast<Instr *>(r->operand(0)->usee);
-            // printf("finding %s\n", dest->name());
-            i->connect(labelToBlock[dest->name()]);
-            break;
-        }
-        case IR_BR_COND: {
-            auto r = std::static_pointer_cast<BrCondInstr>(end);
-            auto dest1 = static_cast<Instr *>(r->operand(1)->usee);
-            auto dest2 = static_cast<Instr *>(r->operand(2)->usee);
-            // printf("finding %s\n", dest1->name());
-            i->connect(labelToBlock[dest1->name()]);
-            // printf("finding %s\n", dest2->name());
-            i->connect(labelToBlock[dest2->name()]);
-            break;
-        }
-        case IR_STORE:
-            throw Exception(1, "BlockedProgram::from_instrs", "end is a store");
-            break;
-        case IR_LABEL:
-            throw Exception(2, "BlockedProgram::from_instrs",
-                            "end is a label or a empty block");
-            break;
-        }
-    }
+    return ans;
 }
 
-void BlockedProgram::print_cfg() const {
-    for (auto i : blocks) {
-        printf("CFG: Block %s\n", i->name().c_str());
-        for (auto j : i->in_block) {
-            printf("    In Block %s\n", j->name().c_str());
-        }
-        for (auto j : i->out_block) {
-            printf("    Out Block %s\n", j->name().c_str());
-        }
+Vector<Block*> Block::out_blocks() const
+{
+    switch(back()->instr_type()) {
+    case INSTR_BR:
+        return { static_cast<LabelInstr *>(back()->operand(0)->usee)->block };
+    case INSTR_BR_COND:
+        return { static_cast<LabelInstr *>(back()->operand(1)->usee)->block,
+                 static_cast<LabelInstr *>(back()->operand(2)->usee)->block };
+    default: break;
     }
+    return { };
 }
 
 void BlockedProgram::opt_join_blocks() {
-    bool found = true;
-    while (found) {
-        found = false;
-        for (auto i = blocks.begin(); i != blocks.end(); ++i) {
-            /*
-            \     |     /
-             [next_block]
-                  |
-             [cur_block]
-              /   |   \
-            */
-            auto cur_block = i->get();
-            if (cur_block->in_block.size() != 1)
-                continue;
-
-            auto next_block = *cur_block->in_block.begin();
-            if (next_block->out_block.size() != 1)
-                continue;
-
-            // printf("Will remove %s\n", cur_block->name());
-
-            next_block->body.pop_back();
-            for (auto j = cur_block->body.begin() + 1;
-                 j != cur_block->body.end(); ++j) {
-                next_block->body.push_back(std::move(*j));
-            }
-            for (auto j : cur_block->imms) {
-                next_block->add_imm(j);
-            }
-
-            next_block->out_block.clear();
-            for (auto j : cur_block->out_block) {
-                j->in_block.erase(cur_block);
-                j->in_block.insert(next_block);
-                next_block->out_block.insert(j);
-            }
-            i = blocks.erase(i);
-            found = true;
-            break;
+    for (auto i = blocks.begin(); i != blocks.end(); ) {
+        /*
+        \     |     /
+         [next_block]
+              |
+         [cur_block]
+          /   |   \
+        */
+        auto cur_block = i->get();
+        auto in_blocks = cur_block->in_blocks();
+        if (in_blocks.size() != 1) {
+            ++i;
+            continue;
         }
+
+        auto next_block = *in_blocks.begin();
+        if (next_block->out_blocks().size() != 1) {
+            ++i;
+            continue;
+        }
+    
+        // printf("Will remove %s\n", cur_block->name());
+        // printf("Block {\n%s} connected with {\n%s}\n", next_block->print_block().c_str(), cur_block->print_block().c_str());
+            
+        next_block->body.pop_back();
+        for (auto j = cur_block->body.begin() + 1;
+             j != cur_block->body.end(); ++j) {
+            (*j)->block = next_block;
+            next_block->body.push_back(std::move(*j));
+        }
+        for (auto j : cur_block->imms) {
+            next_block->add_imm(j);
+        }
+    
+        i = blocks.erase(i);
     }
 }
 
 void BlockedProgram::opt_remove_empty_block() {
     my_assert(blocks.size(), "?");
     for (auto i = blocks.begin() + 1; i != blocks.end();) {
-        if ((*i)->in_block.size() == 0) {
+        if ((*i)->in_blocks().size() == 0) {
+            // printf("Block {\n%s} removed\n", (*i)->print_block().c_str());
             i = blocks.erase(i);
         } else
             ++i;
@@ -248,8 +190,9 @@ void BlockedProgram::opt_remove_empty_block() {
 void BlockedProgram::opt_connect_empty_block() {
     my_assert(blocks.size(), "?");
     for (auto i = blocks.begin() + 1; i != blocks.end();) {
-        if ((*i)->out_block.size() == 1 && (*i)->body.size() == 2) {
+        if ((*i)->out_blocks().size() == 1 && (*i)->body.size() == 2) {
             // printf("Remove Empty Br Block %s\n", (*i)->name());
+            // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
             (*i)->connect_in_and_out();
             i = blocks.erase(i);
         } else

@@ -93,7 +93,7 @@ bool is_castable(pType from, pType to) {
 bool is_pointer(pType p) {
     if (p->type_type() != TYPE_COMPOUND_TYPE)
         return false;
-    if (std::static_pointer_cast<CompoundType>(p)->compound_type_type() !=
+    if (std::dynamic_pointer_cast<CompoundType>(p)->compound_type_type() !=
         COMPOUND_TYPE_POINTER)
         return false;
     return true;
@@ -102,7 +102,7 @@ bool is_pointer(pType p) {
 bool is_array(pType p) {
     if (p->type_type() != TYPE_COMPOUND_TYPE)
         return false;
-    if (std::static_pointer_cast<CompoundType>(p)->compound_type_type() !=
+    if (std::dynamic_pointer_cast<CompoundType>(p)->compound_type_type() !=
         COMPOUND_TYPE_ARRAY)
         return false;
     return true;
@@ -111,7 +111,7 @@ bool is_array(pType p) {
 bool is_struct(pType p) {
     if (p->type_type() != TYPE_COMPOUND_TYPE)
         return false;
-    if (std::static_pointer_cast<CompoundType>(p)->compound_type_type() !=
+    if (std::dynamic_pointer_cast<CompoundType>(p)->compound_type_type() !=
         COMPOUND_TYPE_STRUCT)
         return false;
     return true;
@@ -156,7 +156,7 @@ size_t bytes_of_type(pType ty) {
 }
 
 Pointer<PointerType> to_pointer_type(pType p) {
-    auto j = std::static_pointer_cast<PointerType>(p);
+    auto j = std::dynamic_pointer_cast<PointerType>(p);
     if (!j)
         throw Exception(1, "to_pointer_type", "not castable");
     return j;
@@ -170,7 +170,7 @@ pType to_pointed_type(pType p) {
 }
 
 Pointer<ArrayType> to_array_type(pType p) {
-    auto j = std::static_pointer_cast<ArrayType>(p);
+    auto j = std::dynamic_pointer_cast<ArrayType>(p);
     if (!j)
         throw Exception(1, "to_array_type", "not castable");
     return j;
@@ -179,42 +179,43 @@ Pointer<ArrayType> to_array_type(pType p) {
 pType to_elem_type(pType p) { return to_array_type(p)->elem_type; }
 
 Pointer<StructType> to_struct_type(pType p) {
-    auto j = std::static_pointer_cast<StructType>(p);
+    auto j = std::dynamic_pointer_cast<StructType>(p);
     if (!j)
         throw Exception(1, "to_struct_type", "not castable");
     return j;
 }
 
 Pointer<BasicType> to_basic_type(pType p) {
-    auto j = std::static_pointer_cast<BasicType>(p);
-    if (!j)
+    auto j = std::dynamic_pointer_cast<BasicType>(p);
+    if (!j) {
         throw Exception(1, "to_basic_type", "not castable");
+    }
     return j;
 }
 
 Pointer<FunctionType> to_function_type(pType p) {
-    auto j = std::static_pointer_cast<FunctionType>(p);
+    auto j = std::dynamic_pointer_cast<FunctionType>(p);
     if (!j)
         throw Exception(1, "to_function_type", "not castable");
     return j;
 }
 
 VoidIrType to_ir_type(pType p) {
-    auto j = std::static_pointer_cast<IrType>(p);
+    auto j = std::dynamic_pointer_cast<IrType>(p);
     if (!j)
         throw Exception(1, "to_ir_type", "not castable");
     return j->ir_ty;
 }
 
 bool is_ir_type(pType p, VoidIrType ty) {
-    auto j = std::static_pointer_cast<IrType>(p);
+    auto j = std::dynamic_pointer_cast<IrType>(p);
     if (!j)
         return false;
     return j->ir_ty == ty;
 }
 
 bool is_ir_type(pType p) {
-    auto j = std::static_pointer_cast<IrType>(p);
+    auto j = std::dynamic_pointer_cast<IrType>(p);
     if (!j)
         return false;
     return true;

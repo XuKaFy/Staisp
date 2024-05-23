@@ -2,6 +2,7 @@
 
 #include "def.h"
 
+#include "ir_control_instr.h"
 #include "ir_instr.h"
 
 namespace Ir {
@@ -12,17 +13,6 @@ typedef Vector<pBlock> Blocks;
 
 struct Block : public Val {
     Block() : Val(make_void_type()) {}
-
-    // block 析构时，将自己从 in_block 的 out_block
-    // 和 out_block 的 in_block 中删除
-    virtual ~Block() {
-        for (auto i : in_block) {
-            i->out_block.erase(this);
-        }
-        for (auto i : out_block) {
-            i->in_block.erase(this);
-        }
-    }
 
     // 当该块的指令仅有一条跳转时，将块的 in_block 与 out_block 直接相连
     void connect_in_and_out();
@@ -37,7 +27,7 @@ struct Block : public Val {
     String print_block() const;
 
     // 该块的 label，默认为第一条 instr
-    pInstr label() const;
+    Pointer<LabelInstr> label() const;
     // 该块的最后一条指令，一般为 ret、br 或者 cond br
     pInstr back() const;
 
@@ -45,6 +35,10 @@ struct Block : public Val {
     // 避免被释放
     // 例如临时数字，因为 Use 本身不是以 shared_ptr 指向 value
     void add_imm(pVal imm);
+
+    // 通过 Label 读取块
+    Vector<Block*> in_blocks() const;
+    Vector<Block*> out_blocks() const;
 
     void push_back(pInstr instr);
     // 将 this 与 next 连接起来
@@ -55,8 +49,6 @@ struct Block : public Val {
 
     virtual ValType type() const { return VAL_BLOCK; }
 
-    Set<Block *> in_block;
-    Set<Block *> out_block;
     Vector<pVal> imms;
 };
 
@@ -67,10 +59,6 @@ struct BlockedProgram {
     void push_back(pInstr instr);
     // 重新生成行号信息
     void re_generate() const;
-    // 生成 CFG 信息
-    void generate_cfg() const;
-    // 打印 CFG 信息
-    void print_cfg() const;
 
     // 所有的常规优化
     // 包括连接可连接的块

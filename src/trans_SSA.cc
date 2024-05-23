@@ -59,11 +59,11 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
         my_assert(block->body.front() == phi, "head insertion");
         incompletePhis[block].emplace_back<Pair<vrtl_reg *, Ir::Instr *>>(
             {variable, phi.get()});
-    } else if (block->in_block.size() == 1) {
+    } else if (block->in_blocks().size() == 1) {
         // Optimize the common case of one predecessor: No phi needed
-        val = use_val(variable, *block->in_block.begin());
+        val = use_val(variable, *block->in_blocks().begin());
     } else {
-        my_assert(!block->in_block.empty(),
+        my_assert(!block->in_blocks().empty(),
                   "every block in such function must have predecessor");
         // Break potential cycles with operandless phi
         auto phi = Ir::make_phi_instr(variable->ty);
@@ -79,7 +79,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
 SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
     auto phi_ins = static_cast<Ir::PhiInstr *>(phi);
-    for (auto pred : phi_blk->in_block) {
+    for (auto pred : phi_blk->in_blocks()) {
         auto val = use_val(variable, pred);
         // phi->add_incoming(pred, val);
         phi_ins->add_incoming(pred, val);
@@ -229,7 +229,7 @@ void SSA_pass::transform_func() {
     Map<Ir::Block *, size_t> pred = {};
     std::transform(cur_func.blocks.begin(), cur_func.blocks.end(),
                    std::inserter(pred, pred.end()), [](const auto &bb) {
-                       return std::make_pair(bb.get(), bb->in_block.size());
+                       return std::make_pair(bb.get(), bb->in_blocks().size());
                    });
     auto trySeal = [this, &pred](Ir::Block *block) -> void {
         if (!sealedBlocks.count(block) && pred[block] == 0) {
@@ -243,7 +243,7 @@ void SSA_pass::transform_func() {
             def_map(cur_instr.get(), cur_block.get());
         }
         trySeal(cur_block.get());
-        for (auto succ_bb : cur_block->out_block) {
+        for (auto succ_bb : cur_block->out_blocks()) {
             pred[succ_bb]--;
             trySeal(succ_bb);
         }

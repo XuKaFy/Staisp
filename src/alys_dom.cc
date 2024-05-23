@@ -33,7 +33,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         if (level == 1)
             idfn.push_back(bb);
         order_map.at(bb) = level;
-        for (Ir::Block *succ : bb->out_block) {
+        for (Ir::Block *succ : bb->out_blocks()) {
             dfsn(succ);
         }
     };
@@ -73,7 +73,7 @@ void DomTree::print_dom_tree() const {
 Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
     Map<Ir::Block *, pDomBlock> dom_frontier;
     for (auto [bb, dom_node] : dom_map) {
-        for (auto in : bb->in_block) {
+        for (auto in : bb->in_blocks()) {
             Ir::Block *runner = in;
             while (runner != dom_node->idom->basic_block.get()) {
                 dom_frontier[runner] = dom_node;

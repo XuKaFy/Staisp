@@ -37,7 +37,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
     for (auto i : p->body) {
         switch (i->instr_type()) {
         case Ir::INSTR_STORE: {
-            auto r = std::static_pointer_cast<Ir::StoreInstr>(i);
+            auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);
             auto to = r->operand(0)->usee;
             auto val = r->operand(1)->usee;
             if(to->type() == Ir::VAL_GLOBAL) {
@@ -69,7 +69,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             break;
         }
         case Ir::INSTR_LOAD: {
-            auto r = std::static_pointer_cast<Ir::LoadInstr>(i);
+            auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(i);
             auto from = r->operand(0)->usee;
             if(from->type() == Ir::VAL_GLOBAL && !static_cast<Ir::Global*>(from)->is_const) {
                 // all global val must be VAC, except const

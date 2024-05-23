@@ -31,13 +31,13 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         */
         switch (cur_instr->instr_type()) {
         case Ir::INSTR_LOAD: {
-            auto r = std::static_pointer_cast<Ir::LoadInstr>(cur_instr);
+            auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(cur_instr);
             v.uses.insert(r->operand(0)->usee->name());
             // printf("    LOCAL use = %s\n", r->operand(0)->usee->name());
             break;
         }
         case Ir::INSTR_STORE: {
-            auto r = std::static_pointer_cast<Ir::StoreInstr>(cur_instr);
+            auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
             // judge whether operand is from GEP
             auto to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
@@ -51,7 +51,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             break;
         }
         case Ir::INSTR_ITEM: {
-            auto r = std::static_pointer_cast<Ir::ItemInstr>(cur_instr);
+            auto r = std::dynamic_pointer_cast<Ir::ItemInstr>(cur_instr);
             v.uses.insert(r->operand(0)->usee->name());
             break;
         }
@@ -79,14 +79,14 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
         */
         switch (cur_instr->instr_type()) {
         case Ir::INSTR_LOAD: {
-            auto r = std::static_pointer_cast<Ir::LoadInstr>(cur_instr);
+            auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(cur_instr);
             auto name = r->operand(0)->usee->name();
             uses.insert(name);
             // printf("    LOCAL use = %s\n", r->instr_print());
             break;
         }
         case Ir::INSTR_STORE: {
-            auto r = std::static_pointer_cast<Ir::StoreInstr>(cur_instr);
+            auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
             auto name = r->operand(0)->usee->name();
             auto to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
