@@ -1,0 +1,1 @@
+clang-tidy -p build ./src/*.cpp ./src/*.cc ./include/*.h ./test/src/*.h ./test/src/*.cpp ./frontend/ast.hpp ./frontend/main.hpp
