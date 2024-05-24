@@ -1,6 +1,5 @@
 #include "ir_cast_instr.h"
 
-#include <utility>
 #include "imm.h"
 #include "type.h"
 
@@ -58,15 +57,15 @@ String CastInstr::instr_print() const {
     if (is_float(tdest) && is_float(tsrc)) {
         if (bytes_of_type(tdest) > bytes_of_type(tsrc)) {
             return use("fpext");
-}
+        }
         return use("fptrunc");
     }
-    printf("Warning: Converting type %s to type %s\n", tsrc->type_name().c_str(),
-           tdest->type_name().c_str());
+    printf("Warning: Converting type %s to type %s\n",
+           tsrc->type_name().c_str(), tdest->type_name().c_str());
     throw Exception(2, "CastInstr", "not castable");
 }
 
-String CastInstr::use(const String& inst) const {
+String CastInstr::use(const String &inst) const {
     auto &val = operand(0)->usee;
     auto tsrc = val->ty;
     auto tdest = ty;
@@ -85,7 +84,7 @@ ImmValue CastInstr::calculate(Vector<ImmValue> v) const {
     return ans;
 }
 
-pInstr make_cast_instr(pType ty, const pVal& a1) {
+pInstr make_cast_instr(pType ty, const pVal &a1) {
     return pInstr(new CastInstr(std::move(ty), a1));
 }
 

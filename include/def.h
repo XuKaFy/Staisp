@@ -7,16 +7,14 @@
 #include <climits>
 #include <cstring>
 #include <list>
-#include <map>
-#include <unordered_map>
 #include <memory>
 #include <optional>
 #include <set>
 #include <stack>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
-#include <deque>
 
 // 目标机的指针长度
 #define ARCH_BYTES 8
@@ -31,7 +29,7 @@ template <typename T> using Pointer = std::shared_ptr<T>;
 
 template <typename T> using WeakPointer = std::weak_ptr<T>;
 
-template <typename T> using List = std::deque<T>;
+template <typename T> using List = std::list<T>;
 
 template <typename T> using Vector = std::vector<T>;
 
@@ -63,7 +61,8 @@ pCode make_code(String code, String file_name);
 // 所有异常的基类
 struct Exception {
     Exception(size_t id, String obj, String msg)
-        : id(id), object(std::move(std::move(obj))), message(std::move(std::move(msg))) {}
+        : id(id), object(std::move(std::move(obj))),
+          message(std::move(std::move(msg))) {}
     size_t id;
     String object;
     String message;

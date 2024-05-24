@@ -2,7 +2,6 @@
 
 #include <utility>
 
-
 bool is_imm_signed(ImmType tr) {
     switch (tr) {
     case IMM_I1:
@@ -270,36 +269,35 @@ OPR_DEF_LOGICAL(!=)
 
 String ImmValue::print() const {
     switch (ty) {
-        case IMM_I1:
-        case IMM_I8:
-        case IMM_I16:
-        case IMM_I32:
-        case IMM_I64:
-            return std::to_string(val.ival);
-        case IMM_U1:
-        case IMM_U8:
-        case IMM_U16:
-        case IMM_U32:
-        case IMM_U64:
-            return std::to_string(val.uval);
-        case IMM_F32:
-        case IMM_F64: {
-            char buf[20];
-            union {
-                double d;
-                unsigned long long u;
-            };
-            u = 0;
-            d = ty == IMM_F32 ? val.f32val : val.f64val;
-            sprintf(buf, "0x%016llx", u);
-            return buf;
-        }
+    case IMM_I1:
+    case IMM_I8:
+    case IMM_I16:
+    case IMM_I32:
+    case IMM_I64:
+        return std::to_string(val.ival);
+    case IMM_U1:
+    case IMM_U8:
+    case IMM_U16:
+    case IMM_U32:
+    case IMM_U64:
+        return std::to_string(val.uval);
+    case IMM_F32:
+    case IMM_F64: {
+        char buf[20];
+        union {
+            double d;
+            unsigned long long u;
+        };
+        u = 0;
+        d = ty == IMM_F32 ? val.f32val : val.f64val;
+        sprintf(buf, "0x%016llx", u);
+        return buf;
+    }
     }
     return "[NOT A NUMBER]";
 }
 
-ImmValue ImmValue::neg() const
-{
+ImmValue ImmValue::neg() const {
     switch (ty) {
     case IMM_I1:
     case IMM_I8:

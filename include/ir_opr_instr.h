@@ -11,15 +11,15 @@ namespace Ir {
     ENTRY(ADD, add)                                                            \
     ENTRY(SUB, sub)                                                            \
     ENTRY(MUL, mul)                                                            \
-    ENTRY(FADD, fadd)                                                            \
-    ENTRY(FSUB, fsub)                                                            \
-    ENTRY(FMUL, fmul)                                                            \
-    ENTRY(SDIV, sdiv)                                                            \
-    ENTRY(SREM, srem)                                                            \
-    ENTRY(UDIV, udiv)                                                            \
-    ENTRY(UREM, urem)                                                            \
-    ENTRY(FDIV, fdiv)                                                            \
-    ENTRY(FREM, frem)                                                            \
+    ENTRY(FADD, fadd)                                                          \
+    ENTRY(FSUB, fsub)                                                          \
+    ENTRY(FMUL, fmul)                                                          \
+    ENTRY(SDIV, sdiv)                                                          \
+    ENTRY(SREM, srem)                                                          \
+    ENTRY(UDIV, udiv)                                                          \
+    ENTRY(UREM, urem)                                                          \
+    ENTRY(FDIV, fdiv)                                                          \
+    ENTRY(FREM, frem)                                                          \
     ENTRY(XOR, xor)                                                            \
     ENTRY(AND, and)                                                            \
     ENTRY(OR, or)                                                              \
@@ -38,7 +38,9 @@ const String gBinInstrName[] = {BIN_INSTR_TABLE};
 #undef BIN_INSTR_TABLE
 
 struct UnaryInstr : public CalculatableInstr {
-    UnaryInstr(const pVal& oprd) : CalculatableInstr(oprd->ty) { add_operand(oprd); }
+    UnaryInstr(const pVal &oprd) : CalculatableInstr(oprd->ty) {
+        add_operand(oprd);
+    }
 
     String instr_print() const override;
 
@@ -50,7 +52,7 @@ struct UnaryInstr : public CalculatableInstr {
 };
 
 struct BinInstr : public CalculatableInstr {
-    BinInstr(BinInstrType binType, const pVal& oprd1, const pVal& oprd2)
+    BinInstr(BinInstrType binType, const pVal &oprd1, const pVal &oprd2)
         : CalculatableInstr(oprd1->ty), binType(binType) {
         add_operand(oprd1);
         add_operand(oprd2);
@@ -65,7 +67,8 @@ struct BinInstr : public CalculatableInstr {
     BinInstrType binType;
 };
 
-pInstr make_unary_instr(const pVal& oprd);
-pInstr make_binary_instr(BinInstrType type, const pVal& oprd1, const pVal& oprd2);
+pInstr make_unary_instr(const pVal &oprd);
+pInstr make_binary_instr(BinInstrType type, const pVal &oprd1,
+                         const pVal &oprd2);
 
 } // namespace Ir

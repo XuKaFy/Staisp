@@ -2,7 +2,6 @@
 
 #include <utility>
 
-
 #include "def.h"
 #include "imm.h"
 #include "type.h"
@@ -15,15 +14,14 @@ namespace Ast {
 struct ImmNode : public Node {
     ImmNode(pToken t, ImmValue imm) : Node(std::move(t), NODE_IMM), imm(imm) {}
 
-    void print(size_t tabs = 0) override {
-        printf("%s", imm.print().c_str());
-    }
+    void print(size_t tabs = 0) override { printf("%s", imm.print().c_str()); }
 
     ImmValue imm;
 };
 
 struct SymNode : public Node {
-    SymNode(pToken t, String sym) : Node(std::move(t), NODE_SYM), sym(std::move(std::move(sym))) {}
+    SymNode(pToken t, String sym)
+        : Node(std::move(t), NODE_SYM), sym(std::move(std::move(sym))) {}
 
     void print(size_t tabs = 0) override { printf("%s", sym.c_str()); }
 
@@ -32,7 +30,8 @@ struct SymNode : public Node {
 
 struct BinaryNode : public Node {
     BinaryNode(pToken t, BinaryType type, pNode lhs, pNode rhs)
-        : Node(std::move(t), NODE_BINARY), type(type), lhs(std::move(std::move(lhs))), rhs(std::move(std::move(rhs))) {}
+        : Node(std::move(t), NODE_BINARY), type(type),
+          lhs(std::move(std::move(lhs))), rhs(std::move(std::move(rhs))) {}
 
     void print(size_t tabs = 0) override {
         printf("(");
@@ -89,7 +88,8 @@ struct BinaryNode : public Node {
 struct UnaryNode : Node {
 
     UnaryNode(pToken t, UnaryType type, pNode ch)
-        : Node(std::move(t), NODE_UNARY), type(type), ch(std::move(std::move(ch))) {}
+        : Node(std::move(t), NODE_UNARY), type(type),
+          ch(std::move(std::move(ch))) {}
 
     void print(size_t tabs = 0) override {
         printf("(");
@@ -113,7 +113,8 @@ struct UnaryNode : Node {
 
 struct CallNode : public Node {
     CallNode(pToken t, String name, Vector<pNode> ch)
-        : Node(std::move(t), NODE_CALL), name(std::move(std::move(name))), ch(std::move(std::move(ch))) {}
+        : Node(std::move(t), NODE_CALL), name(std::move(std::move(name))),
+          ch(std::move(std::move(ch))) {}
 
     void print(size_t tabs = 0) override {
         printf("%s(", name.c_str());
@@ -135,7 +136,8 @@ struct CallNode : public Node {
 
 struct AssignNode : public Node {
     AssignNode(pToken t, pNode lv, pNode val)
-        : Node(std::move(t), NODE_ASSIGN), lv(std::move(std::move(lv))), val(std::move(std::move(val))) {}
+        : Node(std::move(t), NODE_ASSIGN), lv(std::move(std::move(lv))),
+          val(std::move(std::move(val))) {}
 
     void print(size_t tabs = 0) override {
         lv->print(tabs);
@@ -148,7 +150,8 @@ struct AssignNode : public Node {
 };
 
 struct BasicTypeNode : public Node {
-    BasicTypeNode(pToken t, pType ty) : Node(std::move(t), NODE_BASIC_TYPE), ty(std::move(std::move(ty))) {}
+    BasicTypeNode(pToken t, pType ty)
+        : Node(std::move(t), NODE_BASIC_TYPE), ty(std::move(std::move(ty))) {}
 
     void print(size_t tabs = 0) override {
         printf("%s", ty->type_name().c_str());
@@ -158,7 +161,8 @@ struct BasicTypeNode : public Node {
 };
 
 struct PointerTypeNode : public Node {
-    PointerTypeNode(pToken t, pNode n) : Node(std::move(t), NODE_POINTER_TYPE), n(std::move(std::move(n))) {}
+    PointerTypeNode(pToken t, pNode n)
+        : Node(std::move(t), NODE_POINTER_TYPE), n(std::move(std::move(n))) {}
 
     void print(size_t tabs = 0) override { printf("(*)"); }
 
@@ -167,7 +171,8 @@ struct PointerTypeNode : public Node {
 
 struct ArrayTypeNode : public Node {
     ArrayTypeNode(pToken t, pNode n, pNode index)
-        : Node(std::move(t), NODE_ARRAY_TYPE), n(std::move(std::move(n))), index(std::move(std::move(index))) {}
+        : Node(std::move(t), NODE_ARRAY_TYPE), n(std::move(std::move(n))),
+          index(std::move(std::move(index))) {}
 
     void print(size_t tabs = 0) override {
         printf("[");
@@ -181,12 +186,13 @@ struct ArrayTypeNode : public Node {
 
 struct VarDefNode : public Node {
     VarDefNode(pToken t, TypedNodeSym var, pNode val, bool is_const = false)
-        : Node(std::move(t), NODE_DEF_VAR), var(std::move(std::move(var))), val(std::move(std::move(val))), is_const(is_const) {}
+        : Node(std::move(t), NODE_DEF_VAR), var(std::move(std::move(var))),
+          val(std::move(std::move(val))), is_const(is_const) {}
 
     void print(size_t tabs = 0) override {
         if (is_const) {
             printf("const ");
-}
+        }
         var.print();
         if (val) {
             printf(" = ");
@@ -202,7 +208,8 @@ struct VarDefNode : public Node {
 struct FuncDefNode : public Node {
     FuncDefNode(pToken t, TypedNodeSym var, Vector<TypedNodeSym> args,
                 pNode body)
-        : Node(std::move(t), NODE_DEF_FUNC), var(std::move(std::move(var))), args(std::move(std::move(args))), body(std::move(std::move(body))) {}
+        : Node(std::move(t), NODE_DEF_FUNC), var(std::move(std::move(var))),
+          args(std::move(std::move(args))), body(std::move(std::move(body))) {}
 
     void print(size_t tabs = 0) override {
         var.n->print(tabs);
@@ -227,7 +234,8 @@ struct FuncDefNode : public Node {
 };
 
 struct BlockNode : public Node {
-    BlockNode(pToken t, AstProg body) : Node(std::move(t), NODE_BLOCK), body(std::move(std::move(body))) {}
+    BlockNode(pToken t, AstProg body)
+        : Node(std::move(t), NODE_BLOCK), body(std::move(std::move(body))) {}
 
     void print(size_t tabs = 0) override {
         printf("{\n");
@@ -239,7 +247,7 @@ struct BlockNode : public Node {
             i->print(tabs);
             if (i->type != NODE_BLOCK) {
                 putchar(';');
-}
+            }
             printf("\n");
         }
         --tabs;
@@ -254,7 +262,9 @@ struct BlockNode : public Node {
 
 struct IfNode : public Node {
     IfNode(pToken t, pNode cond, pNode body, pNode elsed = {})
-        : Node(std::move(t), NODE_IF), cond(std::move(std::move(cond))), body(std::move(std::move(body))), elsed(std::move(std::move(elsed))) {}
+        : Node(std::move(t), NODE_IF), cond(std::move(std::move(cond))),
+          body(std::move(std::move(body))), elsed(std::move(std::move(elsed))) {
+    }
 
     void print(size_t tabs = 0) override {
         printf("if (");
@@ -274,7 +284,8 @@ struct IfNode : public Node {
 
 struct WhileNode : public Node {
     WhileNode(pToken t, pNode cond, pNode body)
-        : Node(std::move(t), NODE_WHILE), cond(std::move(std::move(cond))), body(std::move(std::move(body))) {}
+        : Node(std::move(t), NODE_WHILE), cond(std::move(std::move(cond))),
+          body(std::move(std::move(body))) {}
 
     void print(size_t tabs = 0) override {
         printf("while (");
@@ -289,7 +300,9 @@ struct WhileNode : public Node {
 
 struct ForNode : public Node {
     ForNode(pToken t, pNode init, pNode cond, pNode exec, pNode body)
-        : Node(std::move(t), NODE_FOR), init(std::move(std::move(init))), cond(std::move(std::move(cond))), exec(std::move(std::move(exec))), body(std::move(std::move(body))) {}
+        : Node(std::move(t), NODE_FOR), init(std::move(std::move(init))),
+          cond(std::move(std::move(cond))), exec(std::move(std::move(exec))),
+          body(std::move(std::move(body))) {}
 
     void print(size_t tabs = 0) override {
         printf("for (");
@@ -320,7 +333,8 @@ struct ContinueNode : public Node {
 };
 
 struct ReturnNode : public Node {
-    ReturnNode(pToken t, pNode ret = {}) : Node(std::move(t), NODE_RETURN), ret(std::move(std::move(ret))) {}
+    ReturnNode(pToken t, pNode ret = {})
+        : Node(std::move(t), NODE_RETURN), ret(std::move(std::move(ret))) {}
 
     void print(size_t tabs = 0) override {
         printf("return");
@@ -335,7 +349,8 @@ struct ReturnNode : public Node {
 
 struct ArrayDefNode : public Node {
     ArrayDefNode(pToken t, Vector<pNode> nums)
-        : Node(std::move(t), NODE_ARRAY_VAL), nums(std::move(std::move(nums))) {}
+        : Node(std::move(t), NODE_ARRAY_VAL), nums(std::move(std::move(nums))) {
+    }
 
     void print(size_t tabs = 0) override {
         bool first = true;
@@ -356,7 +371,8 @@ struct ArrayDefNode : public Node {
 
 struct CastNode : public Node {
     CastNode(pToken t, pNode ty, pNode val)
-        : Node(std::move(t), NODE_CAST), ty(std::move(std::move(ty))), val(std::move(std::move(val))) {}
+        : Node(std::move(t), NODE_CAST), ty(std::move(std::move(ty))),
+          val(std::move(std::move(val))) {}
 
     void print(size_t tabs = 0) override {
         printf("(");
@@ -370,7 +386,8 @@ struct CastNode : public Node {
 };
 
 struct RefNode : public Node {
-    RefNode(pToken t, pNode v) : Node(std::move(t), NODE_REF), v(std::move(std::move(v))) {}
+    RefNode(pToken t, pNode v)
+        : Node(std::move(t), NODE_REF), v(std::move(std::move(v))) {}
 
     void print(size_t tabs = 0) override { printf("&"); }
 
@@ -378,7 +395,8 @@ struct RefNode : public Node {
 };
 
 struct DerefNode : public Node {
-    DerefNode(pToken t, pNode val) : Node(std::move(t), NODE_DEREF), val(std::move(std::move(val))) {}
+    DerefNode(pToken t, pNode val)
+        : Node(std::move(t), NODE_DEREF), val(std::move(std::move(val))) {}
 
     void print(size_t tabs = 0) override { printf("*"); }
 
@@ -387,7 +405,8 @@ struct DerefNode : public Node {
 
 struct ItemNode : public Node {
     ItemNode(pToken t, pNode v, Vector<pNode> index)
-        : Node(std::move(t), NODE_ITEM), v(std::move(std::move(v))), index(std::move(std::move(index))) {}
+        : Node(std::move(t), NODE_ITEM), v(std::move(std::move(v))),
+          index(std::move(std::move(index))) {}
 
     void print(size_t tabs = 0) override {
         if (v->type == NODE_SYM) {

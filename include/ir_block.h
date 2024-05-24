@@ -34,13 +34,13 @@ struct Block : public Val {
     // 将该块使用到的临时变量存放起来
     // 避免被释放
     // 例如临时数字，因为 Use 本身不是以 shared_ptr 指向 value
-    void add_imm(const pVal& imm);
+    void add_imm(const pVal &imm);
 
     // 通过 Label 读取块
-    Set<Block*> in_blocks() const;
-    Set<Block*> out_blocks() const;
+    Set<Block *> in_blocks() const;
+    Set<Block *> out_blocks() const;
 
-    void push_back(const pInstr& instr);
+    void push_back(const pInstr &instr);
     // 将 this 与 next 连接起来
     // 只修改 in_block 与 out_block
     void connect(Block *next);
@@ -56,7 +56,7 @@ struct BlockedProgram {
     // 从 instrs 构建 CFG
     void from_instrs(Instrs &instrs);
     // 在最后一个块上加入最后一条语句
-    void push_back(const pInstr& instr);
+    void push_back(const pInstr &instr);
     // 重新生成行号信息
     void re_generate() const;
 

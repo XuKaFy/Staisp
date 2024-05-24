@@ -6,13 +6,13 @@
 namespace Ir {
 
 struct CallInstr : public Instr {
-    CallInstr(const pFunc& func, const Vector<pVal>& args)
+    CallInstr(const pFunc &func, const Vector<pVal> &args)
         : Instr(to_function_type(func->ty)->ret_type),
           func_ty(to_function_type(func->ty)) {
         add_operand(func);
-        for (const auto& i : args) {
+        for (const auto &i : args) {
             add_operand(i);
-}
+        }
     }
 
     InstrType instr_type() const override { return INSTR_CALL; }
@@ -23,10 +23,10 @@ struct CallInstr : public Instr {
 };
 
 struct RetInstr : public Instr {
-    RetInstr(const pVal& oprd = {}) : Instr(make_ir_type(IR_RET)) {
+    RetInstr(const pVal &oprd = {}) : Instr(make_ir_type(IR_RET)) {
         if (oprd) {
             add_operand(oprd);
-}
+        }
     }
 
     InstrType instr_type() const override { return INSTR_RET; }
@@ -42,8 +42,8 @@ struct UnreachableInstr : Instr {
     String instr_print() const override { return "unreachable"; }
 };
 
-pInstr make_call_instr(const pFunc& func, const Vector<pVal>& args);
-pInstr make_ret_instr(const pVal& oprd = {});
+pInstr make_call_instr(const pFunc &func, const Vector<pVal> &args);
+pInstr make_ret_instr(const pVal &oprd = {});
 pInstr make_unreachable_instr();
 
 } // namespace Ir

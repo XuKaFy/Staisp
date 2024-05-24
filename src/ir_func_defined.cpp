@@ -4,9 +4,7 @@
 
 #include <memory>
 
-#include "imm.h"
 #include "ir_call_instr.h"
-#include "ir_constant.h"
 #include "ir_control_instr.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
@@ -14,7 +12,7 @@
 
 namespace Ir {
 
-FuncDefined::FuncDefined(const TypedSym& var, Vector<pType> arg_types,
+FuncDefined::FuncDefined(const TypedSym &var, Vector<pType> arg_types,
                          Vector<String> arg_name)
     : Func(var, arg_types) {
     this->arg_name = arg_name;
@@ -32,11 +30,9 @@ FuncDefined::FuncDefined(const TypedSym& var, Vector<pType> arg_types,
     }
 }
 
-void FuncDefined::add_body(const pInstr& instr) {
-    body.push_back(instr);
-}
+void FuncDefined::add_body(const pInstr &instr) { body.push_back(instr); }
 
-void FuncDefined::add_imm(const pVal& val) { imms.push_back(val); }
+void FuncDefined::add_imm(const pVal &val) { imms.push_back(val); }
 
 void FuncDefined::end_function() {
     if (body.empty() || body.back()->instr_type() != INSTR_RET) {
@@ -48,16 +44,16 @@ void FuncDefined::end_function() {
     }
     Instrs final;
     final.push_back(Ir::make_label_instr());
-    for(const auto& i : body) {
-        if(i->instr_type() == INSTR_ALLOCA) {
+    for (const auto &i : body) {
+        if (i->instr_type() == INSTR_ALLOCA) {
             final.push_back(i);
-}
+        }
     }
     final.push_back(Ir::make_br_instr(body.front()));
-    for(const auto& i : body) {
-        if(i->instr_type() != INSTR_ALLOCA) {
+    for (const auto &i : body) {
+        if (i->instr_type() != INSTR_ALLOCA) {
             final.push_back(i);
-}
+        }
     }
     body.clear();
     p.from_instrs(final);
@@ -74,7 +70,7 @@ String FuncDefined::print_func() const {
     for (size_t i = 0; i < args.size(); ++i) {
         if (i > 0) {
             whole_function += ", ";
-}
+        }
         whole_function += func_ty->arg_type[i]->type_name();
         whole_function += " %";
         whole_function += arg_name[i];
@@ -83,7 +79,7 @@ String FuncDefined::print_func() const {
     whole_function += ")";
 
     whole_function += " {\n";
-    for (const auto& i : p.blocks) {
+    for (const auto &i : p.blocks) {
         whole_function += i->print_block();
     }
     whole_function += "}\n";
@@ -91,9 +87,10 @@ String FuncDefined::print_func() const {
     return whole_function;
 }
 
-pFuncDefined make_func_defined(const TypedSym& var, Vector<pType> arg_types,
+pFuncDefined make_func_defined(const TypedSym &var, Vector<pType> arg_types,
                                Vector<String> syms) {
-    return std::make_shared<FuncDefined>(std::move(var), std::move(arg_types), std::move(syms));
+    return std::make_shared<FuncDefined>(std::move(var), std::move(arg_types),
+                                         std::move(syms));
 }
 
 } // namespace Ir

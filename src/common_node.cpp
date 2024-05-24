@@ -2,10 +2,10 @@
 
 #include <utility>
 
+Node::Node(pToken t, NodeType type)
+    : token(std::move(std::move(t))), type(type) {}
 
-Node::Node(pToken t, NodeType type) : token(std::move(std::move(t))), type(type) {}
-
-void Node::throw_error(int id, const String& object, const String& message) {
+void Node::throw_error(int id, const String &object, const String &message) {
     if (token) {
         token->throw_error(id, object, message);
     } else {

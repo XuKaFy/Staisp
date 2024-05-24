@@ -2,16 +2,17 @@
 
 #include <utility>
 
-
 namespace Staisp {
 
 StaispToken::StaispToken(ImmValue val, pCode code, String::iterator token_begin,
                          String::iterator token_end, int line)
-    : Token(std::move(code), token_begin, token_end, line), t(TOKEN_INT), val(val) {}
+    : Token(std::move(code), token_begin, token_end, line), t(TOKEN_INT),
+      val(val) {}
 
 StaispToken::StaispToken(String sym, pCode code, String::iterator token_begin,
                          String::iterator token_end, int line)
-    : Token(std::move(code), token_begin, token_end, line), t(TOKEN_SYM), sym(std::move(std::move(sym))) {}
+    : Token(std::move(code), token_begin, token_end, line), t(TOKEN_SYM),
+      sym(std::move(std::move(sym))) {}
 
 StaispToken::StaispToken(TokenType t, String::value_type c, pCode code,
                          String::iterator token_begin,
@@ -24,7 +25,7 @@ String::value_type Lexer::get_char() {
     }
     if (peek() == '\n') {
         ++_line_count;
-}
+    }
     return *(_current++);
 }
 
@@ -35,18 +36,18 @@ bool Lexer::has_char() const { return _current != _end; }
 void Lexer::jump_empty() {
     while (has_char() && (isspace(peek()) != 0)) {
         get_char();
-}
+    }
 }
 
 void Lexer::jump_comment() {
     if (has_char() && peek() == '#') {
         while (has_char() && peek() != '\n') {
             get_char();
-}
-}
+        }
+    }
 }
 
-TokenList Lexer::lexer(const pCode& code) {
+TokenList Lexer::lexer(const pCode &code) {
     TokenList list;
     _current = code->p_code->begin();
     _end = code->p_code->end();
@@ -59,7 +60,7 @@ TokenList Lexer::lexer(const pCode& code) {
         }
         if (!has_char()) {
             break;
-}
+        }
         _begin = _current;
         list.push_back(lexer_one_token());
         // list.back().print();
@@ -81,7 +82,7 @@ pToken Lexer::lexer_number(String::value_type head) {
         }
         if (isdigit(peek()) == 0) {
             break;
-}
+        }
         var = var * 10 + get_char() - '0';
     }
     if (var >= INT_MAX) {
@@ -102,7 +103,7 @@ pToken Lexer::lexer_float(long long head) {
         }
         if (isdigit(peek()) == 0) {
             break;
-}
+        }
         var += small * (get_char() - '0');
         small /= 10;
     }
@@ -116,7 +117,7 @@ pToken Lexer::lexer_sym(String::value_type head) {
     while (has_char() && (isspace(peek()) == 0)) {
         if ((isalnum(peek()) == 0) && peek() != '_') {
             break;
-}
+        }
         sym += get_char();
     }
     return pToken(new StaispToken(sym, _p_code, _begin, _current, _line_count));

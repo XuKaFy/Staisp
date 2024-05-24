@@ -16,7 +16,7 @@ void BlockValue::clear() { val.clear(); }
 
 void BlockValue::cup(const BlockValue &v) {
     Map<String, Val> copied_val;
-    for (const auto& i : v.val) {
+    for (const auto &i : v.val) {
         if (val.count(i.first) == 0U) { // undef + constant = undef;
             continue;
         }
@@ -34,14 +34,15 @@ void BlockValue::cup(const BlockValue &v) {
 }
 
 void Utils::operator()(Ir::Block *p, BlockValue &v) {
-    for (const auto& i : p->body) {
+    for (const auto &i : p->body) {
         switch (i->instr_type()) {
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);
             auto *to = r->operand(0)->usee;
             auto *val = r->operand(1)->usee;
-            if(to->type() == Ir::VAL_GLOBAL) {
-                // store to global val but we dont know its value after this store
+            if (to->type() == Ir::VAL_GLOBAL) {
+                // store to global val but we dont know its value after this
+                // store
                 v.val[to->name()] = Val();
                 continue;
             }
@@ -71,7 +72,8 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_LOAD: {
             auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(i);
             auto *from = r->operand(0)->usee;
-            if(from->type() == Ir::VAL_GLOBAL && !static_cast<Ir::Global*>(from)->is_const) {
+            if (from->type() == Ir::VAL_GLOBAL &&
+                !static_cast<Ir::Global *>(from)->is_const) {
                 // all global val must be VAC, except const
                 v.val[i->name()] = Val();
             } else {
@@ -91,7 +93,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
                 auto *oprd = i->operand(c)->usee;
                 if (oprd->type() == Ir::VAL_INSTR) {
                     if (v.val.count(oprd->name()) == 0U) { // undef
-                        v.val.erase(i->name());       // undef
+                        v.val.erase(i->name());            // undef
                         goto End;
                     }
                     if (v.val[oprd->name()].ty == Val::NAC) {
@@ -129,7 +131,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
 int Utils::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     int ans = 0;
-    for (const auto& i : OUT.val) {
+    for (const auto &i : OUT.val) {
         if (i.second.ty == Val::VALUE &&
             i.second.ir) { // has value, is a constant
             auto imm = Ir::make_constant(i.second.v);

@@ -17,7 +17,6 @@
 
 #include <utility>
 
-
 #include "def.h"
 #include "imm.h"
 
@@ -52,7 +51,8 @@ using pType = Pointer<Type>;
 
 // 表达具有任意类型的标识符
 struct TypedSym {
-    TypedSym(String sym, pType ty) : sym(std::move(std::move(sym))), ty(std::move(std::move(ty))) {}
+    TypedSym(String sym, pType ty)
+        : sym(std::move(std::move(sym))), ty(std::move(std::move(ty))) {}
 
     String sym;
     pType ty;
@@ -69,7 +69,7 @@ enum VoidIrType {
 
 // 为表达 Ir 指令类型所准备的类
 struct IrType : public Type {
-    IrType(VoidIrType ty) :  ir_ty(ty) {}
+    IrType(VoidIrType ty) : ir_ty(ty) {}
 
     TypeType type_type() const override { return TYPE_IR_TYPE; }
     String type_name() const override { return "ir"; }
@@ -81,7 +81,7 @@ struct IrType : public Type {
 // 基础类型 ImmType 的封装
 // 使用继承自 Type 的 BasicType 进行表达
 struct BasicType : public Type {
-    BasicType(ImmType ty) :  ty(ty) {}
+    BasicType(ImmType ty) : ty(ty) {}
 
     TypeType type_type() const override { return TYPE_BASIC_TYPE; }
     String type_name() const override;
@@ -92,11 +92,10 @@ struct BasicType : public Type {
 // 函数类型
 struct FunctionType : public Type {
     FunctionType(pType ret_type, Vector<pType> arg_type)
-        :  ret_type(std::move(std::move(ret_type))), arg_type(std::move(std::move(arg_type))) {}
+        : ret_type(std::move(std::move(ret_type))),
+          arg_type(std::move(std::move(arg_type))) {}
 
-    TypeType type_type() const override {
-        return ret_type->type_type();
-    }
+    TypeType type_type() const override { return ret_type->type_type(); }
     String type_name() const override { return ret_type->type_name(); }
     size_t length() const override { return ret_type->length(); }
 
@@ -113,20 +112,20 @@ enum CompoundTypeType {
 };
 
 struct CompoundType : public Type {
-    CompoundType()  = default;
+    CompoundType() = default;
 
     TypeType type_type() const override { return TYPE_COMPOUND_TYPE; }
     virtual CompoundTypeType compound_type_type() const = 0;
 };
 
 struct StructType : public CompoundType {
-    StructType(Vector<TypedSym> elems) :  elems(std::move(std::move(elems))) {}
+    StructType(Vector<TypedSym> elems) : elems(std::move(std::move(elems))) {}
     CompoundTypeType compound_type_type() const override {
         return COMPOUND_TYPE_STRUCT;
     }
     size_t length() const override {
         size_t ans = 0;
-        for (const auto& i : elems) {
+        for (const auto &i : elems) {
             ans += i.ty->length();
         }
         return ans;
@@ -136,7 +135,7 @@ struct StructType : public CompoundType {
 };
 
 struct PointerType : public CompoundType {
-    PointerType(pType ty) :  pointed_type(std::move(std::move(ty))) {}
+    PointerType(pType ty) : pointed_type(std::move(std::move(ty))) {}
 
     String type_name() const override;
     CompoundTypeType compound_type_type() const override {
@@ -149,15 +148,13 @@ struct PointerType : public CompoundType {
 
 struct ArrayType : public CompoundType {
     ArrayType(pType elem_type, size_t elem_count)
-        :  elem_type(std::move(std::move(elem_type))), elem_count(elem_count) {}
+        : elem_type(std::move(std::move(elem_type))), elem_count(elem_count) {}
 
     CompoundTypeType compound_type_type() const override {
         return COMPOUND_TYPE_ARRAY;
     }
     String type_name() const override;
-    size_t length() const override {
-        return elem_type->length() * elem_count;
-    }
+    size_t length() const override { return elem_type->length() * elem_count; }
 
     pType elem_type;
     size_t elem_count;
@@ -172,29 +169,29 @@ pType make_array_type(pType ty, size_t count);
 pType make_pointer_type(pType ty);
 
 // 与类型相关的 helper
-pType join_type(pType a1, const pType& a2);
-bool is_same_type(const pType& a1, const pType& a2);
-bool is_castable(const pType& from, const pType& to);
-bool is_pointer(const pType& p);
-bool is_array(const pType& p);
-bool is_struct(const pType& p);
-bool is_basic_type(const pType& p);
+pType join_type(pType a1, const pType &a2);
+bool is_same_type(const pType &a1, const pType &a2);
+bool is_castable(const pType &from, const pType &to);
+bool is_pointer(const pType &p);
+bool is_array(const pType &p);
+bool is_struct(const pType &p);
+bool is_basic_type(const pType &p);
 
 // 注意，若不是基本类型，以下所有的函数均返回 false
-bool is_signed_type(const pType& ty);
-bool is_float(const pType& ty);
-bool is_integer(const pType& ty);
-size_t bytes_of_type(const pType& ty);
+bool is_signed_type(const pType &ty);
+bool is_float(const pType &ty);
+bool is_integer(const pType &ty);
+size_t bytes_of_type(const pType &ty);
 
 // 对复合类型的解包的 convertor
-Pointer<PointerType> to_pointer_type(const pType& p);
-pType to_pointed_type(const pType& p);
-Pointer<ArrayType> to_array_type(const pType& p);
-pType to_elem_type(const pType& p);
-Pointer<StructType> to_struct_type(const pType& p);
-Pointer<BasicType> to_basic_type(const pType& p);
-Pointer<FunctionType> to_function_type(const pType& p);
-VoidIrType to_ir_type(const pType& p);
+Pointer<PointerType> to_pointer_type(const pType &p);
+pType to_pointed_type(const pType &p);
+Pointer<ArrayType> to_array_type(const pType &p);
+pType to_elem_type(const pType &p);
+Pointer<StructType> to_struct_type(const pType &p);
+Pointer<BasicType> to_basic_type(const pType &p);
+Pointer<FunctionType> to_function_type(const pType &p);
+VoidIrType to_ir_type(const pType &p);
 
-bool is_ir_type(const pType& p, VoidIrType ty);
-bool is_ir_type(const pType& p);
+bool is_ir_type(const pType &p, VoidIrType ty);
+bool is_ir_type(const pType &p);

@@ -15,7 +15,7 @@ String Global::print_global() const {
     return ans;
 }
 
-pGlobal make_global(const TypedSym& val, Const con, bool is_const) {
+pGlobal make_global(const TypedSym &val, Const con, bool is_const) {
     return std::make_shared<Global>(val, std::move(con), is_const);
 }
 

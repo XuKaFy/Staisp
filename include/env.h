@@ -25,47 +25,47 @@ public:
         }
         if (_parent) {
             return _parent->count(sym);
-}
+        }
         return false;
     }
 
     T &operator[](String sym) {
         if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
-}
+        }
         return find(sym);
     }
 
     const T &operator[](String sym) const {
         if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
-}
+        }
         return find(sym);
     }
 
     T &find(String sym) {
         if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
-}
+        }
         if (_var_map.count(sym)) {
             return _var_map[sym];
         }
         if (_parent) {
             return _parent->find(sym);
-}
+        }
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
     const T &find(String sym) const {
         if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
-}
+        }
         if (_var_map.count(sym)) {
             return _var_map[sym];
         }
         if (_parent) {
             return _parent->find(sym);
-}
+        }
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
@@ -98,20 +98,20 @@ public:
             _env.push(pEnv(new tEnv(env())));
         } else {
             _env.push(pEnv(new tEnv()));
-}
+        }
     }
 
     void end_env() {
         if (_env.empty()) {
             throw Exception(2, "EnvWrapper", "environment stack is empty");
-}
+        }
         _env.pop();
     }
 
     void clear_env() {
         while (env_count()) {
             end_env();
-}
+        }
     }
 
 private:

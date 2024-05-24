@@ -3,12 +3,7 @@
 #include "gtest/gtest.h"
 #include <fstream>
 
-/* TODO
-    写好看一点
-    加上库之后就写成对比 in、out 就行了。
-*/
-
-pCode read_test_file(const String& file_suffix) {
+pCode read_test_file(const String &file_suffix) {
     String file = String("../../code/") + file_suffix;
     std::ifstream in;
     in.open(file, std::fstream::in);

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <utility>
-
 #include "ir_instr.h"
 
 namespace Ir {
@@ -15,7 +13,7 @@ struct LabelInstr : public Instr {
 };
 
 struct BrInstr : public Instr {
-    BrInstr(const pInstr& to) : Instr(make_ir_type(IR_BR)) { add_operand(to); }
+    BrInstr(const pInstr &to) : Instr(make_ir_type(IR_BR)) { add_operand(to); }
 
     BrInstr(Instr *to) : Instr(make_ir_type(IR_BR)) { add_operand(to); }
 
@@ -25,7 +23,7 @@ struct BrInstr : public Instr {
 };
 
 struct BrCondInstr : public Instr {
-    BrCondInstr(const pVal& cond, const pInstr& trueTo, const pInstr& falseTo)
+    BrCondInstr(const pVal &cond, const pInstr &trueTo, const pInstr &falseTo)
         : Instr(make_ir_type(IR_BR_COND)) {
         add_operand(cond);
         add_operand(trueTo);
@@ -44,8 +42,9 @@ using pBrInstr = Pointer<BrInstr>;
 using pBrCondInstr = Pointer<BrCondInstr>;
 
 pInstr make_label_instr();
-pInstr make_br_instr(const pInstr& to);
+pInstr make_br_instr(const pInstr &to);
 pInstr make_br_instr(Instr *to);
-pInstr make_br_cond_instr(const pVal& cond, const pInstr& trueTo, const pInstr& falseTo);
+pInstr make_br_cond_instr(const pVal &cond, const pInstr &trueTo,
+                          const pInstr &falseTo);
 
 } // namespace Ir

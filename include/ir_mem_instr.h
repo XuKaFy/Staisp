@@ -16,7 +16,7 @@ struct AllocInstr : public Instr {
 };
 
 struct LoadInstr : public Instr {
-    LoadInstr(const pVal& from) : Instr(to_pointed_type(from->ty)) {
+    LoadInstr(const pVal &from) : Instr(to_pointed_type(from->ty)) {
         add_operand(from);
     }
 
@@ -26,7 +26,8 @@ struct LoadInstr : public Instr {
 };
 
 struct StoreInstr : public Instr {
-    StoreInstr(const pVal& to, const pVal& val) : Instr(make_ir_type(IR_STORE)) {
+    StoreInstr(const pVal &to, const pVal &val)
+        : Instr(make_ir_type(IR_STORE)) {
         add_operand(to);
         add_operand(val);
     }
@@ -37,7 +38,7 @@ struct StoreInstr : public Instr {
 };
 
 pInstr make_alloc_instr(pType tr);
-pInstr make_load_instr(const pVal& from);
-pInstr make_store_instr(const pVal& to, const pVal& val);
+pInstr make_load_instr(const pVal &from);
+pInstr make_store_instr(const pVal &to, const pVal &val);
 
 } // namespace Ir

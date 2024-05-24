@@ -27,7 +27,7 @@ public:
     template <typename a, typename b>
     auto fmap(std::function<b(a)> f, Vector<a> v1) -> Vector<b> {
         Vector<b> v2;
-        for (const auto& vs : v1) {
+        for (const auto &vs : v1) {
             v2.push_back(f(vs));
         }
         return v2;

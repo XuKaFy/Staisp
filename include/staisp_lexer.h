@@ -55,7 +55,7 @@ struct StaispToken : public Token {
 
 class Lexer {
 public:
-    TokenList lexer(const pCode& code);
+    TokenList lexer(const pCode &code);
 
 private:
     String::value_type get_char();

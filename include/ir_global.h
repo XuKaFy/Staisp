@@ -2,7 +2,6 @@
 
 #include <utility>
 
-
 #include "ir_constant.h"
 #include "ir_val.h"
 #include "type.h"
@@ -10,8 +9,9 @@
 namespace Ir {
 
 struct Global : public Val {
-    Global(const TypedSym& val, Const con, bool is_const = false)
-        : Val(make_pointer_type(val.ty)), con(std::move(std::move(con))), is_const(is_const) {
+    Global(const TypedSym &val, Const con, bool is_const = false)
+        : Val(make_pointer_type(val.ty)), con(std::move(std::move(con))),
+          is_const(is_const) {
         set_name("@" + val.sym);
     }
 
@@ -25,6 +25,6 @@ struct Global : public Val {
 
 using pGlobal = Pointer<Global>;
 
-pGlobal make_global(const TypedSym& val, Const con, bool is_const = false);
+pGlobal make_global(const TypedSym &val, Const con, bool is_const = false);
 
 } // namespace Ir

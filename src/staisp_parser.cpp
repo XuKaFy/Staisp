@@ -1,14 +1,12 @@
 #include "staisp_parser.h"
 
-#include <utility>
-
 #include "ast_node.h"
 #include "staisp_lexer.h"
 #include "type.h"
 
 namespace Staisp {
 
-void Parser::throw_error(int id, const String& msg) {
+void Parser::throw_error(int id, const String &msg) {
     current_token().throw_error(id, "Parser", msg);
 }
 
@@ -52,14 +50,14 @@ void Parser::consume_token(TokenType t) {
 
 bool Parser::has_token() const { return _current != _end; }
 
-AstProg Parser::parse(const pCode& code) {
+AstProg Parser::parse(const pCode &code) {
     TokenList list = Lexer().lexer(code);
     return parse(list);
 }
 
-bool Parser::is_buildin_sym(const String& sym) {
-    return (gBuildinBinaryOprType.count(sym) != 0U) || (gBuildinSymType.count(sym) != 0U) ||
-           (sym == "UNARY_NEG");
+bool Parser::is_buildin_sym(const String &sym) {
+    return (gBuildinBinaryOprType.count(sym) != 0U) ||
+           (gBuildinSymType.count(sym) != 0U) || (sym == "UNARY_NEG");
 }
 
 pNode Parser::parse_sym_node() {
@@ -195,7 +193,7 @@ pNode Parser::parse_left_value() {
     return parse_sym_node();
 }
 
-pNode Parser::parse_buildin_sym(const String& sym, bool in_global) {
+pNode Parser::parse_buildin_sym(const String &sym, bool in_global) {
     auto token = current_p_token();
     if (gBuildinBinaryOprType.count(sym) != 0U) {
         auto a1 = parse_value();
@@ -274,7 +272,7 @@ pNode Parser::parse_buildin_sym(const String& sym, bool in_global) {
         }
         _env.env()->set(a1.name, SYM_FUNC);
         _env.push_env();
-        for (const auto& i : a2) {
+        for (const auto &i : a2) {
             _env.env()->set(i.name, SYM_VAL);
         }
         auto a3 = parse_statement(false);
@@ -341,7 +339,7 @@ Vector<pNode> Parser::parse_value_list() {
     return list;
 }
 
-pNode Parser::parse_function_call(const String& sym) {
+pNode Parser::parse_function_call(const String &sym) {
     if (!_env.env()->count(sym)) {
         throw_error(4, "function not found");
     }

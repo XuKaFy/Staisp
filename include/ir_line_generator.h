@@ -11,7 +11,7 @@ namespace Ir {
 // 并且为所有寄存器和 label 按顺序标号
 class LineGenerator {
 public:
-    LineGenerator()  = default;
+    LineGenerator() = default;
     int line();
     String label();
 

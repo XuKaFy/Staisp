@@ -2,7 +2,6 @@
 
 #include <utility>
 
-
 #include "def.h"
 
 #include "type.h"
@@ -52,10 +51,10 @@ struct User : public Val {
 
     ~User() override { user_release(this); }
 
-    void add_operand(const pVal& val);
+    void add_operand(const pVal &val);
     void add_operand(Val *val);
     void change_operand(size_t index, Val *val);
-    void change_operand(size_t index, const pVal& val);
+    void change_operand(size_t index, const pVal &val);
 
     pUse operand(size_t index) const;
     size_t operand_size() const;

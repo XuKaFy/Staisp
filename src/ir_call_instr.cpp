@@ -1,14 +1,12 @@
 #include "ir_call_instr.h"
 
-#include <utility>
-
 namespace Ir {
 
 String CallInstr::instr_print() const {
     String res;
     if (ty->type_type() != TYPE_VOID_TYPE) {
         res = name() + " = ";
-}
+    }
     res += "call " + func_ty->ret_type->type_name() + " @" +
            operand(0)->usee->name() + "("; // %1 = call @fun(i32 1, i64 2)
 
@@ -17,7 +15,7 @@ String CallInstr::instr_print() const {
 
     if (func_ty->arg_type.empty()) {
         goto INSTR_PRINT_IMPL_END;
-}
+    }
 
     res += operand(1)->usee->ty->type_name();
     res += " ";
@@ -43,11 +41,11 @@ String RetInstr::instr_print() const {
     return "ret void";
 }
 
-pInstr make_call_instr(const pFunc& func, const Vector<pVal>& args) {
+pInstr make_call_instr(const pFunc &func, const Vector<pVal> &args) {
     return pInstr(new CallInstr(func, args));
 }
 
-pInstr make_ret_instr(const pVal& oprd) { return pInstr(new RetInstr(oprd)); }
+pInstr make_ret_instr(const pVal &oprd) { return pInstr(new RetInstr(oprd)); }
 
 pInstr make_unreachable_instr() { return pInstr(new UnreachableInstr()); }
 

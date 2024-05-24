@@ -1,6 +1,5 @@
 #include "ir_ptr_instr.h"
 
-#include <utility>
 #include "type.h"
 
 namespace Ir {
@@ -41,13 +40,13 @@ pType ex_shell(pType t, size_t count, bool &get_from_local) {
     return make_pointer_type(t);
 }
 
-ItemInstr::ItemInstr(const pVal& val, const Vector<pVal>& index)
+ItemInstr::ItemInstr(const pVal &val, const Vector<pVal> &index)
     : Instr(ex_shell(val->ty, index.size(), get_from_local)) {
     add_operand(val);
     // set_name("%%");
     // val->set_name("%%%%");
     // printf("%s", val->name());
-    for (const auto& j : index) {
+    for (const auto &j : index) {
         // printf("[%s]", j->name());
         add_operand(j);
     }
@@ -57,7 +56,7 @@ ItemInstr::ItemInstr(const pVal& val, const Vector<pVal>& index)
     // set_name(nullptr);
 }
 
-pInstr make_item_instr(const pVal& val, const Vector<pVal>& index) {
+pInstr make_item_instr(const pVal &val, const Vector<pVal> &index) {
     return pInstr(new ItemInstr(val, index));
 }
 

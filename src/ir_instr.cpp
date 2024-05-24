@@ -11,7 +11,7 @@ pInstr make_empty_instr() {
     return empty;
 }
 
-pInstr make_sym_instr(const TypedSym& sym) {
+pInstr make_sym_instr(const TypedSym &sym) {
     auto j = std::make_shared<Instr>(sym.ty);
     j->set_name(sym.sym);
     return j;

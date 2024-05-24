@@ -7,7 +7,7 @@ int LineGenerator::line() { return _line++; }
 String LineGenerator::label() { return std::to_string(++_label_line); }
 
 void LineGenerator::generate(const Instrs &body) {
-    for (const auto & i : body) {
+    for (const auto &i : body) {
         if (!i->has_name() || i->name()[0] == 'L' ||
             i->name()[0] == '%') { // re-generate all labels and reg name
             switch (i->ty->type_type()) {

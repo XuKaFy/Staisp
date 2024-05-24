@@ -6,12 +6,16 @@
 
 namespace Opt2 {
 
-bool BlockValue::operator==(const BlockValue &b) const { return uses == b.uses; }
+bool BlockValue::operator==(const BlockValue &b) const {
+    return uses == b.uses;
+}
 
-bool BlockValue::operator!=(const BlockValue &b) const { return uses != b.uses; }
+bool BlockValue::operator!=(const BlockValue &b) const {
+    return uses != b.uses;
+}
 
 void BlockValue::cup(const BlockValue &v) {
-    for (const auto& i : v.uses) {
+    for (const auto &i : v.uses) {
         uses.insert(i);
     }
 }
@@ -97,7 +101,7 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
             }
             if (to->type() == Ir::VAL_GLOBAL) {
                 goto Ignore;
-}
+            }
             if (uses.count(name) == 0U) { // this def is useless
                 // printf("    Not used def %s\n", r->instr_print());
                 j = p->body.erase(j);

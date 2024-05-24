@@ -12,15 +12,18 @@
 
 namespace Ir {
 
-Pointer<LabelInstr> Block::label() const { return std::dynamic_pointer_cast<LabelInstr>(body.front()); }
+Pointer<LabelInstr> Block::label() const {
+    return std::dynamic_pointer_cast<LabelInstr>(body.front());
+}
 
 pInstr Block::back() const { return body.back(); }
 
-void Block::add_imm(const pVal& imm) { imms.push_back(imm); }
+void Block::add_imm(const pVal &imm) { imms.push_back(imm); }
 
 void Block::squeeze_out(bool selected) {
     auto end = body.back();
-    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select((1 - static_cast<int>(selected) != 0));
+    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(
+        (1 - static_cast<int>(selected) != 0));
     new_br->block = this;
     // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
     body.pop_back();
@@ -37,14 +40,14 @@ void Block::connect_in_and_out() {
 
 String Block::print_block() const {
     String whole_block;
-    for (const auto & i : body) {
+    for (const auto &i : body) {
         whole_block += i->instr_print();
         whole_block += "\n";
     }
     return whole_block;
 }
 
-void Block::push_back(const pInstr& instr) { body.push_back(instr); }
+void Block::push_back(const pInstr &instr) { body.push_back(instr); }
 
 pBlock make_block() { return std::make_shared<Block>(); }
 
@@ -64,19 +67,22 @@ void Block::replace_out(Block *before, Block *out) {
             }
         }
         if (!flag) {
-            printf("Warning: for block %s, try to replace %s wiith %s\n", name().c_str(), before->name().c_str(), out->name().c_str());
-            printf("Current Block %s: \n%s\n", name().c_str(), print_block().c_str());
+            printf("Warning: for block %s, try to replace %s wiith %s\n",
+                   name().c_str(), before->name().c_str(), out->name().c_str());
+            printf("Current Block %s: \n%s\n", name().c_str(),
+                   print_block().c_str());
             throw Exception(2, "Block::replace_out", "not replaced");
         }
         break;
     }
     default:
-        printf("Warning: block %s's last instruction is type %d\n", name().c_str(), back->instr_type());
+        printf("Warning: block %s's last instruction is type %d\n",
+               name().c_str(), back->instr_type());
         throw Exception(1, "Block::replace_out", "not a br block");
     }
 }
 
-void BlockedProgram::push_back(const pInstr& instr) {
+void BlockedProgram::push_back(const pInstr &instr) {
     blocks.back()->push_back(instr);
 }
 
@@ -89,7 +95,7 @@ void BlockedProgram::from_instrs(Instrs &instrs) {
     }
     puts("--end");*/
 
-    for (const auto& i : instrs) {
+    for (const auto &i : instrs) {
         switch (i->ty->type_type()) {
         case TYPE_IR_TYPE: {
             switch (to_ir_type(i->ty)) {
@@ -114,36 +120,35 @@ void BlockedProgram::from_instrs(Instrs &instrs) {
 
 void BlockedProgram::re_generate() const {
     LineGenerator g;
-    for (const auto& i : blocks) {
+    for (const auto &i : blocks) {
         g.generate(i->body);
     }
 }
 
-Set<Block*> Block::in_blocks() const
-{
-    Set<Block*> ans;
-    for(auto &&i : label()->users) {
-        auto *user = static_cast<Instr*>(i->user);
+Set<Block *> Block::in_blocks() const {
+    Set<Block *> ans;
+    for (auto &&i : label()->users) {
+        auto *user = static_cast<Instr *>(i->user);
         ans.insert(user->block);
     }
     return ans;
 }
 
-Set<Block*> Block::out_blocks() const
-{
-    switch(back()->instr_type()) {
+Set<Block *> Block::out_blocks() const {
+    switch (back()->instr_type()) {
     case INSTR_BR:
-        return { static_cast<LabelInstr *>(back()->operand(0)->usee)->block };
+        return {static_cast<LabelInstr *>(back()->operand(0)->usee)->block};
     case INSTR_BR_COND:
-        return { static_cast<LabelInstr *>(back()->operand(1)->usee)->block,
-                 static_cast<LabelInstr *>(back()->operand(2)->usee)->block };
-    default: break;
+        return {static_cast<LabelInstr *>(back()->operand(1)->usee)->block,
+                static_cast<LabelInstr *>(back()->operand(2)->usee)->block};
+    default:
+        break;
     }
-    return { };
+    return {};
 }
 
 void BlockedProgram::opt_join_blocks() {
-    for (auto i = blocks.begin(); i != blocks.end(); ) {
+    for (auto i = blocks.begin(); i != blocks.end();) {
         /*
         \     |     /
          [next_block]
@@ -163,20 +168,21 @@ void BlockedProgram::opt_join_blocks() {
             ++i;
             continue;
         }
-    
-        // printf("Block {\n%s} connected with {\n%s}\n", next_block->print_block().c_str(), cur_block->print_block().c_str());
+
+        // printf("Block {\n%s} connected with {\n%s}\n",
+        // next_block->print_block().c_str(), cur_block->print_block().c_str());
         // printf("Block both connected\n\n");
-            
+
         next_block->body.pop_back();
-        for (auto j = cur_block->body.begin() + 1;
-             j != cur_block->body.end(); ++j) {
+        for (auto j = ++cur_block->body.begin(); j != cur_block->body.end();
+             ++j) {
             (*j)->block = next_block;
             next_block->body.push_back(std::move(*j));
         }
-        for (const auto& j : cur_block->imms) {
+        for (const auto &j : cur_block->imms) {
             next_block->add_imm(j);
         }
-    
+
         i = blocks.erase(i);
     }
 }
@@ -189,7 +195,7 @@ void BlockedProgram::opt_remove_empty_block() {
             i = blocks.erase(i);
         } else {
             ++i;
-}
+        }
     }
 }
 
@@ -202,7 +208,7 @@ void BlockedProgram::opt_connect_empty_block() {
             i = blocks.erase(i);
         } else {
             ++i;
-}
+        }
     }
 }
 
@@ -223,8 +229,8 @@ bool can_be_removed(Ir::InstrType t) {
 
 void BlockedProgram::opt_remove_dead_code() {
     my_assert(!blocks.empty(), "?");
-    for (const auto& i : blocks) {
-        for (auto j = i->body.begin() + 1; j != i->body.end();) {
+    for (const auto &i : blocks) {
+        for (auto j = ++i->body.begin(); j != i->body.end();) {
             if ((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
                 j = i->body.erase(j);
             } else {
@@ -233,20 +239,20 @@ void BlockedProgram::opt_remove_dead_code() {
         }
     }
 
-    for (const auto& i : blocks) {
+    for (const auto &i : blocks) {
         if (i->body.size() <= 1) {
             continue;
-}
+        }
 
         auto end = i->body.back();
         if (end->instr_type() != Ir::INSTR_BR_COND) {
             continue;
-}
+        }
 
         auto *cond = end->operand(0)->usee;
         if (cond->type() != Ir::VAL_CONST) {
             continue;
-}
+        }
 
         auto *con = static_cast<Ir::Const *>(cond);
         if (con->v.type() == VALUE_IMM) {
@@ -262,16 +268,17 @@ void BlockedProgram::normal_opt() {
     opt_remove_dead_code();
 }
 
-
 void BlockedProgram::opt_trivial() {
     // this is not correct
-    for (const auto& block : blocks) {
-        for (const auto& instr : block->body) {
+    for (const auto &block : blocks) {
+        for (const auto &instr : block->body) {
             if (auto bin = std::dynamic_pointer_cast<Ir::BinInstr>(instr)) {
-                auto *usee =  bin->operand(1)->usee;
+                auto *usee = bin->operand(1)->usee;
                 if (bin->binType == INSTR_SDIV && usee->type() == VAL_CONST) {
-                    auto value = static_cast<Const*>(usee)->v;
-                    if (value.type() == ValueType::VALUE_IMM && value.imm_value().ty == IMM_I32 && value.imm_value().val.ival == 2) {
+                    auto value = static_cast<Const *>(usee)->v;
+                    if (value.type() == ValueType::VALUE_IMM &&
+                        value.imm_value().ty == IMM_I32 &&
+                        value.imm_value().val.ival == 2) {
                         bin->binType = INSTR_ASHR;
                         auto imm = Ir::make_constant(ImmValue(1));
                         block->add_imm(imm);

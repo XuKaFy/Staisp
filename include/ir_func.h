@@ -7,7 +7,8 @@
 namespace Ir {
 
 struct Func : public User {
-    Func(const TypedSym& var, Vector<pType> arg_types, bool variant_length = false)
+    Func(const TypedSym &var, Vector<pType> arg_types,
+         bool variant_length = false)
         : User(make_function_type(var.ty, std::move(arg_types))),
           variant_length(variant_length) {
         set_name(var.sym);
@@ -22,8 +23,9 @@ struct Func : public User {
 
         // By Yaossg
         for (size_t i = 0; i < func_ty->arg_type.size(); ++i) {
-            if (i > 0) { whole_function += ", ";
-}
+            if (i > 0) {
+                whole_function += ", ";
+            }
             whole_function += func_ty->arg_type[i]->type_name();
         }
 
@@ -42,7 +44,7 @@ struct Func : public User {
 
 using pFunc = Pointer<Func>;
 
-pFunc make_func(const TypedSym& var, Vector<pType> arg_types,
+pFunc make_func(const TypedSym &var, Vector<pType> arg_types,
                 bool variant_length = false);
 
 } // namespace Ir

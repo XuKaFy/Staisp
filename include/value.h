@@ -29,14 +29,14 @@ enum ValueType {
 };
 
 struct Value {
-    Value() :  ty(make_void_type()) {}
+    Value() : ty(make_void_type()) {}
     Value(ImmValue v) : val(v), ty(make_basic_type(v.ty)) {}
     Value(PointerValue v) : val(v), ty(make_pointer_type(v.v->ty)) {}
     Value(ArrayValue v) : val(v), ty(make_array_type(v.ty, v.arr.size())) {}
     // Value(StructValue v)
     //     : val(v), ty(make_struct_type(v.v->ty)) { }
 
-    void reset_value(const Value& v) { val = v.val; }
+    void reset_value(const Value &v) { val = v.val; }
 
     ValueType type() const { return static_cast<ValueType>(val.index()); }
 

@@ -28,7 +28,7 @@ struct DomTree {
 
 namespace Ir {
 struct PhiInstr final : Instr {
-    PhiInstr(const pType& type) : Instr(type){};
+    PhiInstr(const pType &type) : Instr(type){};
 
     InstrType instr_type() const override { return INSTR_PHI; }
 
@@ -40,5 +40,5 @@ struct PhiInstr final : Instr {
 };
 
 // make_phi_instr: create a new PhiInstr with the given type
-[[nodiscard]] pInstr make_phi_instr(const pType& type);
+[[nodiscard]] pInstr make_phi_instr(const pType &type);
 }; // namespace Ir

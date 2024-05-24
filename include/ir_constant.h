@@ -8,7 +8,7 @@
 namespace Ir {
 
 struct Const : public Val {
-    Const(const Value& var) : Val(var.ty), v(var) { set_name(var.to_string()); }
+    Const(const Value &var) : Val(var.ty), v(var) { set_name(var.to_string()); }
 
     ValType type() const override { return VAL_CONST; }
 
@@ -17,6 +17,6 @@ struct Const : public Val {
 
 using pConst = Pointer<Const>;
 
-pVal make_constant(const Value& var);
+pVal make_constant(const Value &var);
 
 } // namespace Ir

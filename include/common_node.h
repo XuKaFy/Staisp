@@ -10,7 +10,6 @@
 
 #include <utility>
 
-
 #include "common_token.h"
 #include "def.h"
 
@@ -65,7 +64,7 @@ enum UnaryType {
 struct Node {
     Node(pToken t, NodeType type);
 
-    void throw_error(int id, const String& object, const String& message);
+    void throw_error(int id, const String &object, const String &message);
     virtual void print(size_t tabs = 0) { ; }
 
     pToken token;
@@ -75,11 +74,13 @@ struct Node {
 };
 
 using pNode = Pointer<Node>;
-using AstProg = List<pNode>; // 可以把一个由 Ast
-             // 组成的程序看作一组节点，每个节点都是全局中的某个操作
+using AstProg =
+    List<pNode>; // 可以把一个由 Ast
+                 // 组成的程序看作一组节点，每个节点都是全局中的某个操作
 
 struct TypedNodeSym {
-    TypedNodeSym(String name, pNode n) : name(std::move(std::move(name))), n(std::move(std::move(n))) {}
+    TypedNodeSym(String name, pNode n)
+        : name(std::move(std::move(name))), n(std::move(std::move(n))) {}
     void print() {
         n->print();
         printf(" %s", name.c_str());

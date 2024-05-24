@@ -6,7 +6,7 @@
 namespace Ir {
 
 struct ItemInstr : public Instr {
-    ItemInstr(const pVal& val, const Vector<pVal>& index);
+    ItemInstr(const pVal &val, const Vector<pVal> &index);
 
     String instr_print() const override;
 
@@ -17,6 +17,6 @@ struct ItemInstr : public Instr {
     bool get_from_local;
 };
 
-pInstr make_item_instr(const pVal& val, const Vector<pVal>& index);
+pInstr make_item_instr(const pVal &val, const Vector<pVal> &index);
 
 } // namespace Ir

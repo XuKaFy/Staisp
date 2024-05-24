@@ -53,7 +53,7 @@ struct Instr : public User {
         return false;
     }
 
-    Block* block{nullptr};
+    Block *block{nullptr};
 };
 
 // 所有只要操作数为常量就可以计算出值的操作
@@ -68,6 +68,6 @@ using pInstr = Pointer<Instr>;
 using Instrs = List<pInstr>;
 
 pInstr make_empty_instr();
-pInstr make_sym_instr(const TypedSym& sym);
+pInstr make_sym_instr(const TypedSym &sym);
 
 } // namespace Ir

@@ -22,7 +22,7 @@ TEST(test_common_node, basic_node) {
     String s = "hello world";
     pCode pcode = make_code("hello world", "file1");
     Node n = Node(std::make_shared<Token>(pcode, pcode->p_code->begin(),
-                                   pcode->p_code->end(), 1),
+                                          pcode->p_code->end(), 1),
                   NODE_ASSIGN);
     EXPECT_EQ(n.type, NODE_ASSIGN);
     try {
