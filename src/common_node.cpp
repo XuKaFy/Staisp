@@ -1,8 +1,11 @@
 #include "common_node.h"
 
-Node::Node(pToken t, NodeType type) : token(t), type(type) {}
+#include <utility>
 
-void Node::throw_error(int id, String object, String message) {
+
+Node::Node(pToken t, NodeType type) : token(std::move(std::move(t))), type(type) {}
+
+void Node::throw_error(int id, const String& object, const String& message) {
     if (token) {
         token->throw_error(id, object, message);
     } else {

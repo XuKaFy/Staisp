@@ -1,4 +1,6 @@
 #include "ir_opr_instr.h"
+
+#include <utility>
 #include "imm.h"
 #include "type.h"
 
@@ -79,9 +81,9 @@ ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const {
     return ans;
 }
 
-pInstr make_unary_instr(pVal oprd) { return pInstr(new UnaryInstr(oprd)); }
+pInstr make_unary_instr(const pVal& oprd) { return pInstr(new UnaryInstr(oprd)); }
 
-pInstr make_binary_instr(BinInstrType type, pVal oprd1, pVal oprd2) {
+pInstr make_binary_instr(BinInstrType type, const pVal& oprd1, const pVal& oprd2) {
     return pInstr(new BinInstr(type, oprd1, oprd2));
 }
 

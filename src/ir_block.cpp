@@ -8,6 +8,7 @@
 #include "ir_opr_instr.h"
 
 #include <memory>
+#include <utility>
 
 namespace Ir {
 
@@ -15,11 +16,11 @@ Pointer<LabelInstr> Block::label() const { return std::dynamic_pointer_cast<Labe
 
 pInstr Block::back() const { return body.back(); }
 
-void Block::add_imm(pVal imm) { imms.push_back(imm); }
+void Block::add_imm(const pVal& imm) { imms.push_back(imm); }
 
 void Block::squeeze_out(bool selected) {
     auto end = body.back();
-    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(1 - selected);
+    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select((1 - static_cast<int>(selected) != 0));
     new_br->block = this;
     // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
     body.pop_back();
@@ -29,23 +30,23 @@ void Block::squeeze_out(bool selected) {
 void Block::connect_in_and_out() {
     auto out_block = out_blocks();
     my_assert(out_block.size() == 1 && body.size() == 2, "?");
-    for (auto j : in_blocks()) {
+    for (auto *j : in_blocks()) {
         j->replace_out(this, *out_block.begin());
     }
 }
 
 String Block::print_block() const {
     String whole_block;
-    for (size_t i = 0; i < body.size(); ++i) {
-        whole_block += body[i]->instr_print();
+    for (const auto & i : body) {
+        whole_block += i->instr_print();
         whole_block += "\n";
     }
     return whole_block;
 }
 
-void Block::push_back(pInstr instr) { body.push_back(instr); }
+void Block::push_back(const pInstr& instr) { body.push_back(instr); }
 
-pBlock make_block() { return pBlock(new Block()); }
+pBlock make_block() { return std::make_shared<Block>(); }
 
 void Block::replace_out(Block *before, Block *out) {
     auto back = body.back();
@@ -75,7 +76,7 @@ void Block::replace_out(Block *before, Block *out) {
     }
 }
 
-void BlockedProgram::push_back(pInstr instr) {
+void BlockedProgram::push_back(const pInstr& instr) {
     blocks.back()->push_back(instr);
 }
 
@@ -88,7 +89,7 @@ void BlockedProgram::from_instrs(Instrs &instrs) {
     }
     puts("--end");*/
 
-    for (auto i : instrs) {
+    for (const auto& i : instrs) {
         switch (i->ty->type_type()) {
         case TYPE_IR_TYPE: {
             switch (to_ir_type(i->ty)) {
@@ -106,14 +107,14 @@ void BlockedProgram::from_instrs(Instrs &instrs) {
             break;
         }
         i->block = blocks.back().get();
-        push_back(std::move(i));
+        push_back(i);
     }
     instrs.clear();
 }
 
 void BlockedProgram::re_generate() const {
     LineGenerator g;
-    for (auto i : blocks) {
+    for (const auto& i : blocks) {
         g.generate(i->body);
     }
 }
@@ -122,7 +123,7 @@ Set<Block*> Block::in_blocks() const
 {
     Set<Block*> ans;
     for(auto &&i : label()->users) {
-        auto user = static_cast<Instr*>(i->user);
+        auto *user = static_cast<Instr*>(i->user);
         ans.insert(user->block);
     }
     return ans;
@@ -150,14 +151,14 @@ void BlockedProgram::opt_join_blocks() {
          [cur_block]
           /   |   \
         */
-        auto cur_block = i->get();
+        auto *cur_block = i->get();
         auto in_blocks = cur_block->in_blocks();
         if (in_blocks.size() != 1) {
             ++i;
             continue;
         }
 
-        auto next_block = *in_blocks.begin();
+        auto *next_block = *in_blocks.begin();
         if (next_block->out_blocks().size() != 1) {
             ++i;
             continue;
@@ -172,7 +173,7 @@ void BlockedProgram::opt_join_blocks() {
             (*j)->block = next_block;
             next_block->body.push_back(std::move(*j));
         }
-        for (auto j : cur_block->imms) {
+        for (const auto& j : cur_block->imms) {
             next_block->add_imm(j);
         }
     
@@ -181,25 +182,27 @@ void BlockedProgram::opt_join_blocks() {
 }
 
 void BlockedProgram::opt_remove_empty_block() {
-    my_assert(blocks.size(), "?");
+    my_assert(!blocks.empty(), "?");
     for (auto i = blocks.begin() + 1; i != blocks.end();) {
-        if ((*i)->in_blocks().size() == 0) {
+        if ((*i)->in_blocks().empty()) {
             // printf("Block {\n%s} removed\n", (*i)->print_block().c_str());
             i = blocks.erase(i);
-        } else
+        } else {
             ++i;
+}
     }
 }
 
 void BlockedProgram::opt_connect_empty_block() {
-    my_assert(blocks.size(), "?");
+    my_assert(!blocks.empty(), "?");
     for (auto i = blocks.begin() + 1; i != blocks.end();) {
         if ((*i)->out_blocks().size() == 1 && (*i)->body.size() == 2) {
             // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
             (*i)->connect_in_and_out();
             i = blocks.erase(i);
-        } else
+        } else {
             ++i;
+}
     }
 }
 
@@ -219,8 +222,8 @@ bool can_be_removed(Ir::InstrType t) {
 }
 
 void BlockedProgram::opt_remove_dead_code() {
-    my_assert(blocks.size(), "?");
-    for (auto i : blocks) {
+    my_assert(!blocks.empty(), "?");
+    for (const auto& i : blocks) {
         for (auto j = i->body.begin() + 1; j != i->body.end();) {
             if ((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
                 j = i->body.erase(j);
@@ -230,19 +233,22 @@ void BlockedProgram::opt_remove_dead_code() {
         }
     }
 
-    for (auto i : blocks) {
-        if (i->body.size() <= 1)
+    for (const auto& i : blocks) {
+        if (i->body.size() <= 1) {
             continue;
+}
 
         auto end = i->body.back();
-        if (end->instr_type() != Ir::INSTR_BR_COND)
+        if (end->instr_type() != Ir::INSTR_BR_COND) {
             continue;
+}
 
-        auto cond = end->operand(0)->usee;
-        if (cond->type() != Ir::VAL_CONST)
+        auto *cond = end->operand(0)->usee;
+        if (cond->type() != Ir::VAL_CONST) {
             continue;
+}
 
-        auto con = static_cast<Ir::Const *>(cond);
+        auto *con = static_cast<Ir::Const *>(cond);
         if (con->v.type() == VALUE_IMM) {
             i->squeeze_out((bool)con->v);
         }
@@ -259,10 +265,10 @@ void BlockedProgram::normal_opt() {
 
 void BlockedProgram::opt_trivial() {
     // this is not correct
-    for (auto block : blocks) {
-        for (auto instr : block->body) {
+    for (const auto& block : blocks) {
+        for (const auto& instr : block->body) {
             if (auto bin = std::dynamic_pointer_cast<Ir::BinInstr>(instr)) {
-                auto usee =  bin->operand(1)->usee;
+                auto *usee =  bin->operand(1)->usee;
                 if (bin->binType == INSTR_SDIV && usee->type() == VAL_CONST) {
                     auto value = static_cast<Const*>(usee)->v;
                     if (value.type() == ValueType::VALUE_IMM && value.imm_value().ty == IMM_I32 && value.imm_value().val.ival == 2) {

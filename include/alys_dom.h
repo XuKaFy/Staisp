@@ -18,7 +18,7 @@ struct DomBlock {
 
 struct DomTree {
     Map<Ir::Block *, pDomBlock> dom_map;
-    pDomBlock make_domblk();
+    static pDomBlock make_domblk();
     void print_dom_tree() const;
     void build_dom(Ir::BlockedProgram &p);
     [[nodiscard]] Map<Ir::Block *, pDomBlock> build_dom_frontier() const;
@@ -28,17 +28,17 @@ struct DomTree {
 
 namespace Ir {
 struct PhiInstr final : Instr {
-    PhiInstr(const pType type) : Instr(type){};
+    PhiInstr(const pType& type) : Instr(type){};
 
-    virtual InstrType instr_type() const override { return INSTR_PHI; }
+    InstrType instr_type() const override { return INSTR_PHI; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 
-    void add_incoming(Block *block, Val *val);
+    void add_incoming(Block *blk, Val *val);
 
     Map<Block *, pUse> incoming_tuples;
 };
 
 // make_phi_instr: create a new PhiInstr with the given type
-[[nodiscard]] pInstr make_phi_instr(pType type);
+[[nodiscard]] pInstr make_phi_instr(const pType& type);
 }; // namespace Ir

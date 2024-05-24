@@ -7,14 +7,14 @@ int LineGenerator::line() { return _line++; }
 String LineGenerator::label() { return std::to_string(++_label_line); }
 
 void LineGenerator::generate(const Instrs &body) {
-    for (size_t i = 0; i < body.size(); ++i) {
-        if (!body[i]->has_name() || body[i]->name()[0] == 'L' ||
-            body[i]->name()[0] == '%') { // re-generate all labels and reg name
-            switch (body[i]->ty->type_type()) {
+    for (const auto & i : body) {
+        if (!i->has_name() || i->name()[0] == 'L' ||
+            i->name()[0] == '%') { // re-generate all labels and reg name
+            switch (i->ty->type_type()) {
             case TYPE_IR_TYPE: {
-                switch (to_ir_type(body[i]->ty)) {
+                switch (to_ir_type(i->ty)) {
                 case IR_LABEL:
-                    body[i]->set_name("L" + label());
+                    i->set_name("L" + label());
                 case IR_BR:
                 case IR_BR_COND:
                 case IR_STORE:
@@ -26,7 +26,7 @@ void LineGenerator::generate(const Instrs &body) {
             }
             case TYPE_BASIC_TYPE:
             case TYPE_COMPOUND_TYPE:
-                body[i]->set_name("%" + std::to_string(line()));
+                i->set_name("%" + std::to_string(line()));
                 break;
             case TYPE_VOID_TYPE:
                 // throw Exception(1, "LineGenerator::generate", "void

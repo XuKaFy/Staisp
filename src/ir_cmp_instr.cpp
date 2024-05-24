@@ -1,5 +1,7 @@
 #include "ir_cmp_instr.h"
 
+#include <utility>
+
 namespace Ir {
 
 String CmpInstr::instr_print() const {
@@ -49,7 +51,7 @@ ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {
     return ans;
 }
 
-pInstr make_cmp_instr(CmpType cmp_type, pVal a1, pVal a2) {
+pInstr make_cmp_instr(CmpType cmp_type, const pVal& a1, const pVal& a2) {
     return pInstr(new CmpInstr(cmp_type, a1, a2));
 }
 

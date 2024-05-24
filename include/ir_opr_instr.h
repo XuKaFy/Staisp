@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "def.h"
 #include "ir_instr.h"
 
@@ -36,34 +38,34 @@ const String gBinInstrName[] = {BIN_INSTR_TABLE};
 #undef BIN_INSTR_TABLE
 
 struct UnaryInstr : public CalculatableInstr {
-    UnaryInstr(pVal oprd) : CalculatableInstr(oprd->ty) { add_operand(oprd); }
+    UnaryInstr(const pVal& oprd) : CalculatableInstr(oprd->ty) { add_operand(oprd); }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 
-    virtual InstrType instr_type() const override { return INSTR_UNARY; }
+    InstrType instr_type() const override { return INSTR_UNARY; }
 
-    virtual ImmValue calculate(Vector<ImmValue> v) const override;
+    ImmValue calculate(Vector<ImmValue> v) const override;
 
     InstrType binType;
 };
 
 struct BinInstr : public CalculatableInstr {
-    BinInstr(BinInstrType binType, pVal oprd1, pVal oprd2)
+    BinInstr(BinInstrType binType, const pVal& oprd1, const pVal& oprd2)
         : CalculatableInstr(oprd1->ty), binType(binType) {
         add_operand(oprd1);
         add_operand(oprd2);
     }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 
-    virtual ImmValue calculate(Vector<ImmValue> v) const override;
+    ImmValue calculate(Vector<ImmValue> v) const override;
 
-    virtual InstrType instr_type() const override { return INSTR_BINARY; }
+    InstrType instr_type() const override { return INSTR_BINARY; }
 
     BinInstrType binType;
 };
 
-pInstr make_unary_instr(pVal oprd);
-pInstr make_binary_instr(BinInstrType type, pVal oprd1, pVal oprd2);
+pInstr make_unary_instr(const pVal& oprd);
+pInstr make_binary_instr(BinInstrType type, const pVal& oprd1, const pVal& oprd2);
 
 } // namespace Ir

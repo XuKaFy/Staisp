@@ -65,8 +65,8 @@ TEST(test_imm, imm_opr_int) {
 }
 
 TEST(test_imm, imm_opr_float) {
-    ImmValue a((double)13.0);
-    ImmValue b((double)4.0);
+    ImmValue a(13.0);
+    ImmValue b(4.0);
     EXPECT_EQ((a + b).val.f64val, 17);
     EXPECT_EQ((a - b).val.f64val, 9);
     EXPECT_EQ((a * b).val.f64val, 52);

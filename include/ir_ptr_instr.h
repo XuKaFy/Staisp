@@ -6,17 +6,17 @@
 namespace Ir {
 
 struct ItemInstr : public Instr {
-    ItemInstr(pVal val, Vector<pVal> index);
+    ItemInstr(const pVal& val, const Vector<pVal>& index);
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 
-    virtual InstrType instr_type() const override { return INSTR_ITEM; }
+    InstrType instr_type() const override { return INSTR_ITEM; }
 
     // from int[][10], false
     // from int[10][10], true
     bool get_from_local;
 };
 
-pInstr make_item_instr(pVal val, Vector<pVal> index);
+pInstr make_item_instr(const pVal& val, const Vector<pVal>& index);
 
 } // namespace Ir

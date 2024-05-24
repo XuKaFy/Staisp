@@ -6,12 +6,12 @@
 
 namespace Opt2 {
 
-bool BlockValue::operator==(const BlockValue &b) { return uses == b.uses; }
+bool BlockValue::operator==(const BlockValue &b) const { return uses == b.uses; }
 
-bool BlockValue::operator!=(const BlockValue &b) { return uses != b.uses; }
+bool BlockValue::operator!=(const BlockValue &b) const { return uses != b.uses; }
 
 void BlockValue::cup(const BlockValue &v) {
-    for (auto i : v.uses) {
+    for (const auto& i : v.uses) {
         uses.insert(i);
     }
 }
@@ -39,9 +39,9 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
             // judge whether operand is from GEP
-            auto to = r->operand(0)->usee;
+            auto *to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
-                auto to_instr = static_cast<Ir::Instr *>(to);
+                auto *to_instr = static_cast<Ir::Instr *>(to);
                 if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
                     continue; // shouldn't be killed
                 }
@@ -88,16 +88,17 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
             auto name = r->operand(0)->usee->name();
-            auto to = r->operand(0)->usee;
+            auto *to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
-                auto to_instr = static_cast<Ir::Instr *>(to);
+                auto *to_instr = static_cast<Ir::Instr *>(to);
                 if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
                     goto Ignore; // shouldn't be killed
                 }
             }
-            if (to->type() == Ir::VAL_GLOBAL)
+            if (to->type() == Ir::VAL_GLOBAL) {
                 goto Ignore;
-            if (!uses.count(name)) { // this def is useless
+}
+            if (uses.count(name) == 0U) { // this def is useless
                 // printf("    Not used def %s\n", r->instr_print());
                 j = p->body.erase(j);
                 ++ans;

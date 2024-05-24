@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "def.h"
 #include "imm.h"
 #include "type.h"
@@ -31,11 +33,11 @@ enum InstrType {
 struct Block;
 
 struct Instr : public User {
-    Instr(pType ty) : User(ty), block(nullptr) {}
+    Instr(pType ty) : User(std::move(ty)) {}
 
     virtual String instr_print() const;
 
-    virtual ValType type() const { return VAL_INSTR; }
+    ValType type() const override { return VAL_INSTR; }
 
     virtual InstrType instr_type() const { return INSTR_SYM; }
 
@@ -51,21 +53,21 @@ struct Instr : public User {
         return false;
     }
 
-    Block* block;
+    Block* block{nullptr};
 };
 
 // 所有只要操作数为常量就可以计算出值的操作
 struct CalculatableInstr : public Instr {
-    CalculatableInstr(pType ty) : Instr(ty) {}
+    CalculatableInstr(pType ty) : Instr(std::move(ty)) {}
 
     // 接受同等长度的常量并且计算出结果
     virtual ImmValue calculate(Vector<ImmValue> v) const = 0;
 };
 
-typedef Pointer<Instr> pInstr;
-typedef List<pInstr> Instrs;
+using pInstr = Pointer<Instr>;
+using Instrs = List<pInstr>;
 
 pInstr make_empty_instr();
-pInstr make_sym_instr(TypedSym sym);
+pInstr make_sym_instr(const TypedSym& sym);
 
 } // namespace Ir

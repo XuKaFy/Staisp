@@ -21,12 +21,12 @@ public:
           int line);
 
     // 打印报错信息后，throw 一个 Exception
-    void throw_error(int id, String object, String error_code);
+    void throw_error(int id, const String& object, const String& error_code);
     // 仅打印警告信息
-    void print_warning(int id, String object, String error_code);
+    void print_warning(int id, const String& object, const String& error_code);
 
 private:
-    void print_message(String type, int id, String object, String error_code);
+    void print_message(const String& type, int id, const String& object, const String& error_code);
 
     pCode p_code;
     String::iterator token_begin;
@@ -34,5 +34,5 @@ private:
     int line;
 };
 
-typedef Pointer<Token> pToken;
-typedef List<pToken> TokenList;
+using pToken = Pointer<Token>;
+using TokenList = List<pToken>;

@@ -1,4 +1,8 @@
 #include "value.h"
+
+#include <memory>
+
+#include <utility>
 #include "def.h"
 #include "type.h"
 
@@ -23,15 +27,19 @@ bool Value::is_static() const {
     case VALUE_POINTER:
         return false;
     case VALUE_STRUCT: {
-        for (auto i : struct_value())
-            if (!i.v.is_static())
+        for (const auto& i : struct_value()) {
+            if (!i.v.is_static()) {
                 return false;
+}
+}
         return true;
     }
     case VALUE_ARRAY: {
-        for (auto i : array_value().arr)
-            if (!i->is_static())
+        for (const auto& i : array_value().arr) {
+            if (!i->is_static()) {
                 return false;
+}
+}
         return true;
     }
     }
@@ -57,7 +65,7 @@ String Value::to_string() const {
     case VALUE_ARRAY: {
         String s = " [";
         bool first = true;
-        for (auto i : array_value().arr) {
+        for (const auto& i : array_value().arr) {
             if (first) {
                 first = false;
             } else {
@@ -76,13 +84,13 @@ String Value::to_string() const {
     return "";
 }
 
-pValue make_value(Value v) { return pValue(new Value(v)); }
+pValue make_value(Value v) { return std::make_shared<Value>(std::move(v)); }
 
-pValue make_value(ImmValue v) { return pValue(new Value(v)); }
+pValue make_value(ImmValue v) { return std::make_shared<Value>(v); }
 
-pValue make_value(PointerValue v) { return pValue(new Value(v)); }
+pValue make_value(PointerValue v) { return std::make_shared<Value>(std::move(v)); }
 
-pValue make_value(ArrayValue v) { return pValue(new Value(v)); }
+pValue make_value(ArrayValue v) { return std::make_shared<Value>(std::move(v)); }
 
 /*
 pValue make_value(StructValue v)

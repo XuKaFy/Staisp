@@ -7,8 +7,8 @@
 namespace Opt2 {
 
 struct BlockValue {
-    bool operator==(const BlockValue &b);
-    bool operator!=(const BlockValue &b);
+    bool operator==(const BlockValue &b) const;
+    bool operator!=(const BlockValue &b) const;
 
     void cup(const BlockValue &v);
 

@@ -4,6 +4,6 @@
 
 namespace Optimize {
 
-void optimize(Ir::pModule mod);
+void optimize(const Ir::pModule& mod);
 
 } // namespace Optimize

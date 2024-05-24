@@ -45,8 +45,8 @@ template <typename T> using Opt = std::optional<T>;
 
 template <typename T, typename U> using Pair = std::pair<T, U>;
 
-typedef std::string String;
-typedef Pointer<String> pString;
+using String = std::string;
+using pString = Pointer<String>;
 
 // 表示代码的数据结构
 struct Code {
@@ -56,14 +56,14 @@ struct Code {
     String file_name;
 };
 
-typedef Pointer<Code> pCode;
+using pCode = Pointer<Code>;
 
 pCode make_code(String code, String file_name);
 
 // 所有异常的基类
 struct Exception {
     Exception(size_t id, String obj, String msg)
-        : id(id), object(obj), message(msg) {}
+        : id(id), object(std::move(std::move(obj))), message(std::move(std::move(msg))) {}
     size_t id;
     String object;
     String message;

@@ -2,7 +2,6 @@
 #include "staisp_lexer.h"
 #include "gtest/gtest.h"
 
-#include "gtest/gtest.h"
 
 TEST(test_staisp_lexer, basic_lexer) {
     Staisp::Lexer lexer;

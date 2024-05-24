@@ -1,5 +1,7 @@
 #include "ir_mem_instr.h"
 
+#include <utility>
+
 namespace Ir {
 
 String AllocInstr::instr_print() const {
@@ -19,11 +21,11 @@ String StoreInstr::instr_print() const {
            to->ty->type_name() + " " + to->name();
 }
 
-pInstr make_alloc_instr(pType tr) { return pInstr(new AllocInstr(tr)); }
+pInstr make_alloc_instr(pType tr) { return pInstr(new AllocInstr(std::move(tr))); }
 
-pInstr make_load_instr(pVal from) { return pInstr(new LoadInstr(from)); }
+pInstr make_load_instr(const pVal& from) { return pInstr(new LoadInstr(from)); }
 
-pInstr make_store_instr(pVal to, pVal val) {
+pInstr make_store_instr(const pVal& to, const pVal& val) {
     return pInstr(new StoreInstr(to, val));
 }
 

@@ -8,15 +8,16 @@
 #include <cstdio>
 
 #include <functional>
+#include <memory>
 
 namespace Alys {
 
-pDomBlock DomTree::make_domblk() { return pDomBlock(new DomBlock()); }
+pDomBlock DomTree::make_domblk() { return std::make_shared<DomBlock>(); }
 
 void DomTree::build_dom(Ir::BlockedProgram &p) {
     Map<Ir::Block *, int> order_map;
 
-    for (auto bb : p.blocks) {
+    for (const auto& bb : p.blocks) {
         auto [it, success] = dom_map.insert({bb.get(), make_domblk()});
         auto dom_it = it->second;
         my_assert(success, "insertion success");
@@ -28,19 +29,21 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
     Vector<Ir::Block *> idfn;
     std::function<void(Ir::Block *)> dfsn =
         [&dfsn, &idfn, level, &order_map](Ir::Block *bb) -> void {
-        if (order_map.at(bb) == level)
+        if (order_map.at(bb) == level) {
             return;
-        if (level == 1)
+}
+        if (level == 1) {
             idfn.push_back(bb);
+}
         order_map.at(bb) = level;
         for (Ir::Block *succ : bb->out_blocks()) {
             dfsn(succ);
         }
     };
 
-    auto entry = p.blocks.front().get();
+    auto *entry = p.blocks.front().get();
     dfsn(entry);
-    for (auto node : idfn) {
+    for (auto *node : idfn) {
         level++;
         order_map.at(node) = level;
         my_assert(level != 1, "idfn will not changed");
@@ -52,8 +55,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
             }
         }
     }
-    return;
-}
+    }
 
 void DomTree::print_dom_tree() const {
     for (auto [_, dom_node] : dom_map) {
@@ -61,7 +63,7 @@ void DomTree::print_dom_tree() const {
                dom_node->basic_block->name().c_str());
         printf("Idom: %s", dom_node->idom->basic_block->name().c_str());
         printf("Out Block: ");
-        for (auto j : dom_node->out_block) {
+        for (auto *j : dom_node->out_block) {
             printf("%s ;", j->basic_block->name().c_str());
             my_assert(dom_map.at(j->basic_block.get())->idom == dom_node.get(),
                       "dominance tree success");
@@ -73,7 +75,7 @@ void DomTree::print_dom_tree() const {
 Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
     Map<Ir::Block *, pDomBlock> dom_frontier;
     for (auto [bb, dom_node] : dom_map) {
-        for (auto in : bb->in_blocks()) {
+        for (auto *in : bb->in_blocks()) {
             Ir::Block *runner = in;
             while (runner != dom_node->idom->basic_block.get()) {
                 dom_frontier[runner] = dom_node;
@@ -117,6 +119,6 @@ void PhiInstr::add_incoming(Block *blk, Val *val) {
     incoming_tuples.insert({blk, *operands.cbegin()});
 }
 
-pInstr make_phi_instr(const pType type) { return pInstr(new PhiInstr(type)); }
+pInstr make_phi_instr(const pType& type) { return pInstr(new PhiInstr(type)); }
 
 }; // namespace Ir

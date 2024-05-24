@@ -11,15 +11,15 @@ namespace Ir {
 // 并且为所有寄存器和 label 按顺序标号
 class LineGenerator {
 public:
-    LineGenerator() : _line(0), _label_line(0) {}
+    LineGenerator()  = default;
     int line();
     String label();
 
     void generate(const Instrs &body);
 
 private:
-    int _line;
-    int _label_line;
+    int _line{0};
+    int _label_line{0};
 };
 
 }; // namespace Ir

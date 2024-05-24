@@ -1,5 +1,8 @@
 #include "imm.h"
 
+#include <utility>
+
+
 bool is_imm_signed(ImmType tr) {
     switch (tr) {
     case IMM_I1:
@@ -71,7 +74,7 @@ bool is_imm_integer(ImmType t) {
 ImmType join_imm_type(ImmType a, ImmType b) { return std::max(a, b); }
 
 ImmTypedSym::ImmTypedSym(String sym, ImmType tr, bool is_const)
-    : sym(sym), tr(tr), is_const(is_const) {}
+    : sym(std::move(std::move(sym))), tr(tr), is_const(is_const) {}
 
 ImmValue::operator bool() const {
     switch (ty) {
@@ -80,20 +83,20 @@ ImmValue::operator bool() const {
     case IMM_I16:
     case IMM_I32:
     case IMM_I64: {
-        return val.ival;
+        return val.ival != 0;
     }
     case IMM_U1:
     case IMM_U8:
     case IMM_U16:
     case IMM_U32:
     case IMM_U64: {
-        return val.uval;
+        return val.uval != 0U;
     }
     case IMM_F32: {
-        return val.f32val;
+        return val.f32val != 0.0F;
     }
     case IMM_F64: {
-        return val.f64val;
+        return val.f64val != 0.0;
     }
     }
     throw Exception(1, "ImmValue", "type not implemented {operator bool()}");
@@ -150,7 +153,7 @@ ImmValue ImmValue::cast_to(ImmType new_ty) const {
     printf("Warning: cast from %s to %s", gImmName[ty].c_str(),
            gImmName[new_ty].c_str());
     throw Exception(1, "ImmValue", "type not implemented {cast_to}");
-    return ImmValue();
+    return {};
 }
 
 #define OPR_DEF(y)                                                             \
@@ -325,17 +328,17 @@ ImmValue ImmValue::operator!() const {
     case IMM_I16:
     case IMM_I32:
     case IMM_I64:
-        return !val.ival;
+        return val.ival == 0;
     case IMM_U1:
     case IMM_U8:
     case IMM_U16:
     case IMM_U32:
     case IMM_U64:
-        return !val.uval;
+        return val.uval == 0U;
     case IMM_F32:
-        return !val.f32val;
+        return val.f32val == 0.0F;
     case IMM_F64:
-        return !val.f64val;
+        return val.f64val == 0.0;
     }
     throw Exception(1, "ImmValue::operator !()", "?");
     return 0;

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <utility>
+
+
 #include "def.h"
 
 #include "type.h"
@@ -7,7 +10,7 @@
 namespace Ir {
 
 struct Use;
-typedef Pointer<Use> pUse;
+using pUse = Pointer<Use>;
 
 struct Val;
 struct User;
@@ -24,7 +27,7 @@ enum ValType {
 };
 
 struct Val {
-    Val(pType ty) : ty(ty) {}
+    Val(pType ty) : ty(std::move(std::move(ty))) {}
 
     virtual ~Val() { val_release(this); }
 
@@ -42,24 +45,24 @@ struct Val {
 private:
     String _name;
 };
-typedef Pointer<Val> pVal;
+using pVal = Pointer<Val>;
 
 struct User : public Val {
-    User(pType ty) : Val(ty) {}
+    User(pType ty) : Val(std::move(ty)) {}
 
-    virtual ~User() { user_release(this); }
+    ~User() override { user_release(this); }
 
-    void add_operand(pVal val);
+    void add_operand(const pVal& val);
     void add_operand(Val *val);
     void change_operand(size_t index, Val *val);
-    void change_operand(size_t index, pVal val);
+    void change_operand(size_t index, const pVal& val);
 
     pUse operand(size_t index) const;
     size_t operand_size() const;
 
     Vector<pUse> operands;
 };
-typedef Pointer<User> pUser;
+using pUser = Pointer<User>;
 
 struct Use {
     Use(User *user, Val *val) : user(user), usee(val) {}

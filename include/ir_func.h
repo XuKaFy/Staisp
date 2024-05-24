@@ -1,30 +1,29 @@
 #pragma once
 
+#include <utility>
+
 #include "ir_val.h"
 
 namespace Ir {
 
 struct Func : public User {
-    Func(TypedSym var, Vector<pType> arg_types, bool variant_length = false)
-        : User(make_function_type(var.ty, arg_types)),
+    Func(const TypedSym& var, Vector<pType> arg_types, bool variant_length = false)
+        : User(make_function_type(var.ty, std::move(arg_types))),
           variant_length(variant_length) {
         set_name(var.sym);
     }
 
-    virtual ValType type() const { return VAL_FUNC; }
+    ValType type() const override { return VAL_FUNC; }
 
     String print_func_declaration() const {
         String whole_function = "declare " + ty->type_name() + " @" + name() +
                                 "("; // functions are all global
         auto func_ty = functon_type();
 
-        if (func_ty->arg_type.empty())
-            goto PRINT_IMPL_END;
-
-        whole_function += func_ty->arg_type[0]->type_name();
-
-        for (size_t i = 1; i < func_ty->arg_type.size(); ++i) {
-            whole_function += ", ";
+        // By Yaossg
+        for (size_t i = 0; i < func_ty->arg_type.size(); ++i) {
+            if (i > 0) { whole_function += ", ";
+}
             whole_function += func_ty->arg_type[i]->type_name();
         }
 
@@ -32,7 +31,6 @@ struct Func : public User {
             whole_function += ", ...";
         }
 
-    PRINT_IMPL_END:
         whole_function += ")";
         return whole_function;
     }
@@ -42,9 +40,9 @@ struct Func : public User {
     pFunctionType functon_type() const;
 };
 
-typedef Pointer<Func> pFunc;
+using pFunc = Pointer<Func>;
 
-pFunc make_func(TypedSym var, Vector<pType> arg_types,
+pFunc make_func(const TypedSym& var, Vector<pType> arg_types,
                 bool variant_length = false);
 
 } // namespace Ir

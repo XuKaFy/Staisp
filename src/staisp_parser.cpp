@@ -1,12 +1,14 @@
 #include "staisp_parser.h"
 
+#include <utility>
+
 #include "ast_node.h"
 #include "staisp_lexer.h"
 #include "type.h"
 
 namespace Staisp {
 
-void Parser::throw_error(int id, String msg) {
+void Parser::throw_error(int id, const String& msg) {
     current_token().throw_error(id, "Parser", msg);
 }
 
@@ -50,13 +52,13 @@ void Parser::consume_token(TokenType t) {
 
 bool Parser::has_token() const { return _current != _end; }
 
-AstProg Parser::parse(pCode code) {
+AstProg Parser::parse(const pCode& code) {
     TokenList list = Lexer().lexer(code);
     return parse(list);
 }
 
-bool Parser::is_buildin_sym(String sym) {
-    return gBuildinBinaryOprType.count(sym) || gBuildinSymType.count(sym) ||
+bool Parser::is_buildin_sym(const String& sym) {
+    return (gBuildinBinaryOprType.count(sym) != 0U) || (gBuildinSymType.count(sym) != 0U) ||
            (sym == "UNARY_NEG");
 }
 
@@ -77,9 +79,7 @@ String Parser::parse_sym() {
 }
 
 bool Parser::is_type_ended() const {
-    if (peek().t == TOKEN_FLWR || peek().t == TOKEN_LB_M)
-        return false;
-    return true;
+    return !(peek().t == TOKEN_FLWR || peek().t == TOKEN_LB_M);
 }
 
 pNode Parser::parse_type() {
@@ -129,7 +129,7 @@ TypedNodeSym Parser::parse_typed_sym() {
     auto type = parse_type();
     consume_token(TOKEN_2DOT);
     auto sym = parse_sym();
-    return TypedNodeSym(sym, type);
+    return {sym, type};
 }
 
 Vector<pNode> Parser::parse_array_value() {
@@ -179,7 +179,7 @@ pNode Parser::parse_left_value() {
     if (nxt.t == TOKEN_INT) {
         throw_error(12, "expected to be a left-value [1]");
     }
-    if (gBuildinSymType.count(nxt.sym)) {
+    if (gBuildinSymType.count(nxt.sym) != 0U) {
         get_token();
         auto r = gBuildinSymType.find(current_token().sym)->second;
         if (r == BUILDIN_DEREF) {
@@ -195,9 +195,9 @@ pNode Parser::parse_left_value() {
     return parse_sym_node();
 }
 
-pNode Parser::parse_buildin_sym(String sym, bool in_global) {
+pNode Parser::parse_buildin_sym(const String& sym, bool in_global) {
     auto token = current_p_token();
-    if (gBuildinBinaryOprType.count(sym)) {
+    if (gBuildinBinaryOprType.count(sym) != 0U) {
         auto a1 = parse_value();
         auto a2 = parse_value();
         return Ast::new_binary_node(
@@ -274,7 +274,7 @@ pNode Parser::parse_buildin_sym(String sym, bool in_global) {
         }
         _env.env()->set(a1.name, SYM_FUNC);
         _env.push_env();
-        for (auto i : a2) {
+        for (const auto& i : a2) {
             _env.env()->set(i.name, SYM_VAL);
         }
         auto a3 = parse_statement(false);
@@ -341,7 +341,7 @@ Vector<pNode> Parser::parse_value_list() {
     return list;
 }
 
-pNode Parser::parse_function_call(String sym) {
+pNode Parser::parse_function_call(const String& sym) {
     if (!_env.env()->count(sym)) {
         throw_error(4, "function not found");
     }
@@ -388,7 +388,7 @@ AstProg Parser::parse(TokenList list) {
         _env.end_env();
         return _result;
     } catch (Exception e) {
-        current_token().throw_error(e.id, e.object.c_str(), e.message);
+        current_token().throw_error(e.id, e.object, e.message);
     }
     return {};
 }

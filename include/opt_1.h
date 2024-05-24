@@ -11,10 +11,12 @@ struct Val {
     Val(ImmValue v) : ty(VALUE), v(v) {}
 
     bool operator==(const Val &val) const {
-        if(ty != val.ty)
+        if(ty != val.ty) {
             return false;
-        if(ty == NAC)
+}
+        if(ty == NAC) {
             return true;
+}
         return v == val.v;
     }
 
@@ -29,7 +31,7 @@ struct Val {
 };
 
 struct BlockValue {
-    bool operator==(const BlockValue &b);
+    bool operator==(const BlockValue &b) const;
     bool operator!=(const BlockValue &b);
 
     void cup(const BlockValue &v);

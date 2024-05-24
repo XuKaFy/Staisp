@@ -1,41 +1,43 @@
 #pragma once
 
+#include <utility>
+
 #include "def.h"
 #include "ir_instr.h"
 
 namespace Ir {
 
 struct AllocInstr : public Instr {
-    AllocInstr(pType ty) : Instr(make_pointer_type(ty)) {}
+    AllocInstr(pType ty) : Instr(make_pointer_type(std::move(ty))) {}
 
-    virtual InstrType instr_type() const override { return INSTR_ALLOCA; }
+    InstrType instr_type() const override { return INSTR_ALLOCA; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 };
 
 struct LoadInstr : public Instr {
-    LoadInstr(pVal from) : Instr(to_pointed_type(from->ty)) {
+    LoadInstr(const pVal& from) : Instr(to_pointed_type(from->ty)) {
         add_operand(from);
     }
 
-    virtual InstrType instr_type() const override { return INSTR_LOAD; }
+    InstrType instr_type() const override { return INSTR_LOAD; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 };
 
 struct StoreInstr : public Instr {
-    StoreInstr(pVal to, pVal val) : Instr(make_ir_type(IR_STORE)) {
+    StoreInstr(const pVal& to, const pVal& val) : Instr(make_ir_type(IR_STORE)) {
         add_operand(to);
         add_operand(val);
     }
 
-    virtual InstrType instr_type() const override { return INSTR_STORE; }
+    InstrType instr_type() const override { return INSTR_STORE; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 };
 
 pInstr make_alloc_instr(pType tr);
-pInstr make_load_instr(pVal from);
-pInstr make_store_instr(pVal to, pVal val);
+pInstr make_load_instr(const pVal& from);
+pInstr make_store_instr(const pVal& to, const pVal& val);
 
 } // namespace Ir

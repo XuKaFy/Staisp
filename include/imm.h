@@ -29,7 +29,7 @@
 
 // 基本类型指示
 enum ImmType {
-#define ENTRY(x, y, z, a) IMM_##y = x,
+#define ENTRY(x, y, z, a) IMM_##y = (x),
     IMM_TYPE_TABLE
 #undef ENTRY
 };
@@ -80,10 +80,10 @@ struct ImmValueOnly {
 // 此即为基本类型实例类
 // 包含值与类型两重信息
 struct ImmValue {
-    ImmValue() : ty(IMM_I32), val() {}
+    ImmValue() : ty(IMM_I32) {}
     // 注意，对于 bool 类型而言，其被翻译为 IMM_I1
-    ImmValue(bool flag) : ty(IMM_I1), val((long long)flag) {}
-    ImmValue(ImmType ty) : ty(ty), val() {
+    ImmValue(bool flag) : ty(IMM_I1), val(static_cast<long long>(flag)) {}
+    ImmValue(ImmType ty) : ty(ty) {
         switch (ty) {
         case IMM_I1:
         case IMM_I8:
@@ -108,11 +108,11 @@ struct ImmValue {
             break;
         }
     }
-    ImmValue(int val) : ty(IMM_I32), val((long long)val) {}
+    ImmValue(int val) : ty(IMM_I32), val(static_cast<long long>(val)) {}
     ImmValue(long long val,
              ImmType ty = IMM_I32) // 构造时支持降格，例如代入 IMM_I32/16/8/1
         : ty(ty), val(val) {}
-    ImmValue(unsigned int val) : ty(IMM_U32), val((unsigned long long)val) {}
+    ImmValue(unsigned int val) : ty(IMM_U32), val(static_cast<unsigned long long>(val)) {}
     ImmValue(unsigned long long val, ImmType ty = IMM_U32) : ty(ty), val(val) {}
     ImmValue(float val) : ty(IMM_F32), val(val) {}
     ImmValue(double val) : ty(IMM_F64), val(val) {}
@@ -148,8 +148,8 @@ struct ImmValue {
     String print() const;
 };
 
-typedef Vector<ImmValue> ImmValues;
-typedef Opt<ImmValue> ImmOrVoid;
+using ImmValues = Vector<ImmValue>;
+using ImmOrVoid = Opt<ImmValue>;
 
 // TypedSym 类型即限定某个标识符的类型如何
 struct ImmTypedSym {

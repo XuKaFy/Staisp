@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <utility>
+
 #include "def.h"
 
 // Env<T> 即
@@ -11,9 +13,9 @@
 // 但修改只会在本层
 template <typename T> class Env {
 public:
-    typedef Pointer<Env> pEnv;
+    using pEnv = Pointer<Env>;
 
-    Env(pEnv parent = pEnv()) : _parent(parent) {}
+    Env(pEnv parent = pEnv()) : _parent(std::move(parent)) {}
 
     bool count_current(String sym) { return _var_map.count(sym); }
 
@@ -21,42 +23,49 @@ public:
         if (count_current(sym)) {
             return true;
         }
-        if (_parent)
+        if (_parent) {
             return _parent->count(sym);
+}
         return false;
     }
 
     T &operator[](String sym) {
-        if (sym.empty())
+        if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
+}
         return find(sym);
     }
 
     const T &operator[](String sym) const {
-        if (sym.empty())
+        if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
+}
         return find(sym);
     }
 
     T &find(String sym) {
-        if (sym.empty())
+        if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
+}
         if (_var_map.count(sym)) {
             return _var_map[sym];
         }
-        if (_parent)
+        if (_parent) {
             return _parent->find(sym);
+}
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
     const T &find(String sym) const {
-        if (sym.empty())
+        if (sym.empty()) {
             throw Exception(2, "Env", "empty symbol");
+}
         if (_var_map.count(sym)) {
             return _var_map[sym];
         }
-        if (_parent)
+        if (_parent) {
             return _parent->find(sym);
+}
         throw Exception(1, "Env", "cannot find variant in this environment");
     }
 
@@ -72,8 +81,8 @@ private:
 // push_env 时，新创建的作用域将会自动以上一层的作用域作为父节点
 template <typename T> class EnvWrapper {
 public:
-    typedef Env<T> tEnv;
-    typedef Pointer<tEnv> pEnv;
+    using tEnv = Env<T>;
+    using pEnv = Pointer<tEnv>;
 
     pEnv env() {
         if (env_count()) {
@@ -85,21 +94,24 @@ public:
     size_t env_count() { return _env.size(); }
 
     void push_env() {
-        if (env_count())
+        if (env_count()) {
             _env.push(pEnv(new tEnv(env())));
-        else
+        } else {
             _env.push(pEnv(new tEnv()));
+}
     }
 
     void end_env() {
-        if (_env.empty())
+        if (_env.empty()) {
             throw Exception(2, "EnvWrapper", "environment stack is empty");
+}
         _env.pop();
     }
 
     void clear_env() {
-        while (env_count())
+        while (env_count()) {
             end_env();
+}
     }
 
 private:

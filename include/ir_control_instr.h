@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "ir_instr.h"
 
 namespace Ir {
@@ -7,23 +9,23 @@ namespace Ir {
 struct LabelInstr : public Instr {
     LabelInstr() : Instr(make_ir_type(IR_LABEL)) {}
 
-    virtual InstrType instr_type() const override { return INSTR_LABEL; }
+    InstrType instr_type() const override { return INSTR_LABEL; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 };
 
 struct BrInstr : public Instr {
-    BrInstr(pInstr to) : Instr(make_ir_type(IR_BR)) { add_operand(to); }
+    BrInstr(const pInstr& to) : Instr(make_ir_type(IR_BR)) { add_operand(to); }
 
     BrInstr(Instr *to) : Instr(make_ir_type(IR_BR)) { add_operand(to); }
 
-    virtual InstrType instr_type() const override { return INSTR_BR; }
+    InstrType instr_type() const override { return INSTR_BR; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 };
 
 struct BrCondInstr : public Instr {
-    BrCondInstr(pVal cond, pInstr trueTo, pInstr falseTo)
+    BrCondInstr(const pVal& cond, const pInstr& trueTo, const pInstr& falseTo)
         : Instr(make_ir_type(IR_BR_COND)) {
         add_operand(cond);
         add_operand(trueTo);
@@ -32,18 +34,18 @@ struct BrCondInstr : public Instr {
 
     pInstr select(bool cond);
 
-    virtual InstrType instr_type() const override { return INSTR_BR_COND; }
+    InstrType instr_type() const override { return INSTR_BR_COND; }
 
-    virtual String instr_print() const override;
+    String instr_print() const override;
 };
 
-typedef Pointer<LabelInstr> pLabel;
-typedef Pointer<BrInstr> pBrInstr;
-typedef Pointer<BrCondInstr> pBrCondInstr;
+using pLabel = Pointer<LabelInstr>;
+using pBrInstr = Pointer<BrInstr>;
+using pBrCondInstr = Pointer<BrCondInstr>;
 
 pInstr make_label_instr();
-pInstr make_br_instr(pInstr to);
+pInstr make_br_instr(const pInstr& to);
 pInstr make_br_instr(Instr *to);
-pInstr make_br_cond_instr(pVal cond, pInstr trueTo, pInstr falseTo);
+pInstr make_br_cond_instr(const pVal& cond, const pInstr& trueTo, const pInstr& falseTo);
 
 } // namespace Ir

@@ -1,29 +1,31 @@
 #include "ir_module.h"
 
+#include <memory>
+
 namespace Ir {
 
-void Module::add_func(pFuncDefined f) { funsDefined.push_back(f); }
+void Module::add_func(const pFuncDefined& f) { funsDefined.push_back(f); }
 
-void Module::add_func_declaration(pFunc f) { funsDeclared.push_back(f); }
+void Module::add_func_declaration(const pFunc& f) { funsDeclared.push_back(f); }
 
-void Module::add_global(pGlobal g) { globs.push_back(g); }
+void Module::add_global(const pGlobal& g) { globs.push_back(g); }
 
 String Module::print_module() const {
     String ans;
 
-    for (auto i : funsDeclared) {
+    for (const auto& i : funsDeclared) {
         ans += i->print_func_declaration();
         ans += "\n";
     }
 
-    for (auto i : globs) {
+    for (const auto& i : globs) {
         ans += i->print_global();
         ans += "\n";
     }
 
     ans += "\n";
 
-    for (auto i : funsDefined) {
+    for (const auto& i : funsDefined) {
         ans += i->print_func();
         ans += "\n";
     }
@@ -31,6 +33,6 @@ String Module::print_module() const {
     return ans;
 }
 
-pModule make_module() { return pModule(new Module()); }
+pModule make_module() { return std::make_shared<Module>(); }
 
 } // namespace Ir
