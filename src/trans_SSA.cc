@@ -31,7 +31,7 @@ auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
 
 auto SSA_pass::is_phi(Ir::User *user) -> bool {
     if (user->type() == Ir::VAL_INSTR) {
-        auto *t = static_cast<Ir::Instr *>(user);
+        auto t = static_cast<Ir::Instr *>(user);
         my_assert(t, "t must be Instr *");
         return t->instr_type() == Ir::INSTR_PHI;
     }
@@ -78,9 +78,9 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
 
 SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
-    auto *phi_ins = static_cast<Ir::PhiInstr *>(phi);
-    for (auto *pred : phi_blk->in_blocks()) {
-        auto *val = use_val(variable, pred);
+    auto phi_ins = static_cast<Ir::PhiInstr *>(phi);
+    for (auto pred : phi_blk->in_blocks()) {
+        auto val = use_val(variable, pred);
         // phi->add_incoming(pred, val);
         phi_ins->add_incoming(pred, val);
     }
@@ -90,7 +90,7 @@ SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
 auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     vrtl_reg *same = nullptr;
     for (auto [_, use_val] : phi->incoming_tuples) {
-        auto *val = use_val->usee;
+        auto val = use_val->usee;
         if (val == same || val == phi) {
             continue;
 }
@@ -118,7 +118,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     // reset val
     phi->replace_self(same);
 
-    for (auto *user : phiUsers) {
+    for (auto user : phiUsers) {
         tryRemoveTrivialPhi(user);
     }
     return same;
@@ -160,9 +160,9 @@ void SSA_pass::transform_func() {
             break;
 
         case Ir::INSTR_STORE: {
-            auto *store = static_cast<Ir::StoreInstr *>(instr);
-            auto *to = store->operands.at(0)->usee;
-            auto *val = store->operands.at(1)->usee;
+            auto store = static_cast<Ir::StoreInstr *>(instr);
+            auto to = store->operands.at(0)->usee;
+            auto val = store->operands.at(1)->usee;
             // val must be a pointer type
             my_assert(to_pointer_type(val->ty), "pointer type");
             to->replace_self(use_val(to, block));
@@ -171,7 +171,7 @@ void SSA_pass::transform_func() {
 
         case Ir::INSTR_ITEM:
         case Ir::INSTR_LOAD: {
-            auto *use = static_cast<Ir::Instr *>(instr)->operand(0)->usee;
+            auto use = static_cast<Ir::Instr *>(instr)->operand(0)->usee;
             use->replace_self(use_val(use, block));
             break;
         }
@@ -194,7 +194,7 @@ void SSA_pass::transform_func() {
     auto def_map = [this](Ir::Instr *instr, Ir::Block *block) -> void {
         switch (instr->instr_type()) {
         case Ir::INSTR_CALL: {
-            auto *call = static_cast<Ir::CallInstr *>(instr);
+            auto call = static_cast<Ir::CallInstr *>(instr);
             if (call->ty->type_type() != TYPE_VOID_TYPE) {
                 def_val(instr, block, instr);
 }
@@ -210,9 +210,9 @@ void SSA_pass::transform_func() {
             break;
 
         case Ir::INSTR_STORE: {
-            auto *store = static_cast<Ir::StoreInstr *>(instr);
-            auto *destination_ptr = store->operands.at(0)->usee;
-            auto *val = store->operands.at(1)->usee;
+            auto store = static_cast<Ir::StoreInstr *>(instr);
+            auto destination_ptr = store->operands.at(0)->usee;
+            auto val = store->operands.at(1)->usee;
             my_assert(to_pointer_type(destination_ptr->ty), "pointer type");
             def_val(destination_ptr, block, val);
             break;
@@ -248,7 +248,7 @@ void SSA_pass::transform_func() {
             def_map(cur_instr.get(), cur_block.get());
         }
         trySeal(cur_block.get());
-        for (auto *succ_bb : cur_block->out_blocks()) {
+        for (auto succ_bb : cur_block->out_blocks()) {
             pred[succ_bb]--;
             trySeal(succ_bb);
         }

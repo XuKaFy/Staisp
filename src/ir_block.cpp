@@ -22,8 +22,7 @@ void Block::add_imm(const pVal &imm) { imms.push_back(imm); }
 
 void Block::squeeze_out(bool selected) {
     auto end = body.back();
-    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(
-        (1 - static_cast<int>(selected) != 0));
+    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(!selected);
     new_br->block = this;
     // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
     body.pop_back();
@@ -33,7 +32,7 @@ void Block::squeeze_out(bool selected) {
 void Block::connect_in_and_out() {
     auto out_block = out_blocks();
     my_assert(out_block.size() == 1 && body.size() == 2, "?");
-    for (auto *j : in_blocks()) {
+    for (auto j : in_blocks()) {
         j->replace_out(this, *out_block.begin());
     }
 }
@@ -128,7 +127,7 @@ void BlockedProgram::re_generate() const {
 Set<Block *> Block::in_blocks() const {
     Set<Block *> ans;
     for (auto &&i : label()->users) {
-        auto *user = static_cast<Instr *>(i->user);
+        auto user = static_cast<Instr *>(i->user);
         ans.insert(user->block);
     }
     return ans;
@@ -156,14 +155,14 @@ void BlockedProgram::opt_join_blocks() {
          [cur_block]
           /   |   \
         */
-        auto *cur_block = i->get();
+        auto cur_block = i->get();
         auto in_blocks = cur_block->in_blocks();
         if (in_blocks.size() != 1) {
             ++i;
             continue;
         }
 
-        auto *next_block = *in_blocks.begin();
+        auto next_block = *in_blocks.begin();
         if (next_block->out_blocks().size() != 1) {
             ++i;
             continue;
@@ -249,12 +248,12 @@ void BlockedProgram::opt_remove_dead_code() {
             continue;
         }
 
-        auto *cond = end->operand(0)->usee;
+        auto cond = end->operand(0)->usee;
         if (cond->type() != Ir::VAL_CONST) {
             continue;
         }
 
-        auto *con = static_cast<Ir::Const *>(cond);
+        auto con = static_cast<Ir::Const *>(cond);
         if (con->v.type() == VALUE_IMM) {
             i->squeeze_out((bool)con->v);
         }
@@ -273,7 +272,7 @@ void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
         for (const auto &instr : block->body) {
             if (auto bin = std::dynamic_pointer_cast<Ir::BinInstr>(instr)) {
-                auto *usee = bin->operand(1)->usee;
+                auto usee = bin->operand(1)->usee;
                 if (bin->binType == INSTR_SDIV && usee->type() == VAL_CONST) {
                     auto value = static_cast<Const *>(usee)->v;
                     if (value.type() == ValueType::VALUE_IMM &&
