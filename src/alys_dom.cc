@@ -14,6 +14,16 @@ namespace Alys {
 
 pDomBlock DomTree::make_domblk() { return pDomBlock(new DomBlock()); }
 
+auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
+    if (!v.count(cur)) {
+        v.insert(cur);
+        dom_order.push_back(cur->basic_block.get());
+        for (auto out : cur->out_block) {
+            build_dfsn(v, out);
+        }
+    }
+};
+
 void DomTree::build_dom(Ir::BlockedProgram &p) {
     Map<Ir::Block *, int> order_map;
 
@@ -53,6 +63,9 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
             }
         }
     }
+
+    Set<DomBlock *> v;
+    build_dfsn(v, dom_map[entry].get());
     return;
 }
 
@@ -103,7 +116,7 @@ String PhiInstr::instr_print() const {
               "Phi Instruction type must be non-void");
     ret = name() + " = ";
 
-    ret += "phi " + ty->type_name();
+    ret += "phi " + ty->type_name() + " ";
     for (auto [blk, val] : incoming_tuples) {
         ret += "[ ";
         ret += val->usee->name();

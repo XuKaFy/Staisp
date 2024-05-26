@@ -10,7 +10,7 @@
 namespace Optimize {
 
 [[nodiscard]]
-Ir::pInstr make_identity_instr(Ir::Val *val);
+Ir::pInstr make_identity_instr(Ir::Val *&val);
 
 enum class ssa_type { LLVM_MEM2REG, RECONSTRUCTION };
 class SSA_pass {

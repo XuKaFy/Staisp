@@ -25,7 +25,7 @@ https:doi.org/10.1007/978-3-642-37051-9_6
 namespace Optimize {
 
 [[nodiscard]]
-Ir::pInstr make_identity_instr(Ir::Val *arg_val) {
+Ir::pInstr make_identity_instr(Ir::Val *&arg_val) {
     if (arg_val->type() != Ir::VAL_INSTR) {
         my_assert(arg_val->type() == Ir::VAL_CONST, "constant value type");
         auto const_val =
@@ -33,8 +33,7 @@ Ir::pInstr make_identity_instr(Ir::Val *arg_val) {
         auto arg_const =
             Ir::make_constant(dynamic_cast<Ir::Const *>(arg_val)->v);
         if (is_integer(arg_val->ty) || is_signed_type(arg_val->ty)) {
-            return Ir::make_binary_instr(Ir::INSTR_ADD, std::move(const_val),
-                                         std::move(arg_const));
+            return Ir::make_binary_instr(Ir::INSTR_ADD, const_val, arg_const);
         } else if (is_float(arg_val->ty)) {
             return Ir::make_binary_instr(Ir::INSTR_FADD, const_val, arg_const);
         }
@@ -137,6 +136,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
     if (sealedBlocks.find(block) == sealedBlocks.end()) {
         // Incomplete CFG.
         auto phi = Ir::make_phi_instr(variable->ty);
+        phi->block = block;
         val = phi.get();
         block->body.insert(std::next(block->body.begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
@@ -150,6 +150,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
                   "every block in such function must have predecessor");
         // Break potential cycles with operandless phi
         auto phi = Ir::make_phi_instr(variable->ty);
+        phi->block = block;
         block->body.insert(std::next(block->body.begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
         def_val(variable, block, phi.get());
@@ -161,7 +162,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
 
 SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
-    auto phi_ins = static_cast<Ir::PhiInstr *>(phi);
+    auto phi_ins = dynamic_cast<Ir::PhiInstr *>(phi);
     for (auto pred : phi_blk->in_blocks()) {
         auto val = use_val(variable, pred);
         // phi->add_incoming(pred, val);
@@ -172,8 +173,10 @@ SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
 
 auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     vrtl_reg *same = nullptr;
-    for (auto [_, use_val] : phi->incoming_tuples) {
-        auto val = use_val->usee;
+
+    for (auto it : phi->operands) {
+        auto val = it->usee;
+        my_assert(it->user == phi, "semantics of phi USE");
         if (val == same || val == phi)
             continue;
         if (same)
@@ -271,16 +274,21 @@ void SSA_pass::reconstruct() {
                arg_val->type() == Ir::VAL_GLOBAL;
     };
 
-    for (auto cur_block : cur_func.blocks) {
+    Vector<Ir::Block *> order;
+    order.insert(order.begin(), dom_ctx.order().begin(), dom_ctx.order().end());
+
+    for (auto cur_block : order) {
         for (auto it = cur_block->body.begin(); it != cur_block->body.end();
-             ++it) {
+             /* next perform increment*/) {
+            auto succ_instr = std::next(it);
             auto cur_instr = *it;
             if (cur_instr->instr_type() == Ir::INSTR_STORE) {
-                auto store = static_cast<Ir::StoreInstr *>(cur_instr.get());
+                auto store = dynamic_cast<Ir::StoreInstr *>(cur_instr.get());
                 auto to = mem_destination_val(store);
                 if (alloca_vars.count(to->usee)) {
                     auto val = mem_sourve_val(store);
-                    def_val(to->usee, cur_block.get(), val->usee);
+                    def_val(to->usee, cur_block, val->usee);
+                    cur_block->body.erase(it);
                 } else {
                     my_assert(type_filter(to->usee),
                               "store to non-alloca variable");
@@ -290,19 +298,17 @@ void SSA_pass::reconstruct() {
                 auto load = static_cast<Ir::LoadInstr *>(cur_instr.get());
                 auto src_ptr = load->operands.at(0);
                 if (alloca_vars.count(src_ptr->usee)) {
-                    auto real_use = use_val(src_ptr->usee, cur_block.get());
-                    auto replace_of_load = make_identity_instr(real_use);
-                    replace_of_load->block = cur_block.get();
-                    load->replace_self(replace_of_load.get());
+                    load->replace_self(use_val(src_ptr->usee, cur_block));
                     my_assert(load->users.empty(), "removable load instr");
-                    *it = replace_of_load;
+                    cur_block->body.erase(it);
                 } else {
                     my_assert(type_filter(src_ptr->usee),
                               "load from non-alloca variable");
                 }
             }
+            it = succ_instr;
         }
-        trySeal(cur_block.get());
+        trySeal(cur_block);
         for (auto succ_bb : cur_block->out_blocks()) {
             pred[succ_bb]--;
             trySeal(succ_bb);

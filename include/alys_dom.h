@@ -21,7 +21,11 @@ struct DomTree {
     static pDomBlock make_domblk();
     void print_dom_tree() const;
     void build_dom(Ir::BlockedProgram &p);
+    void build_dfsn(Set<DomBlock *> &v, DomBlock *cur);
     [[nodiscard]] Map<Ir::Block *, pDomBlock> build_dom_frontier() const;
+
+    Vector<Ir::Block *> dom_order;
+    const Vector<Ir::Block *> &order() { return dom_order; }
 };
 
 }; // namespace Alys
