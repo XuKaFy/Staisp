@@ -4,7 +4,6 @@
 #include "opt_2.h"
 #include "trans_SSA.h"
 
-#include <iostream>
 #define MAX_OPT_COUNT 10
 
 namespace Optimize {
@@ -23,9 +22,7 @@ void optimize(const Ir::pModule &mod) {
     for (auto &&i : mod->funsDefined) {
         size_t cnt = 0;
         SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
-        std::cerr << i->print_func();
         pass.pass_transform();
-        std::cerr << i->print_func();
         // i->print_func()
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);

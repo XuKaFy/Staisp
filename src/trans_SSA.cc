@@ -114,7 +114,7 @@ auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
 
 auto SSA_pass::is_phi(Ir::User *user) -> bool {
     if (user->type() == Ir::VAL_INSTR) {
-        auto cur_instr = static_cast<Ir::Instr *>(user);
+        auto cur_instr = dynamic_cast<Ir::Instr *>(user);
         return my_assert(cur_instr, "must be Instr *"),
                cur_instr->instr_type() == Ir::INSTR_PHI;
     }
@@ -164,9 +164,9 @@ SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
     auto phi_ins = dynamic_cast<Ir::PhiInstr *>(phi);
     for (auto pred : phi_blk->in_blocks()) {
-        auto val = use_val(variable, pred);
+        auto pred_val = use_val(variable, pred);
         // phi->add_incoming(pred, val);
-        phi_ins->add_incoming(pred, val);
+        phi_ins->add_incoming(pred, pred_val);
     }
     return tryRemoveTrivialPhi(phi_ins);
 }
@@ -235,7 +235,7 @@ void SSA_pass::reconstruct() {
     auto build_def = [this, &alloca_vars]() -> void {
         for (auto ent_instr : entry_blk()->body) {
             if (ent_instr->instr_type() == Ir::INSTR_ALLOCA) {
-                auto alloca = static_cast<Ir::AllocInstr *>(ent_instr.get());
+                auto alloca = dynamic_cast<Ir::AllocInstr *>(ent_instr.get());
                 if (is_pointer(alloca->ty)) {
                     alloca_vars.insert(alloca);
                     current_def[alloca] = {};
@@ -269,7 +269,7 @@ void SSA_pass::reconstruct() {
     // either elementptr or global or array
     auto type_filter = [](Ir::Val *arg_val) -> bool {
         return (is_pointer(arg_val->ty) &&
-                static_cast<Ir::ItemInstr *>(arg_val)) ||
+                dynamic_cast<Ir::ItemInstr *>(arg_val)) ||
                is_array(arg_val->ty) || is_struct(arg_val->ty) ||
                arg_val->type() == Ir::VAL_GLOBAL;
     };
@@ -295,7 +295,7 @@ void SSA_pass::reconstruct() {
                 }
 
             } else if (cur_instr->instr_type() == Ir::INSTR_LOAD) {
-                auto load = static_cast<Ir::LoadInstr *>(cur_instr.get());
+                auto load = dynamic_cast<Ir::LoadInstr *>(cur_instr.get());
                 auto src_ptr = load->operands.at(0);
                 if (alloca_vars.count(src_ptr->usee)) {
                     load->replace_self(use_val(src_ptr->usee, cur_block));

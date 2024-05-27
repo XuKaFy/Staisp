@@ -15,14 +15,13 @@ namespace Alys {
 pDomBlock DomTree::make_domblk() { return pDomBlock(new DomBlock()); }
 
 auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
-    if (!v.count(cur)) {
-        v.insert(cur);
-        dom_order.push_back(cur->basic_block.get());
-        for (auto out : cur->out_block) {
-            build_dfsn(v, out);
-        }
+    my_assert(!v.count(cur), "tree");
+    v.insert(cur);
+    dom_order.push_back(cur->basic_block.get());
+    for (auto out : cur->out_block) {
+        build_dfsn(v, out);
     }
-};
+}
 
 void DomTree::build_dom(Ir::BlockedProgram &p) {
     Map<Ir::Block *, int> order_map;
@@ -56,14 +55,18 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         order_map.at(node) = level;
         my_assert(level != 1, "idfn will not changed");
         dfsn(entry, level);
-        for (auto [bb, dom_bb] : dom_map) {
+        for (auto &[bb, dom_bb] : dom_map) {
             if (order_map.at(bb) != level) {
                 dom_bb->idom = dom_map.at(node).get();
-                dom_map.at(node)->out_block.insert(dom_bb.get());
             }
         }
     }
 
+    for (auto &[bb, dom_bb] : dom_map) {
+        if (dom_bb->idom) {
+            dom_bb->idom->out_block.push_back(dom_bb.get());
+        }
+    }
     Set<DomBlock *> v;
     build_dfsn(v, dom_map[entry].get());
     return;
@@ -117,7 +120,7 @@ String PhiInstr::instr_print() const {
     ret = name() + " = ";
 
     ret += "phi " + ty->type_name() + " ";
-    for (auto [blk, val] : incoming_tuples) {
+    for (const auto &[blk, val] : incoming_tuples) {
         ret += "[ ";
         ret += val->usee->name();
         ret += ", ";
@@ -132,7 +135,7 @@ void PhiInstr::add_incoming(Block *blk, Val *val) {
     my_assert(is_same_type(val->ty, ty), "operand is same as type of phi node");
     my_assert(!incoming_tuples.count(blk), "block is not in incoming tuples");
     add_operand(val);
-    incoming_tuples.insert({blk, *operands.cbegin()});
+    incoming_tuples.insert({blk, *operands.rbegin()});
 }
 
 pInstr make_phi_instr(const pType &type) {

@@ -11,7 +11,7 @@ struct DomBlock;
 using pDomBlock = Pointer<DomBlock>;
 
 struct DomBlock {
-    Set<DomBlock *> out_block;
+    Vector<DomBlock *> out_block;
     DomBlock *idom;
     Ir::pBlock basic_block;
 };
