@@ -2,6 +2,7 @@
 #pragma once
 #include "def.h"
 #include "ir_block.h"
+#include "ir_control_instr.h"
 #include "ir_instr.h"
 #include "ir_val.h"
 #include "type.h"
@@ -18,14 +19,14 @@ struct DomBlock {
 
 struct DomTree {
     Map<Ir::Block *, pDomBlock> dom_map;
-    static pDomBlock make_domblk();
+    static auto make_domblk() -> pDomBlock;
     void print_dom_tree() const;
     void build_dom(Ir::BlockedProgram &p);
     void build_dfsn(Set<DomBlock *> &v, DomBlock *cur);
     [[nodiscard]] Map<Ir::Block *, pDomBlock> build_dom_frontier() const;
 
     Vector<Ir::Block *> dom_order;
-    const Vector<Ir::Block *> &order() { return dom_order; }
+    const Vector<Ir::Block *> &order() const { return dom_order; }
 };
 
 }; // namespace Alys
@@ -39,8 +40,10 @@ struct PhiInstr final : Instr {
     String instr_print() const override;
 
     void add_incoming(Block *blk, Val *val);
+    void add_label(Block *blk);
 
-    Map<Block *, pUse> incoming_tuples;
+    //    Map<Block *, pUse> incoming_tuples;
+    Vector<Ir::LabelInstr *> labels;
 };
 
 // make_phi_instr: create a new PhiInstr with the given type

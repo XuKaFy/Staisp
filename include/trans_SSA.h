@@ -9,9 +9,6 @@
 
 namespace Optimize {
 
-[[nodiscard]]
-Ir::pInstr make_identity_instr(Ir::Val *&val);
-
 enum class ssa_type { LLVM_MEM2REG, RECONSTRUCTION };
 class SSA_pass {
 
@@ -24,22 +21,22 @@ class SSA_pass {
     Map<Ir::Block *, Vector<Pair<vrtl_reg *, Ir::Instr *>>> incompletePhis;
 
 public:
-    SSA_pass(Ir::BlockedProgram &p, const ssa_type &type);
+    SSA_pass(Ir::BlockedProgram &arg_function, const ssa_type &arg_ssa_type);
 
     auto entry_blk() -> Ir::Block *;
 
     auto def_val(vrtl_reg *variable, Ir::Block *block, vrtl_reg *val) -> void;
 
     template <typename a, typename b>
-    auto fmap(std::function<b(a)> f, Vector<a> v1) -> Vector<b> {
+    auto fmap(std::function<b(a)> f, Vector<a> &v1) -> Vector<b> {
         Vector<b> v2;
-        for (auto vs : v1) {
+        for (const auto &vs : v1) {
             v2.push_back(f(vs));
         }
         return v2;
     };
 
-    auto is_phi(Ir::User *user) -> bool;
+    static auto is_phi(Ir::User *user) -> bool;
 
     vrtl_reg *use_val(vrtl_reg *variable, Ir::Block *block);
 

@@ -5,6 +5,7 @@
 #include "ir_val.h"
 #include "type.h"
 #include <cassert>
+#include <cstddef>
 #include <cstdio>
 
 #include <functional>
@@ -12,13 +13,13 @@
 
 namespace Alys {
 
-pDomBlock DomTree::make_domblk() { return pDomBlock(new DomBlock()); }
+pDomBlock DomTree::make_domblk() { return std::make_shared<DomBlock>(); }
 
 auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
     my_assert(!v.count(cur), "tree");
     v.insert(cur);
     dom_order.push_back(cur->basic_block.get());
-    for (auto out : cur->out_block) {
+    for (auto *out : cur->out_block) {
         build_dfsn(v, out);
     }
 }
@@ -26,7 +27,7 @@ auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
 void DomTree::build_dom(Ir::BlockedProgram &p) {
     Map<Ir::Block *, int> order_map;
 
-    for (auto bb : p.blocks) {
+    for (const auto &bb : p.blocks) {
         auto [it, success] = dom_map.insert({bb.get(), make_domblk()});
         auto dom_it = it->second;
         my_assert(success, "insertion success");
@@ -38,19 +39,21 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
     Vector<Ir::Block *> idfn;
     std::function<void(Ir::Block *, int &)> dfsn =
         [&dfsn, &idfn, &order_map](Ir::Block *bb, int &level) -> void {
-        if (order_map.at(bb) == level)
+        if (order_map.at(bb) == level) {
             return;
-        if (level == 1)
+        }
+        if (level == 1) {
             idfn.push_back(bb);
+        }
         order_map.at(bb) = level;
         for (Ir::Block *succ : bb->out_blocks()) {
             dfsn(succ, level);
         }
     };
 
-    auto entry = p.blocks.front().get();
+    auto *entry = p.blocks.front().get();
     dfsn(entry, level);
-    for (auto node : idfn) {
+    for (auto *node : idfn) {
         level++;
         order_map.at(node) = level;
         my_assert(level != 1, "idfn will not changed");
@@ -63,22 +66,21 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
     }
 
     for (auto &[bb, dom_bb] : dom_map) {
-        if (dom_bb->idom) {
+        if (dom_bb->idom != nullptr) {
             dom_bb->idom->out_block.push_back(dom_bb.get());
         }
     }
     Set<DomBlock *> v;
     build_dfsn(v, dom_map[entry].get());
-    return;
 }
 
 void DomTree::print_dom_tree() const {
-    for (auto [_, dom_node] : dom_map) {
+    for (const auto &[_, dom_node] : dom_map) {
         printf("Dominance Tree: Block %s\n",
                dom_node->basic_block->name().c_str());
         printf("Idom: %s", dom_node->idom->basic_block->name().c_str());
         printf("Out Block: ");
-        for (auto j : dom_node->out_block) {
+        for (auto *j : dom_node->out_block) {
             printf("%s ;", j->basic_block->name().c_str());
             my_assert(dom_map.at(j->basic_block.get())->idom == dom_node.get(),
                       "dominance tree success");
@@ -89,8 +91,8 @@ void DomTree::print_dom_tree() const {
 
 Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
     Map<Ir::Block *, pDomBlock> dom_frontier;
-    for (auto [bb, dom_node] : dom_map) {
-        for (auto in : bb->in_blocks()) {
+    for (const auto &[bb, dom_node] : dom_map) {
+        for (auto *in : bb->in_blocks()) {
             Ir::Block *runner = in;
             while (runner != dom_node->idom->basic_block.get()) {
                 dom_frontier[runner] = dom_node;
@@ -120,22 +122,30 @@ String PhiInstr::instr_print() const {
     ret = name() + " = ";
 
     ret += "phi " + ty->type_name() + " ";
-    for (const auto &[blk, val] : incoming_tuples) {
+    for (size_t index = 0; index < operands.size(); ++index) {
+        auto val = operands.at(index);
+        auto *lab_use = labels.at(index);
         ret += "[ ";
         ret += val->usee->name();
-        ret += ", ";
-        ret += blk->name();
-        ret += " ]";
+        ret += ", %";
+        ret += lab_use->name();
+        ret += " ], ";
     }
 
+    ret.pop_back();
+    ret.pop_back();
     return ret;
 }
 
 void PhiInstr::add_incoming(Block *blk, Val *val) {
     my_assert(is_same_type(val->ty, ty), "operand is same as type of phi node");
-    my_assert(!incoming_tuples.count(blk), "block is not in incoming tuples");
     add_operand(val);
-    incoming_tuples.insert({blk, *operands.rbegin()});
+    add_label(blk);
+}
+
+void PhiInstr::add_label(Block *blk) {
+    auto blk_label = blk->label();
+    labels.push_back(blk_label.get());
 }
 
 pInstr make_phi_instr(const pType &type) {

@@ -1,20 +1,18 @@
 #include "trans_SSA.h"
 #include "alys_dom.h"
 #include "def.h"
-#include "imm.h"
 #include "ir_block.h"
-#include "ir_constant.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
-#include "ir_opr_instr.h"
 #include "ir_ptr_instr.h"
 #include "ir_val.h"
 #include "type.h"
 #include <algorithm>
-#include <cstdint>
+#include <cstddef>
 #include <iterator>
 #include <memory>
 #include <unordered_map>
+#include <unordered_set>
 /*
 This algorithem is based on the paper "Simple and Efficient Construction of
 Static Single Assignment Form" by Braun, M., Buchwald, S., Hack, S., Leißa, R.,
@@ -24,78 +22,14 @@ https:doi.org/10.1007/978-3-642-37051-9_6
 
 namespace Optimize {
 
-[[nodiscard]]
-Ir::pInstr make_identity_instr(Ir::Val *&arg_val) {
-    if (arg_val->type() != Ir::VAL_INSTR) {
-        my_assert(arg_val->type() == Ir::VAL_CONST, "constant value type");
-        auto const_val =
-            Ir::make_constant(ImmValue(to_basic_type(arg_val->ty)->ty));
-        auto arg_const =
-            Ir::make_constant(dynamic_cast<Ir::Const *>(arg_val)->v);
-        if (is_integer(arg_val->ty) || is_signed_type(arg_val->ty)) {
-            return Ir::make_binary_instr(Ir::INSTR_ADD, const_val, arg_const);
-        } else if (is_float(arg_val->ty)) {
-            return Ir::make_binary_instr(Ir::INSTR_FADD, const_val, arg_const);
-        }
-        my_assert(false, "unreachable code path");
-    }
-    auto arg_instr = dynamic_cast<Ir::Instr *>(arg_val);
-    my_assert(arg_instr, "must be instr");
-    Ir::pVal val = nullptr;
-    for (const auto &cur : arg_instr->block->body) {
-        if (cur.get() == arg_instr) {
-            val = cur;
-            break;
-        }
-    }
-    Ir::pVal id_val;
-    Ir::pInstr ret;
-    my_assert(val, "existenence of such val");
-    my_assert(to_basic_type(val->ty), "must be value type");
-    switch (to_basic_type(val->ty)->ty) {
-    case IMM_I1:
-    case IMM_I8:
-        id_val = Ir::make_constant(ImmValue((int8_t)0));
-    case IMM_I16:
-        id_val = Ir::make_constant(ImmValue((int16_t)0));
-    case IMM_I32:
-        id_val = Ir::make_constant(ImmValue((int32_t)0));
-    case IMM_I64:
-        id_val = Ir::make_constant(ImmValue((int64_t)0));
-
-        return Ir::make_binary_instr(Ir::INSTR_ADD, id_val, val);
-        break;
-
-    case IMM_F32:
-        id_val = Ir::make_constant(ImmValue(0.0F));
-    case IMM_F64:
-        id_val = Ir::make_constant(ImmValue(0.0));
-
-        return Ir::make_binary_instr(Ir::INSTR_FADD, id_val, val);
-        break;
-
-    case IMM_U1:
-    case IMM_U8:
-        id_val = Ir::make_constant(ImmValue((uint8_t)0));
-    case IMM_U16:
-        id_val = Ir::make_constant(ImmValue((uint16_t)0));
-    case IMM_U32:
-        id_val = Ir::make_constant(ImmValue((uint32_t)0));
-    case IMM_U64:
-        id_val = Ir::make_constant(ImmValue((uint64_t)0));
-
-        return Ir::make_binary_instr(Ir::INSTR_ADD, id_val, val);
-        break;
-    }
-}
-
-SSA_pass::SSA_pass(Ir::BlockedProgram &cur_func, const ssa_type &pro_type)
-    : promotion_type(pro_type), cur_func(cur_func) {
-    dom_ctx.build_dom(cur_func);
+SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
+                   const ssa_type &arg_ssa_type)
+    : promotion_type(arg_ssa_type), cur_func(arg_function) {
+    dom_ctx.build_dom(arg_function);
 #ifdef dom_bug
     dom_ctx.print_dom();
 #endif
-    cur_func.normal_opt();
+    arg_function.normal_opt();
 #ifdef ssa_debug
     printf("Before SSA transformation:\n");
     cur_func.print();
@@ -114,7 +48,7 @@ auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
 
 auto SSA_pass::is_phi(Ir::User *user) -> bool {
     if (user->type() == Ir::VAL_INSTR) {
-        auto cur_instr = dynamic_cast<Ir::Instr *>(user);
+        auto *cur_instr = dynamic_cast<Ir::Instr *>(user);
         return my_assert(cur_instr, "must be Instr *"),
                cur_instr->instr_type() == Ir::INSTR_PHI;
     }
@@ -122,7 +56,7 @@ auto SSA_pass::is_phi(Ir::User *user) -> bool {
 }
 
 SSA_pass::vrtl_reg *SSA_pass::use_val(vrtl_reg *variable, Ir::Block *block) {
-    if (current_def.at(variable).count(block)) {
+    if (current_def.at(variable).count(block) > 0) {
         return current_def[variable][block];
     }
     my_assert(block != entry_blk(),
@@ -140,8 +74,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
         val = phi.get();
         block->body.insert(std::next(block->body.begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
-        incompletePhis[block].emplace_back<Pair<vrtl_reg *, Ir::Instr *>>(
-            {variable, phi.get()});
+        incompletePhis[block].emplace_back(variable, phi.get());
     } else if (block->in_blocks().size() == 1) {
         // Optimize the common case of one predecessor: No phi needed
         val = use_val(variable, *block->in_blocks().begin());
@@ -162,9 +95,9 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
 
 SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
-    auto phi_ins = dynamic_cast<Ir::PhiInstr *>(phi);
-    for (auto pred : phi_blk->in_blocks()) {
-        auto pred_val = use_val(variable, pred);
+    auto *phi_ins = dynamic_cast<Ir::PhiInstr *>(phi);
+    for (auto *pred : phi_blk->in_blocks()) {
+        auto *pred_val = use_val(variable, pred);
         // phi->add_incoming(pred, val);
         phi_ins->add_incoming(pred, pred_val);
     }
@@ -172,18 +105,40 @@ SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
 }
 
 auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
+
     vrtl_reg *same = nullptr;
 
-    for (auto it : phi->operands) {
-        auto val = it->usee;
-        my_assert(it->user == phi, "semantics of phi USE");
-        if (val == same || val == phi)
-            continue;
-        if (same)
-            return phi;
-        same = val;
-    }
+    auto is_trivial = [&same, &phi]() -> bool {
+        std::unordered_set<Ir::pUse> trivial_phi_operands{phi->operands.begin(),
+                                                          phi->operands.end()};
+        if (trivial_phi_operands.size() >= 3) {
+            return false;
+        }
 
+        if (trivial_phi_operands.size() == 1) {
+            auto src_val = phi->operands.at(0);
+            my_assert(src_val->user == phi, "semantics of phi USE");
+            same = src_val->usee;
+            return true;
+        }
+
+        auto op1 = *trivial_phi_operands.begin();
+        auto op2 = *std::next(trivial_phi_operands.begin());
+        if (op1->usee == phi) {
+            same = op2->usee;
+            return true;
+        }
+        if (op2->usee == phi) {
+            same = op1->usee;
+            return true;
+        }
+        my_assert(op1->usee != phi && op2->usee != phi, "no self-loop phi");
+        return false;
+    };
+
+    if (!is_trivial()) {
+        return phi;
+    }
     my_assert(same, "nullptr to some val in phi incoming tuples");
     Vector<Ir::PhiInstr *> phiUsers;
 
@@ -202,7 +157,18 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     // reset val
     phi->replace_self(same);
 
-    for (auto user : phiUsers) {
+    auto remove_trivial = [&phi]() {
+        my_assert(phi->users.empty(), "successful replace");
+        for (auto ins_it = ++phi->block->body.begin();
+             ins_it != phi->block->body.end(); ins_it++) {
+            if ((*ins_it).get() == phi) {
+                phi->block->body.erase(ins_it);
+                break;
+            }
+        }
+    };
+    remove_trivial();
+    for (auto *user : phiUsers) {
         tryRemoveTrivialPhi(user);
     }
     return same;
@@ -220,8 +186,9 @@ void SSA_pass::sealBlock(Ir::Block *block) {
 
 auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
     Set<Ir::Block *> unreachable;
-    for (auto bb : cur_func.blocks) {
-        if (!dom_ctx.dom_map.count(bb.get())) {
+    for (const auto &bb : cur_func.blocks) {
+        if (dom_ctx.dom_map.count(bb.get()) == 0) {
+            // unreachable block
             unreachable.insert(bb.get());
         }
     }
@@ -231,12 +198,21 @@ auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
 void SSA_pass::reconstruct() {
     my_assert(unreachable_blks().empty(), "no unreachable blocks");
 
+    auto const promotable_filter =
+        [](Ir::AllocInstr *arg_alloca_instr) -> bool {
+        return !is_array(arg_alloca_instr->ty) &&
+               !is_struct(arg_alloca_instr->ty) &&
+               !(arg_alloca_instr->type() == Ir::VAL_GLOBAL) &&
+               (arg_alloca_instr->ty->length() <= 4 ||
+                is_pointer(arg_alloca_instr->ty));
+    };
+
     Set<vrtl_reg *> alloca_vars;
-    auto build_def = [this, &alloca_vars]() -> void {
-        for (auto ent_instr : entry_blk()->body) {
+    auto build_def = [this, &alloca_vars, &promotable_filter]() -> void {
+        for (const auto &ent_instr : entry_blk()->body) {
             if (ent_instr->instr_type() == Ir::INSTR_ALLOCA) {
-                auto alloca = dynamic_cast<Ir::AllocInstr *>(ent_instr.get());
-                if (is_pointer(alloca->ty)) {
+                auto *alloca = dynamic_cast<Ir::AllocInstr *>(ent_instr.get());
+                if (promotable_filter(alloca)) {
                     alloca_vars.insert(alloca);
                     current_def[alloca] = {};
                 }
@@ -253,7 +229,7 @@ void SSA_pass::reconstruct() {
                        return std::make_pair(bb.get(), bb->in_blocks().size());
                    });
     auto trySeal = [this, &pred](Ir::Block *block) -> void {
-        if (!sealedBlocks.count(block) && pred[block] == 0) {
+        if (sealedBlocks.count(block) == 0 && pred[block] == 0) {
             sealBlock(block);
         };
     };
@@ -269,7 +245,7 @@ void SSA_pass::reconstruct() {
     // either elementptr or global or array
     auto type_filter = [](Ir::Val *arg_val) -> bool {
         return (is_pointer(arg_val->ty) &&
-                dynamic_cast<Ir::ItemInstr *>(arg_val)) ||
+                dynamic_cast<Ir::ItemInstr *>(arg_val) != nullptr) ||
                is_array(arg_val->ty) || is_struct(arg_val->ty) ||
                arg_val->type() == Ir::VAL_GLOBAL;
     };
@@ -277,15 +253,17 @@ void SSA_pass::reconstruct() {
     Vector<Ir::Block *> order;
     order.insert(order.begin(), dom_ctx.order().begin(), dom_ctx.order().end());
 
-    for (auto cur_block : order) {
-        for (auto it = cur_block->body.begin(); it != cur_block->body.end();
+    for (auto *cur_block : order) {
+        auto it = cur_block->body.begin();
+        my_assert((*it)->instr_type() == Ir::INSTR_LABEL, "label begin"), it++;
+        for (; it != cur_block->body.end();
              /* next perform increment*/) {
             auto succ_instr = std::next(it);
             auto cur_instr = *it;
             if (cur_instr->instr_type() == Ir::INSTR_STORE) {
-                auto store = dynamic_cast<Ir::StoreInstr *>(cur_instr.get());
-                auto to = mem_destination_val(store);
-                if (alloca_vars.count(to->usee)) {
+                auto *store = dynamic_cast<Ir::StoreInstr *>(cur_instr.get());
+                const auto &to = mem_destination_val(store);
+                if (alloca_vars.count(to->usee) > 0) {
                     auto val = mem_sourve_val(store);
                     def_val(to->usee, cur_block, val->usee);
                     cur_block->body.erase(it);
@@ -295,9 +273,9 @@ void SSA_pass::reconstruct() {
                 }
 
             } else if (cur_instr->instr_type() == Ir::INSTR_LOAD) {
-                auto load = dynamic_cast<Ir::LoadInstr *>(cur_instr.get());
+                auto *load = dynamic_cast<Ir::LoadInstr *>(cur_instr.get());
                 auto src_ptr = load->operands.at(0);
-                if (alloca_vars.count(src_ptr->usee)) {
+                if (alloca_vars.count(src_ptr->usee) > 0) {
                     load->replace_self(use_val(src_ptr->usee, cur_block));
                     my_assert(load->users.empty(), "removable load instr");
                     cur_block->body.erase(it);
@@ -309,7 +287,7 @@ void SSA_pass::reconstruct() {
             it = succ_instr;
         }
         trySeal(cur_block);
-        for (auto succ_bb : cur_block->out_blocks()) {
+        for (auto *succ_bb : cur_block->out_blocks()) {
             pred[succ_bb]--;
             trySeal(succ_bb);
         }
@@ -317,13 +295,26 @@ void SSA_pass::reconstruct() {
 
     my_assert(sealedBlocks.size() == cur_func.blocks.size(),
               "all blocks are sealed");
+
+    for (auto ent_instr_it = ++entry_blk()->body.begin();
+         ent_instr_it != entry_blk()->body.end();) {
+        if (auto *ent_instr =
+                dynamic_cast<Ir::AllocInstr *>(ent_instr_it->get());
+            ent_instr != nullptr) {
+            if (promotable_filter(ent_instr)) {
+                my_assert(ent_instr->users.empty(),
+                          "single value is removable");
+                ent_instr_it = entry_blk()->body.erase(ent_instr_it);
+                continue;
+            }
+        }
+        ent_instr_it++;
+    }
 }
 
 void SSA_pass::pass_transform() {
-    if (promotion_type == ssa_type::RECONSTRUCTION)
-        reconstruct();
-    else
-        my_assert(false, "unreachable code path");
+    my_assert(promotion_type == ssa_type::RECONSTRUCTION, "RECONS");
+    reconstruct();
 }
 
 } // namespace Optimize
