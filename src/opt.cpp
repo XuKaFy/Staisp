@@ -24,13 +24,13 @@ void optimize(const Ir::pModule &mod) {
         SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
         // i->print_func()
-        for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
-            opt_cnt = from_button_analysis<Opt2::BlockValue, Opt2::Utils>(i->p);
-            i->p.normal_opt();
-            opt_cnt += from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
-            i->p.normal_opt();
-        }
-        // printf("Optimization loop count of function \"%s\": %lu\n",
+        // for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
+        //     opt_cnt = from_button_analysis<Opt2::BlockValue,
+        //     Opt2::Utils>(i->p); i->p.normal_opt(); opt_cnt +=
+        //     from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+        //     i->p.normal_opt();
+        // }
+        // // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name().c_str(), cnt);
         i->p.re_generate();
     }

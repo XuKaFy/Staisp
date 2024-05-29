@@ -198,13 +198,20 @@ auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
 void SSA_pass::reconstruct() {
     my_assert(unreachable_blks().empty(), "no unreachable blocks");
 
-    auto const promotable_filter =
-        [](Ir::AllocInstr *arg_alloca_instr) -> bool {
+    auto const promotable_filter = [](Ir::Val *arg_alloca_instr) -> bool {
         return !is_array(arg_alloca_instr->ty) &&
                !is_struct(arg_alloca_instr->ty) &&
                !(arg_alloca_instr->type() == Ir::VAL_GLOBAL) &&
                (arg_alloca_instr->ty->length() <= 4 ||
                 is_pointer(arg_alloca_instr->ty));
+    };
+
+    // static pointer or run time initialized pointer
+    auto const pointer_verifier =
+        [&promotable_filter](Ir::Val *arg_non_alloca) -> bool {
+        return !promotable_filter(arg_non_alloca) ||
+               (is_pointer(arg_non_alloca->ty) &&
+                dynamic_cast<Ir::ItemInstr *>(arg_non_alloca));
     };
 
     Set<vrtl_reg *> alloca_vars;
@@ -242,14 +249,6 @@ void SSA_pass::reconstruct() {
         return arg_instr->operands.at(1);
     };
 
-    // either elementptr or global or array
-    auto type_filter = [](Ir::Val *arg_val) -> bool {
-        return (is_pointer(arg_val->ty) &&
-                dynamic_cast<Ir::ItemInstr *>(arg_val) != nullptr) ||
-               is_array(arg_val->ty) || is_struct(arg_val->ty) ||
-               arg_val->type() == Ir::VAL_GLOBAL;
-    };
-
     Vector<Ir::Block *> order;
     order.insert(order.begin(), dom_ctx.order().begin(), dom_ctx.order().end());
 
@@ -268,7 +267,7 @@ void SSA_pass::reconstruct() {
                     def_val(to->usee, cur_block, val->usee);
                     cur_block->body.erase(it);
                 } else {
-                    my_assert(type_filter(to->usee),
+                    my_assert(pointer_verifier(to->usee),
                               "store to non-alloca variable");
                 }
 
@@ -280,7 +279,7 @@ void SSA_pass::reconstruct() {
                     my_assert(load->users.empty(), "removable load instr");
                     cur_block->body.erase(it);
                 } else {
-                    my_assert(type_filter(src_ptr->usee),
+                    my_assert(pointer_verifier(src_ptr->usee),
                               "load from non-alloca variable");
                 }
             }
@@ -302,10 +301,12 @@ void SSA_pass::reconstruct() {
                 dynamic_cast<Ir::AllocInstr *>(ent_instr_it->get());
             ent_instr != nullptr) {
             if (promotable_filter(ent_instr)) {
-                my_assert(ent_instr->users.empty(),
-                          "single value is removable");
-                ent_instr_it = entry_blk()->body.erase(ent_instr_it);
-                continue;
+                // my_assert(ent_instr->users.empty(), "single value is
+                // removable");
+                if (ent_instr->users.empty()) {
+                    ent_instr_it = entry_blk()->body.erase(ent_instr_it);
+                    continue;
+                }
             }
         }
         ent_instr_it++;
