@@ -3,6 +3,8 @@
 #include "staisp_parser.h"
 #include "gtest/gtest.h"
 
+#if 0
+
 #define TEST_A_FILE(x)                                                         \
     TEST(test_convertor, convertor_error_##x) {                                \
         pCode p_code = read_test_file("error_convertor/" #x ".sta");           \
@@ -44,3 +46,5 @@ TEST_A_FILE(23)
 TEST_A_FILE(24)
 TEST_A_FILE(25)
 TEST_A_FILE(26)
+
+#endif

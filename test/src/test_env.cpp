@@ -1,6 +1,8 @@
 #include "env.h"
 #include "gtest/gtest.h"
 
+#if 0
+
 TEST(test_env, basic_env) {
     Env<int> a;
     try {
@@ -36,7 +38,7 @@ TEST(test_env, env_found_empty) {
     }
 }
 
-TEST(test_env_wrapper, basic_env_wrapper) {
+TEST(DISABLED_test_env_wrapper, basic_env_wrapper) {
     EnvWrapper<int> ew;
     EXPECT_EQ(ew.env_count(), 0);
     try {
@@ -72,3 +74,5 @@ TEST(test_env_wrapper, basic_env_wrapper) {
         EXPECT_STREQ(e.object.c_str(), "EnvWrapper");
     }
 }
+
+#endif

@@ -7,6 +7,9 @@
 
 #include <cstdlib>
 #include <string>
+#include <filesystem>
+
+namespace fs = std::filesystem;
 
 String read(const String &file) {
     std::ifstream in;
@@ -49,32 +52,33 @@ std::string normalizeLineEndings(const std::string &str) {
 
 const bool interpret = false;
 
-void judge(const String &id) {
+void judge(const String &id, const String& ll, const String &in, const String &out) {
     ASSERT_FALSE(
         system(("clang -S -emit-llvm ../../lib/sylib.c -o " + id + ".sylib.ll")
                    .c_str()));
-    ASSERT_FALSE(
-        system(("llvm-as " + id + ".sylib.ll -o " + id + ".sylib.bc").c_str()));
-    ASSERT_FALSE(
-        system(("llvm-as " + id + ".sy.ll -o " + id + ".sy.bc").c_str()));
-    ASSERT_FALSE(system(("llvm-link " + id + ".sy.bc " + id + ".sylib.bc -o " +
-                         id + "_final.bc")
+    ASSERT_FALSE(system(("llvm-link -S " + ll + " " + id + ".sylib.ll -o " +
+                         id + ".final.ll")
                             .c_str()));
     int code;
+    std::string io;
+    if (fs::exists(in)) {
+        io += " < ";
+        io += in;
+    }
+    io += " > ";
+    io += id;
+    io += ".out";
+
     if (interpret) {
-        code = system(
-            ("lli " + id + "_final.bc < " + id + ".std.in > " + id + ".out")
-                .c_str());
+        code = system(("lli " + id + ".final.ll" + io).c_str());
     } else {
-        ASSERT_FALSE(
-            system(("llc " + id + "_final.bc -o " + id + ".s").c_str()));
+        ASSERT_FALSE(system(("llc " + id + ".final.ll -o " + id + ".s").c_str()));
         ASSERT_FALSE(system(("gcc " + id + ".s -no-pie -o " + id).c_str()));
-        code = system(
-            ("./" + id + " < " + id + ".std.in > " + id + ".out").c_str());
+        code = system(("./" + id + io).c_str());
     }
     code = WEXITSTATUS(code);
     String actual = read(id + ".out");
-    String expected = read(id + ".std.out");
+    String expected = read(out);
     if (!actual.empty() && actual.back() != '\n') {
         actual += "\n";
     }
@@ -83,18 +87,15 @@ void judge(const String &id) {
 
     // always remove
     remove((id + ".sylib.ll").c_str());
-    remove((id + ".sylib.bc").c_str());
-    remove((id + ".sy.bc").c_str());
-    remove((id + ".std.in").c_str());
-    remove((id + ".std.out").c_str());
 
     ASSERT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
 
     // remove if success
     remove((id + ".out").c_str());
     remove((id + ".sy.ll").c_str());
-    remove((id + ".s").c_str());
-    remove((id + "_final.bc").c_str());
+    if (!interpret)
+        remove((id + ".s").c_str());
+    remove((id + ".final.ll").c_str());
     remove((id).c_str());
 }
 
@@ -107,30 +108,15 @@ String get_id(String path) {
     return path;
 }
 
-void mov(const String &path, const String &id, const String &suffix1,
-         const String &suffix2) {
-    std::string command;
-    command += "cp ../../";
-    command += path;
-    command += suffix1;
-    command += " ";
-    command += id;
-    command += suffix2;
-    if (system(command.c_str()) != 0) {
-        system(("touch " + id + suffix2).c_str());
-    }
-}
+void run_sysy(String path) {
 
-void run_sysy(const String &path) {
     // in ./build/test
+    path = "../../" + path;
     ASSERT_FALSE(
-        system(("../frontend/SysYFrontend ../../" + path + ".sy").c_str()));
+        system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
 
-    auto id = get_id(path);
+    auto id = get_id(path.substr(6));
 
-    mov(path, id, ".out", ".std.out");
-    mov(path, id, ".in", ".std.in");
-    mov(path, id, ".sy.ll", ".sy.ll");
     printf("running %s.sy\n", path.c_str());
-    judge(id);
+    judge(id, path + ".sy.ll", path + ".in", path + ".out");
 }

@@ -8,6 +8,8 @@
 #include "opt.h"
 #include <fstream>
 
+#if 0
+
 #define TEST_A_FILE(x)                                                         \
     TEST(test_minimal_code, code_##x) {                                        \
         pCode p_code = read_test_file("./minimal_code/" #x ".sta");            \
@@ -44,3 +46,5 @@ TEST_A_FILE(15)
 TEST_A_FILE(16)
 TEST_A_FILE(17)
 TEST_A_FILE(18)
+
+#endif

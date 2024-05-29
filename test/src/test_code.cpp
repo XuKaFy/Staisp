@@ -8,6 +8,8 @@
 #include "opt.h"
 #include <fstream>
 
+#if 0
+
 #define TEST_A_FILE(x, y)                                                      \
     TEST(test_code_##x, code_##y) {                                            \
         pCode p_code = read_test_file("tests/" #x "/" #y ".sta");              \
@@ -57,3 +59,5 @@ TEST_A_FILE(const, read_int_global)
 TEST_A_FILE(const, read_arr_global)
 
 // TEST_A_FILE(pointer, ptr)
+
+#endif

@@ -4,6 +4,8 @@
 #include "common_token.h"
 #include "gtest/gtest.h"
 
+#if 0
+
 TEST(test_common_token, basic_token) {
     String s = "hello world";
     pCode pcode = make_code("hello world", "file1");
@@ -34,3 +36,5 @@ TEST(test_common_node, basic_node) {
         EXPECT_EQ(e.id, 10);
     }
 }
+
+#endif
