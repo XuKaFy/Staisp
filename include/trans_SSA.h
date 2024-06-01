@@ -2,6 +2,7 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_constant.h"
 #include "ir_instr.h"
 #include "ir_val.h"
 
@@ -18,7 +19,7 @@ class SSA_pass {
     Set<Ir::Block *> sealedBlocks;
     Ir::BlockedProgram &cur_func;
     Alys::DomTree dom_ctx;
-    Map<Ir::Block *, Vector<Pair<vrtl_reg *, Ir::Instr *>>> incompletePhis;
+    Map<Ir::Block *, Vector<Pair<vrtl_reg *, Ir::pInstr>>> incompletePhis;
 
 public:
     SSA_pass(Ir::BlockedProgram &arg_function, const ssa_type &arg_ssa_type);
@@ -53,6 +54,14 @@ public:
     void reconstruct();
 
 private:
+    Set<vrtl_reg *> function_args;
     Ir::pUse blk_def(Ir::Block *block, vrtl_reg *blk_def_val);
+    struct undef_allocator {
+        Ir::pVal i32;
+        Ir::pVal f32;
+        Ir::pVal i1;
+    } undefined_values;
+    auto erase_blk_def(Ir::pUse &blk_def_use) -> void;
+    auto undef_val(vrtl_reg *variable) -> Ir::Const *;
 };
 } // namespace Optimize

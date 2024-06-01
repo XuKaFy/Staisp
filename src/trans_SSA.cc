@@ -1,6 +1,7 @@
 #include "trans_SSA.h"
 #include "alys_dom.h"
 #include "def.h"
+#include "imm.h"
 #include "ir_block.h"
 #include "ir_constant.h"
 #include "ir_instr.h"
@@ -31,6 +32,20 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
 #ifdef ssa_debug
     dom_ctx.print_dom_tree();
 #endif
+
+    auto undefined_initializer = [this]() {
+        undefined_values.i32 = Ir::make_constant(ImmValue(ImmType::IMM_I32));
+        undefined_values.f32 = Ir::make_constant(ImmValue(ImmType::IMM_F32));
+        undefined_values.i1 = Ir::make_constant(ImmValue(ImmType::IMM_I1));
+        entry_blk()->imms.push_back(
+            std::static_pointer_cast<Ir::Val>(undefined_values.i32));
+        entry_blk()->imms.push_back(
+            std::static_pointer_cast<Ir::Val>(undefined_values.f32));
+        entry_blk()->imms.push_back(
+            std::static_pointer_cast<Ir::Val>(undefined_values.i1));
+    };
+
+    undefined_initializer();
 }
 
 auto SSA_pass::entry_blk() -> Ir::Block * {
@@ -44,6 +59,33 @@ auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
     return blk_use;
 }
 
+auto SSA_pass::undef_val(vrtl_reg *variable) -> Ir::Const * {
+    auto pointee_ty = to_pointed_type(variable->ty);
+    if (pointee_ty->type_type() == TYPE_BASIC_TYPE) {
+        switch (to_basic_type(pointee_ty)->ty) {
+        case IMM_I32:
+            return dynamic_cast<Ir::Const *>(undefined_values.i32.get());
+        case IMM_F32:
+            return dynamic_cast<Ir::Const *>(undefined_values.f32.get());
+        case IMM_I1:
+            return dynamic_cast<Ir::Const *>(undefined_values.i1.get());
+        }
+    }
+    my_assert(false, "undef val");
+    return nullptr;
+}
+
+auto SSA_pass::erase_blk_def(Ir::pUse &blk_def_use) -> void {
+    auto *blk_def_val = blk_def_use->usee;
+    for (auto it = blk_def_val->users.begin(); blk_def_val->users.end() != it;
+         it++) {
+        if (*it == blk_def_use) {
+            blk_def_val->users.erase(it);
+            break;
+        }
+    }
+}
+
 // the defintion of $variable in $block is $blk_def_val
 auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
                        vrtl_reg *blk_def_val) -> void {
@@ -51,6 +93,13 @@ auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
     my_assert(dynamic_cast<Ir::Instr *>(blk_def_val) ||
                   dynamic_cast<Ir::Const *>(blk_def_val),
               "defintion type must be Instr or Const");
+    if (blk_def_val->type() == Ir::VAL_INSTR) {
+        if (static_cast<Ir::Instr *>(blk_def_val)->block == nullptr)
+            function_args.insert(blk_def_val);
+    }
+    if (current_def[variable].count(block) > 0) {
+        erase_blk_def(current_def[variable][block]);
+    }
     current_def[variable][block] = blk_def(block, blk_def_val);
 }
 
@@ -67,8 +116,10 @@ SSA_pass::vrtl_reg *SSA_pass::use_val(vrtl_reg *variable, Ir::Block *block) {
     if (current_def.at(variable).count(block) > 0) {
         return current_def[variable][block]->usee;
     }
-    my_assert(block != entry_blk(),
-              "The definition of every variable must be in the entry block.");
+    if (block == entry_blk()) {
+        // undef value
+        return undef_val(variable);
+    }
     auto ret = use_val_recursive(variable, block);
     my_assert(ret, "non-null");
     return ret;
@@ -84,7 +135,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
         val = phi.get();
         block->body.insert(std::next(block->body.begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
-        incompletePhis[block].emplace_back(variable, phi.get());
+        incompletePhis[block].emplace_back(variable, phi);
     } else if (block->in_blocks().size() == 1) {
         // Optimize the common case of one predecessor: No phi needed
         val = use_val(variable, *block->in_blocks().begin());
@@ -122,6 +173,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     auto is_trivial = [&same, &phi]() -> bool {
         std::unordered_set<Ir::pUse> trivial_phi_operands{phi->operands.begin(),
                                                           phi->operands.end()};
+
         if (trivial_phi_operands.size() >= 3) {
             return false;
         }
@@ -188,7 +240,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 void SSA_pass::sealBlock(Ir::Block *block) {
     if (incompletePhis.find(block) != incompletePhis.end()) {
         for (auto [variable, phi] : incompletePhis[block]) {
-            addPhiOperands(variable, phi, block);
+            addPhiOperands(variable, phi.get(), block);
         }
         incompletePhis.erase(block);
     }
@@ -218,10 +270,11 @@ void SSA_pass::reconstruct() {
 
     // static pointer or run time initialized pointer
     auto const pointer_verifier =
-        [&promotable_filter](Ir::Val *arg_non_alloca) -> bool {
+        [this, &promotable_filter](Ir::Val *arg_non_alloca) -> bool {
         return !promotable_filter(arg_non_alloca) ||
                (is_pointer(arg_non_alloca->ty) &&
-                dynamic_cast<Ir::ItemInstr *>(arg_non_alloca));
+                dynamic_cast<Ir::ItemInstr *>(arg_non_alloca)) ||
+               (function_args.count(arg_non_alloca) > 0);
     };
 
     Set<vrtl_reg *> alloca_vars;
