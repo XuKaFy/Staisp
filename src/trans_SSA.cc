@@ -2,6 +2,7 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_constant.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
 #include "ir_ptr_instr.h"
@@ -25,14 +26,10 @@ namespace Optimize {
 SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
                    const ssa_type &arg_ssa_type)
     : promotion_type(arg_ssa_type), cur_func(arg_function) {
-    dom_ctx.build_dom(arg_function);
-#ifdef dom_bug
-    dom_ctx.print_dom();
-#endif
     arg_function.normal_opt();
+    dom_ctx.build_dom(arg_function);
 #ifdef ssa_debug
-    printf("Before SSA transformation:\n");
-    cur_func.print();
+    dom_ctx.print_dom_tree();
 #endif
 }
 
@@ -40,10 +37,21 @@ auto SSA_pass::entry_blk() -> Ir::Block * {
     return cur_func.blocks.at(0).get();
 }
 
+auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
+    Ir::pUse blk_use =
+        std::make_shared<Ir::Use>(block->label().get(), blk_def_val);
+    blk_def_val->users.push_back(blk_use);
+    return blk_use;
+}
+
 // the defintion of $variable in $block is $blk_def_val
 auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
                        vrtl_reg *blk_def_val) -> void {
-    current_def[variable][block] = blk_def_val;
+    my_assert(blk_def_val, "non-null def val");
+    my_assert(dynamic_cast<Ir::Instr *>(blk_def_val) ||
+                  dynamic_cast<Ir::Const *>(blk_def_val),
+              "defintion type must be Instr or Const");
+    current_def[variable][block] = blk_def(block, blk_def_val);
 }
 
 auto SSA_pass::is_phi(Ir::User *user) -> bool {
@@ -57,11 +65,13 @@ auto SSA_pass::is_phi(Ir::User *user) -> bool {
 
 SSA_pass::vrtl_reg *SSA_pass::use_val(vrtl_reg *variable, Ir::Block *block) {
     if (current_def.at(variable).count(block) > 0) {
-        return current_def[variable][block];
+        return current_def[variable][block]->usee;
     }
     my_assert(block != entry_blk(),
               "The definition of every variable must be in the entry block.");
-    return use_val_recursive(variable, block);
+    auto ret = use_val_recursive(variable, block);
+    my_assert(ret, "non-null");
+    return ret;
 }
 
 SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
@@ -95,6 +105,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
 
 SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
+    my_assert(phi->block == phi_blk, "comes from the same block");
     auto *phi_ins = dynamic_cast<Ir::PhiInstr *>(phi);
     for (auto *pred : phi_blk->in_blocks()) {
         auto *pred_val = use_val(variable, pred);
@@ -199,11 +210,10 @@ void SSA_pass::reconstruct() {
     my_assert(unreachable_blks().empty(), "no unreachable blocks");
 
     auto const promotable_filter = [](Ir::Val *arg_alloca_instr) -> bool {
-        return !is_array(arg_alloca_instr->ty) &&
-               !is_struct(arg_alloca_instr->ty) &&
+        auto pointee_ty = to_pointed_type(arg_alloca_instr->ty);
+        return !is_array(pointee_ty) && !is_struct(pointee_ty) &&
                !(arg_alloca_instr->type() == Ir::VAL_GLOBAL) &&
-               (arg_alloca_instr->ty->length() <= 4 ||
-                is_pointer(arg_alloca_instr->ty));
+               pointee_ty->length() <= 4;
     };
 
     // static pointer or run time initialized pointer

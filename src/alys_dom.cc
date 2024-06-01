@@ -10,6 +10,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace Alys {
 
@@ -75,17 +76,21 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
 }
 
 void DomTree::print_dom_tree() const {
-    for (const auto &[_, dom_node] : dom_map) {
-        printf("Dominance Tree: Block %s\n",
-               dom_node->basic_block->name().c_str());
-        printf("Idom: %s", dom_node->idom->basic_block->name().c_str());
-        printf("Out Block: ");
+
+    auto get_name = [](const DomBlock *dom_bb) -> std::string {
+        return std::string{dom_bb->basic_block->label()->name()};
+    };
+    for (const auto &[dom_bb, dom_node] : dom_map) {
+        printf("Dominance Tree: Block %s\n", get_name(dom_node.get()).c_str());
+        if (dom_node->idom != nullptr)
+            printf("\tIdom: %s\n", get_name(dom_node->idom).c_str());
+        printf("\tOut Block: ");
         for (auto *j : dom_node->out_block) {
-            printf("%s ;", j->basic_block->name().c_str());
+            printf("\t%s ;", get_name(j).c_str());
             my_assert(dom_map.at(j->basic_block.get())->idom == dom_node.get(),
                       "dominance tree success");
         }
-        putchar('\n');
+        puts("\n\n");
     }
 };
 

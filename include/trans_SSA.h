@@ -14,7 +14,7 @@ class SSA_pass {
 
     ssa_type promotion_type;
     using vrtl_reg = Ir::Val;
-    Map<vrtl_reg *, Map<Ir::Block *, vrtl_reg *>> current_def;
+    Map<vrtl_reg *, Map<Ir::Block *, Ir::pUse>> current_def;
     Set<Ir::Block *> sealedBlocks;
     Ir::BlockedProgram &cur_func;
     Alys::DomTree dom_ctx;
@@ -51,5 +51,8 @@ public:
     auto unreachable_blks() -> Set<Ir::Block *>;
     void pass_transform();
     void reconstruct();
+
+private:
+    Ir::pUse blk_def(Ir::Block *block, vrtl_reg *blk_def_val);
 };
 } // namespace Optimize
