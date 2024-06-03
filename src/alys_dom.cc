@@ -4,6 +4,7 @@
 #include "ir_instr.h"
 #include "ir_val.h"
 #include "type.h"
+#include <algorithm>
 #include <cassert>
 #include <cstddef>
 #include <cstdio>
@@ -19,6 +20,11 @@ pDomBlock DomTree::make_domblk() { return std::make_shared<DomBlock>(); }
 auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
     my_assert(!v.count(cur), "tree");
     v.insert(cur);
+    std::sort(cur->out_block.begin(), cur->out_block.end(),
+              [](const DomBlock *a, const DomBlock *b) -> bool {
+                  return a->basic_block->label()->name() <
+                         b->basic_block->label()->name();
+              });
     dom_order.push_back(cur->basic_block.get());
     for (auto *out : cur->out_block) {
         build_dfsn(v, out);

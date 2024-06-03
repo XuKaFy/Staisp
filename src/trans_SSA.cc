@@ -171,32 +171,30 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     vrtl_reg *same = nullptr;
 
     auto is_trivial = [&same, &phi]() -> bool {
-        std::unordered_set<Ir::pUse> trivial_phi_operands{phi->operands.begin(),
-                                                          phi->operands.end()};
+        Set<Ir::Val *> trivial_phi_ops;
+        my_assert(phi->operands.size() == phi->labels.size(), "valid phi");
+        for (const auto &phi_op : phi->operands) {
+            trivial_phi_ops.insert(phi_op->usee);
+        }
+        my_assert(!trivial_phi_ops.empty(), "non-empty operands");
 
-        if (trivial_phi_operands.size() >= 3) {
+        if (trivial_phi_ops.size() >= 3) {
             return false;
         }
 
-        if (trivial_phi_operands.size() == 1) {
-            auto src_val = phi->operands.at(0);
-            my_assert(src_val->user == phi, "semantics of phi USE");
-            same = src_val->usee;
+        if (trivial_phi_ops.size() == 1) {
+            same = *trivial_phi_ops.begin();
+            my_assert(same != phi, "none of operands can be phi itself");
             return true;
         }
 
-        auto op1 = *trivial_phi_operands.begin();
-        auto op2 = *std::next(trivial_phi_operands.begin());
-        if (op1->usee == phi) {
-            same = op2->usee;
-            return true;
+        if (trivial_phi_ops.count(phi) == 0) {
+            return false;
         }
-        if (op2->usee == phi) {
-            same = op1->usee;
-            return true;
-        }
-        my_assert(op1->usee != phi && op2->usee != phi, "no self-loop phi");
-        return false;
+
+        trivial_phi_ops.erase(phi);
+        same = *trivial_phi_ops.begin();
+        return true;
     };
 
     if (!is_trivial()) {
@@ -205,14 +203,16 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     my_assert(same, "nullptr to some val in phi incoming tuples");
     Vector<Ir::PhiInstr *> phiUsers;
 
-    for (Ir::User *user : fmap<Ir::pUse, Ir::User *>(
-             [&phi](auto arg_use) {
-                 my_assert(arg_use->usee == phi,
-                           "the source of such use-def edge must be phi instr");
-                 return arg_use->user;
-             },
-             phi->users)) {
+    auto phi_all_users = fmap<Ir::pUse, Ir::User *>(
+        [&phi](auto arg_use) {
+            my_assert(arg_use->usee == phi,
+                      "the source of such use-def edge must be phi instr");
+            return arg_use->user;
+        },
+        phi->users);
+    for (Ir::User *user : phi_all_users) {
         if (user != phi && is_phi(user)) {
+            my_assert(dynamic_cast<Ir::PhiInstr *>(user), "must be phi instr");
             phiUsers.push_back(static_cast<Ir::PhiInstr *>(user));
         }
     }
@@ -220,7 +220,24 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     // reset val
     phi->replace_self(same);
 
-    auto remove_trivial = [&phi]() {
+    auto remove_trivial = [](Ir::PhiInstr *&phi) {
+        // remove op
+        for (auto phi_op : phi->operands) {
+            auto usee = phi_op->usee;
+            for (auto phi_as_user_it = usee->users.begin();
+                 phi_as_user_it != usee->users.end(); phi_as_user_it++) {
+                if (*phi_as_user_it == phi_op) {
+                    my_assert((*phi_as_user_it)->user == phi,
+                              "phi instr must be user of its operand");
+                    usee->users.erase(phi_as_user_it);
+                    break;
+                }
+            }
+        }
+
+        phi->operands.clear();
+        phi->labels.clear();
+
         my_assert(phi->users.empty(), "successful replace");
         for (auto ins_it = ++phi->block->body.begin();
              ins_it != phi->block->body.end(); ins_it++) {
@@ -230,9 +247,10 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
             }
         }
     };
-    remove_trivial();
+    remove_trivial(phi);
     for (auto *user : phiUsers) {
-        tryRemoveTrivialPhi(user);
+        if (user == same)
+            same = tryRemoveTrivialPhi(user);
     }
     return same;
 }
