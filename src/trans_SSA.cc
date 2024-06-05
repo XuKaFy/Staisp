@@ -37,12 +37,9 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
         undefined_values.i32 = Ir::make_constant(ImmValue(ImmType::IMM_I32));
         undefined_values.f32 = Ir::make_constant(ImmValue(ImmType::IMM_F32));
         undefined_values.i1 = Ir::make_constant(ImmValue(ImmType::IMM_I1));
-        entry_blk()->imms.push_back(
-            std::static_pointer_cast<Ir::Val>(undefined_values.i32));
-        entry_blk()->imms.push_back(
-            std::static_pointer_cast<Ir::Val>(undefined_values.f32));
-        entry_blk()->imms.push_back(
-            std::static_pointer_cast<Ir::Val>(undefined_values.i1));
+        entry_blk()->imms.push_back(undefined_values.i32);
+        entry_blk()->imms.push_back(undefined_values.f32);
+        entry_blk()->imms.push_back(undefined_values.i1);
     };
 
     undefined_initializer();
@@ -222,23 +219,8 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
     auto remove_trivial = [](Ir::PhiInstr *&phi) {
         // remove op
-        for (auto phi_op : phi->operands) {
-            auto usee = phi_op->usee;
-            for (auto phi_as_user_it = usee->users.begin();
-                 phi_as_user_it != usee->users.end(); phi_as_user_it++) {
-                if (*phi_as_user_it == phi_op) {
-                    my_assert((*phi_as_user_it)->user == phi,
-                              "phi instr must be user of its operand");
-                    usee->users.erase(phi_as_user_it);
-                    break;
-                }
-            }
-        }
-
-        phi->operands.clear();
         phi->labels.clear();
-
-        my_assert(phi->users.empty(), "successful replace");
+        Ir::val_release(phi);
         for (auto ins_it = ++phi->block->body.begin();
              ins_it != phi->block->body.end(); ins_it++) {
             if ((*ins_it).get() == phi) {
@@ -391,6 +373,12 @@ void SSA_pass::reconstruct() {
             }
         }
         ent_instr_it++;
+    }
+
+    for (auto [_, def_map] : current_def) {
+        for (auto [_, blk_def_use] : def_map) {
+            erase_blk_def(blk_def_use);
+        }
     }
 }
 
