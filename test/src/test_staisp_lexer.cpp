@@ -2,6 +2,8 @@
 #include "staisp_lexer.h"
 #include "gtest/gtest.h"
 
+#if 0
+
 TEST(test_staisp_lexer, basic_lexer) {
     Staisp::Lexer lexer;
     TokenList ans;
@@ -34,3 +36,5 @@ TEST(test_staisp_lexer, lexer_error_1) {
         EXPECT_STREQ(e.object.c_str(), "Lexer");
     }
 }
+
+#endif

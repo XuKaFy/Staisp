@@ -67,7 +67,7 @@ pUse User::operand(size_t index) const { return operands[index]; }
 
 void val_release(Val *val) {
     for (const auto &i : val->users) {
-        auto *user = i->user;
+        auto user = i->user;
         user_release_use(user, i);
     }
     val->users.clear();
@@ -75,7 +75,7 @@ void val_release(Val *val) {
 
 void user_release(User *user) {
     for (const auto &i : user->operands) {
-        auto *usee = i->usee;
+        auto usee = i->usee;
         val_release_use(usee, i);
     }
     user->operands.clear();

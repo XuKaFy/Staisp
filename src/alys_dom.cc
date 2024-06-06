@@ -58,9 +58,9 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         }
     };
 
-    auto *entry = p.blocks.front().get();
+    auto entry = p.blocks.front().get();
     dfsn(entry, level);
-    for (auto *node : idfn) {
+    for (auto node : idfn) {
         level++;
         order_map.at(node) = level;
         my_assert(level != 1, "idfn will not changed");
@@ -103,7 +103,7 @@ void DomTree::print_dom_tree() const {
 Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
     Map<Ir::Block *, pDomBlock> dom_frontier;
     for (const auto &[bb, dom_node] : dom_map) {
-        for (auto *in : bb->in_blocks()) {
+        for (auto in : bb->in_blocks()) {
             Ir::Block *runner = in;
             while (runner != dom_node->idom->basic_block.get()) {
                 dom_frontier[runner] = dom_node;

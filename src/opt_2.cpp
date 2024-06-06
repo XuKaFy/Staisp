@@ -43,9 +43,9 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
             // judge whether operand is from GEP
-            auto *to = r->operand(0)->usee;
+            auto to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
-                auto *to_instr = static_cast<Ir::Instr *>(to);
+                auto to_instr = static_cast<Ir::Instr *>(to);
                 if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
                     continue; // shouldn't be killed
                 }
@@ -92,9 +92,9 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
             auto name = r->operand(0)->usee->name();
-            auto *to = r->operand(0)->usee;
+            auto to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
-                auto *to_instr = static_cast<Ir::Instr *>(to);
+                auto to_instr = static_cast<Ir::Instr *>(to);
                 if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
                     goto Ignore; // shouldn't be killed
                 }

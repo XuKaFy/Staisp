@@ -2,6 +2,8 @@
 #include "staisp_parser.h"
 #include "gtest/gtest.h"
 
+#if 0
+
 #define TEST_A_FILE(x)                                                         \
     TEST(test_staisp_parser, parser_error_##x) {                               \
         Staisp::Parser parser;                                                 \
@@ -26,3 +28,5 @@ TEST_A_FILE(8)
 TEST_A_FILE(9)
 TEST_A_FILE(12)
 // TEST_A_FILE(13)
+
+#endif

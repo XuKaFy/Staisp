@@ -107,7 +107,8 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
         (to_basic_type(ty)->ty == IMM_I1 || to_basic_type(ty)->ty == IMM_U1)) {
         auto imm = Ir::make_constant(ImmValue(to_basic_type(val->ty)->ty));
         _cur_func->add_imm(imm);
-        return add_instr(Ir::make_cmp_instr(Ir::CmpType::CMP_NE, val, imm));
+        bool is_flt = is_float(val->ty);
+        return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val, imm));
     }
     auto r = Ir::make_cast_instr(ty, val);
     add_instr(r);

@@ -9,7 +9,7 @@
 #include <list>
 #include <memory>
 #include <optional>
-#include <set>
+#include <unordered_set>
 #include <stack>
 #include <string>
 #include <unordered_map>
@@ -33,7 +33,7 @@ template <typename T> using List = std::list<T>;
 
 template <typename T> using Vector = std::vector<T>;
 
-template <typename T> using Set = std::set<T>;
+template <typename T> using Set = std::unordered_set<T>;
 
 template <typename T> using Stack = std::stack<T>;
 

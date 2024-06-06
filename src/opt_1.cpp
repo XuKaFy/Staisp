@@ -38,8 +38,8 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         switch (i->instr_type()) {
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);
-            auto *to = r->operand(0)->usee;
-            auto *val = r->operand(1)->usee;
+            auto to = r->operand(0)->usee;
+            auto val = r->operand(1)->usee;
             if (to->type() == Ir::VAL_GLOBAL) {
                 // store to global val but we dont know its value after this
                 // store
@@ -48,7 +48,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
             }
             switch (val->type()) {
             case Ir::VAL_CONST: {
-                auto *con = static_cast<Ir::Const *>(val);
+                auto con = static_cast<Ir::Const *>(val);
                 if (con->v.type() == VALUE_IMM) {
                     v.val[to->name()] = Val(con->v.imm_value());
                 } else {
@@ -71,7 +71,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         }
         case Ir::INSTR_LOAD: {
             auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(i);
-            auto *from = r->operand(0)->usee;
+            auto from = r->operand(0)->usee;
             if (from->type() == Ir::VAL_GLOBAL &&
                 !static_cast<Ir::Global *>(from)->is_const) {
                 // all global val must be VAC, except const
@@ -90,7 +90,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_CMP: {
             Vector<ImmValue> vv;
             for (size_t c = 0; c < i->operand_size(); ++c) {
-                auto *oprd = i->operand(c)->usee;
+                auto oprd = i->operand(c)->usee;
                 if (oprd->type() == Ir::VAL_INSTR) {
                     if (v.val.count(oprd->name()) == 0U) { // undef
                         v.val.erase(i->name());            // undef
@@ -108,7 +108,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
                 }
             }
             for (size_t c = 0; c < i->operand_size(); ++c) {
-                auto *oprd = i->operand(c)->usee;
+                auto oprd = i->operand(c)->usee;
                 if (oprd->type() == Ir::VAL_INSTR) {
                     vv.push_back(v.val[oprd->name()].v);
                 } else {
