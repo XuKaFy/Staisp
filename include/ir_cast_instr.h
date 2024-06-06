@@ -6,8 +6,40 @@
 
 namespace Ir {
 
+enum CastMethod {
+    CAST_BITCAST,
+    CAST_PTRTOINT,
+    CAST_INTTOPTR,
+    CAST_TRUNC,
+    CAST_SEXT,
+    CAST_ZEXT,
+    CAST_FPEXT,
+    CAST_FPTRUNC,
+    CAST_SITOFP,
+    CAST_UITOFP,
+    CAST_FPTOSI,
+    CAST_FPTOUI,
+};
+
+const String CAST_METHOD_NAME[] = {
+    "bitcast",
+    "ptrtoint",
+    "inttoptr",
+    "trunc",
+    "sext",
+    "zext",
+    "fpext",  
+    "fptrunc",
+    "sitofp",
+    "fptosi",
+    "fptosi",
+    "fptoui",
+};
+
+CastMethod get_cast_method(pType from, pType to);
+
 struct CastInstr : public CalculatableInstr {
-    CastInstr(pType tr, const pVal &a1) : CalculatableInstr(std::move(tr)) {
+    CastInstr(pType tr, const pVal &a1) : CalculatableInstr(std::move(tr)), _method(get_cast_method(a1->ty, ty)) {
         add_operand(a1);
     }
 
@@ -17,8 +49,13 @@ struct CastInstr : public CalculatableInstr {
 
     ImmValue calculate(Vector<ImmValue> v) const override;
 
+    CastMethod method() const {
+        return _method;
+    }
+
 private:
-    String use(const String &inst) const;
+
+    CastMethod _method;
 };
 
 pInstr make_cast_instr(pType ty, const pVal &a1);
