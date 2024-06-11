@@ -1,6 +1,7 @@
 #include "ir_block.h"
 
 #include "ir_control_instr.h"
+#include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_line_generator.h"
 
@@ -18,7 +19,19 @@ Pointer<LabelInstr> Block::label() const {
 
 pInstr Block::back() const { return body.back(); }
 
-void Block::add_imm(const pVal &imm) { imms.push_back(imm); }
+void Block::push_behind_end(const pInstr &instr)
+{
+    body.insert(std::prev(body.end()), instr);
+}
+
+void Block::push_after_label(const pInstr &instr)
+{
+    body.insert(std::next(body.begin()), instr);
+}
+
+void Block::add_imm(const pVal &imm) {
+    program->add_imm(imm);
+}
 
 void Block::squeeze_out(bool selected) {
     auto end = body.back();
@@ -48,7 +61,10 @@ String Block::print_block() const {
 
 void Block::push_back(const pInstr &instr) { body.push_back(instr); }
 
-pBlock make_block() { return std::make_shared<Block>(); }
+pBlock BlockedProgram::make_block() {
+    auto j = std::make_shared<Block>(this);
+    return j;
+}
 
 void Block::replace_out(Block *before, Block *out) {
     auto back = body.back();
@@ -85,9 +101,14 @@ void BlockedProgram::push_back(const pInstr &instr) {
     blocks.back()->push_back(instr);
 }
 
-void BlockedProgram::from_instrs(Instrs &instrs) {
+void BlockedProgram::from_instrs(Instrs &instrs, Vector<pInstr> &args, Vector<pVal> &imms) {
     LineGenerator g;
     g.generate(instrs);
+
+    this->args = args;
+    this->imms = imms;
+    // args.clear();
+    imms.clear();
 
     /* for(auto &&i : instrs) {
         printf(":: %s\n", i->instr_print());
@@ -115,6 +136,11 @@ void BlockedProgram::from_instrs(Instrs &instrs) {
         push_back(i);
     }
     instrs.clear();
+}
+
+void BlockedProgram::add_imm(const pVal &imm)
+{
+    imms.push_back(imm);
 }
 
 void BlockedProgram::re_generate() const {
@@ -177,9 +203,6 @@ void BlockedProgram::opt_join_blocks() {
              ++j) {
             (*j)->block = next_block;
             next_block->body.push_back(std::move(*j));
-        }
-        for (const auto &j : cur_block->imms) {
-            next_block->add_imm(j);
         }
 
         i = blocks.erase(i);
@@ -260,6 +283,10 @@ void BlockedProgram::opt_remove_dead_code() {
     }
 }
 
+void opt_inline() {
+    ;
+}
+
 void BlockedProgram::normal_opt() {
     opt_remove_empty_block();
     opt_connect_empty_block();
@@ -287,6 +314,11 @@ void BlockedProgram::opt_trivial() {
             }
         }
     }
+}
+
+BlockedProgram BlockedProgram::copy_self() const
+{
+    // TODO: how? HOW? H-O-W?
 }
 
 } // namespace Ir

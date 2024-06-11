@@ -11,6 +11,9 @@ struct FuncDefined : public Func {
 
     String print_func() const;
 
+    // 将函数自己内联到其他函数
+    void inline_self();
+
     void add_body(const pInstr &instr);
     // 将该块使用到的临时变量存放起来
     // 避免被释放

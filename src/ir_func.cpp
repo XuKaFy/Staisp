@@ -6,7 +6,7 @@
 
 namespace Ir {
 
-pFunctionType Func::functon_type() const { return to_function_type(ty); }
+pFunctionType Func::function_type() const { return to_function_type(ty); }
 
 pFunc make_func(const TypedSym &var, Vector<pType> arg_types,
                 bool variant_length) {

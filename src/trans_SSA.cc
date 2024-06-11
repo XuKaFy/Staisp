@@ -37,9 +37,9 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
         undefined_values.i32 = Ir::make_constant(ImmValue(ImmType::IMM_I32));
         undefined_values.f32 = Ir::make_constant(ImmValue(ImmType::IMM_F32));
         undefined_values.i1 = Ir::make_constant(ImmValue(ImmType::IMM_I1));
-        entry_blk()->imms.push_back(undefined_values.i32);
-        entry_blk()->imms.push_back(undefined_values.f32);
-        entry_blk()->imms.push_back(undefined_values.i1);
+        entry_blk()->add_imm(undefined_values.i32);
+        entry_blk()->add_imm(undefined_values.f32);
+        entry_blk()->add_imm(undefined_values.i1);
     };
 
     undefined_initializer();
@@ -66,6 +66,8 @@ auto SSA_pass::undef_val(vrtl_reg *variable) -> Ir::Const * {
             return dynamic_cast<Ir::Const *>(undefined_values.f32.get());
         case IMM_I1:
             return dynamic_cast<Ir::Const *>(undefined_values.i1.get());
+        default:
+            break;;
         }
     }
     my_assert(false, "undef val");

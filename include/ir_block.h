@@ -8,11 +8,13 @@
 namespace Ir {
 
 struct Block;
+struct BlockedProgram;
 using pBlock = Pointer<Block>;
 using Blocks = Vector<pBlock>;
 
 struct Block : public Val {
-    Block() : Val(make_void_type()) {}
+    Block(BlockedProgram* program)
+        : Val(make_void_type()), program(program) {}
 
     // 当该块的指令仅有一条跳转时，将块的 in_block 与 out_block 直接相连
     void connect_in_and_out();
@@ -30,10 +32,15 @@ struct Block : public Val {
     Pointer<LabelInstr> label() const;
     // 该块的最后一条指令，一般为 ret、br 或者 cond br
     pInstr back() const;
+    // 在 Ret 或者 Br 前面插入指令，即倒数第二条
+    void push_behind_end(const pInstr &instr);
+    // 在 Label 后面插入指令，即正数第二条
+    void push_after_label(const pInstr &instr);
 
     // 将该块使用到的临时变量存放起来
     // 避免被释放
     // 例如临时数字，因为 Use 本身不是以 shared_ptr 指向 value
+    // 最终所有的 imm 将会放到 BlockedProgram 中
     void add_imm(const pVal &imm);
 
     // 通过 Label 读取块
@@ -49,16 +56,18 @@ struct Block : public Val {
 
     ValType type() const override { return VAL_BLOCK; }
 
-    Vector<pVal> imms;
+    BlockedProgram* program;
 };
 
 struct BlockedProgram {
     // 从 instrs 构建 CFG
-    void from_instrs(Instrs &instrs);
+    void from_instrs(Instrs &instrs, Vector<pInstr> &args, Vector<pVal> &imms);
     // 在最后一个块上加入最后一条语句
     void push_back(const pInstr &instr);
     // 重新生成行号信息
     void re_generate() const;
+
+    void add_imm(const pVal &imm);
 
     // 所有的常规优化
     // 包括连接可连接的块
@@ -75,10 +84,15 @@ struct BlockedProgram {
 
     void opt_trivial();
 
+    pBlock make_block();
+    
+    // 拷贝自身用于 inline
+    BlockedProgram copy_self() const;
+
     // 所有的 basic block
     Blocks blocks;
+    Vector<pInstr> args;
+    Vector<pVal> imms;
 };
-
-pBlock make_block();
 
 } // namespace Ir

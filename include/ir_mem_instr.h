@@ -19,6 +19,9 @@ struct LoadInstr : public Instr {
     LoadInstr(const pVal &from) : Instr(to_pointed_type(from->ty)) {
         add_operand(from);
     }
+    LoadInstr(Val* from) : Instr(to_pointed_type(from->ty)) {
+        add_operand(from);
+    }
 
     InstrType instr_type() const override { return INSTR_LOAD; }
 
@@ -31,6 +34,11 @@ struct StoreInstr : public Instr {
         add_operand(to);
         add_operand(val);
     }
+    StoreInstr(Val *to, Val *val)
+        : Instr(make_ir_type(IR_STORE)) {
+        add_operand(to);
+        add_operand(val);
+    }
 
     InstrType instr_type() const override { return INSTR_STORE; }
 
@@ -38,6 +46,8 @@ struct StoreInstr : public Instr {
 };
 
 pInstr make_alloc_instr(pType tr);
+pInstr make_load_instr(Val* from);
+pInstr make_store_instr(Val *to, Val *val);
 pInstr make_load_instr(const pVal &from);
 pInstr make_store_instr(const pVal &to, const pVal &val);
 

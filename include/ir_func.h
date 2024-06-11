@@ -19,7 +19,7 @@ struct Func : public User {
     String print_func_declaration() const {
         String whole_function = "declare " + ty->type_name() + " @" + name() +
                                 "("; // functions are all global
-        auto func_ty = functon_type();
+        auto func_ty = function_type();
 
         // By Yaossg
         for (size_t i = 0; i < func_ty->arg_type.size(); ++i) {
@@ -39,7 +39,7 @@ struct Func : public User {
 
     bool variant_length;
 
-    pFunctionType functon_type() const;
+    pFunctionType function_type() const;
 };
 
 using pFunc = Pointer<Func>;

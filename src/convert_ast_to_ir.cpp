@@ -431,7 +431,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
         auto func = find_func(r->name);
         Vector<Ir::pVal> args;
         // assert size equal
-        size_t length = func->functon_type()->arg_type.size();
+        size_t length = func->function_type()->arg_type.size();
         if (!func->variant_length && length != r->ch.size()) {
             throw_error(root, 8, "wrong count of arguments");
         }
@@ -439,7 +439,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
             Ir::pVal cur_arg = analyze_value(r->ch[i]);
             if (i < length) {
                 args.push_back(cast_to_type(r->ch[i], cur_arg,
-                                            func->functon_type()->arg_type[i]));
+                                            func->function_type()->arg_type[i]));
             } else {
                 args.push_back(cur_arg);
             }
@@ -823,7 +823,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         if (r->ret) {
             auto res = analyze_value(r->ret);
             add_instr(Ir::make_ret_instr(
-                cast_to_type(r, res, _cur_func->functon_type()->ret_type)));
+                cast_to_type(r, res, _cur_func->function_type()->ret_type)));
         } else {
             add_instr(Ir::make_ret_instr());
         }

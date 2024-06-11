@@ -16,6 +16,7 @@ int from_bottom_analysis(Ir::BlockedProgram &p);
 
 void optimize(const Ir::pModule &mod) {
     for (auto &&i : mod->funsDefined) {
+        // i->inline_self();
         i->p.normal_opt();
         //        i->p.re_generate();
     }
