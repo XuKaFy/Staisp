@@ -189,7 +189,9 @@ Pointer<PointerType> to_pointer_type(const pType &p) {
 
 pType to_pointed_type(const pType &p) {
     if (!is_pointer(p)) {
-        throw Exception(1, "to_pointed_type", "not a pointer");
+        printf("Not a pointer: %s\n", p->type_name().c_str());
+        my_assert(false, "not a pointer");
+        // throw Exception(1, "to_pointed_type", "not a pointer");
     }
     return to_pointer_type(p)->pointed_type;
 }

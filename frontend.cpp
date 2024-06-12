@@ -22,7 +22,8 @@ int main(int argc, char *argv[]) {
     pCode p_code = make_code(code, argv[1]);
     try {
         AstProg root = Staisp::Parser().parse(p_code);
-        Ir::pModule mod = AstToIr::Convertor().generate(root);
+        AstToIr::Convertor convertor;
+        Ir::pModule mod = convertor.generate(root);
 
         std::ofstream out;
         // out.open(String(argv[1]) + ".ll", std::fstream::out);
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]) {
         // out.close();
 
         // optimize
-        Optimize::optimize(mod);
+        Optimize::optimize(mod, convertor);
 
         out.open(String(argv[1]) + ".ll", std::fstream::out);
         out << mod->print_module();

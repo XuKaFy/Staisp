@@ -33,6 +33,7 @@ struct MaybeConstInstr {
 class Convertor {
 public:
     Ir::pModule generate(const AstProg &asts);
+    Ir::pFuncDefined generate_inline_function(const Pointer<Ast::FuncDefNode> &root);
 
     static Ir::BinInstrType fromBinaryOpr(const Pointer<Ast::BinaryNode> &root,
                                           const pType &ty);
@@ -55,8 +56,8 @@ private:
     pType analyze_type(const pNode &root);
 
     void generate_single(const pNode &root);
-    void generate_global_var(const Pointer<Ast::VarDefNode> &root);
     void generate_function(const Pointer<Ast::FuncDefNode> &root);
+    void generate_global_var(const Pointer<Ast::VarDefNode> &root);
     bool analyze_statement_node(const pNode &root);
     void copy_to_array(pNode root, Ir::pVal addr, const Pointer<ArrayType> &t,
                        const Pointer<Ast::ArrayDefNode> &n, bool constant);

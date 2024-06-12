@@ -61,7 +61,7 @@ struct Block : public Val {
 
 struct BlockedProgram {
     // 从 instrs 构建 CFG
-    void from_instrs(Instrs &instrs, Vector<pInstr> &args, Vector<pVal> &imms);
+    void from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms);
     // 在最后一个块上加入最后一条语句
     void push_back(const pInstr &instr);
     // 重新生成行号信息
@@ -85,13 +85,10 @@ struct BlockedProgram {
     void opt_trivial();
 
     pBlock make_block();
-    
-    // 拷贝自身用于 inline
-    BlockedProgram copy_self() const;
 
     // 所有的 basic block
     Blocks blocks;
-    Vector<pInstr> args;
+    Vector<pVal> params;
     Vector<pVal> imms;
 };
 

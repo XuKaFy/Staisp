@@ -28,7 +28,7 @@ FuncDefined::FuncDefined(const TypedSym &var, Vector<pType> arg_types,
         pInstr stored = make_store_instr(alloced, sym_node);
         add_body(alloced);
         add_body(stored);
-        add_imm(sym_node);
+        params.push_back(sym_node);
         args.push_back(alloced);
     }
 }
@@ -36,93 +36,6 @@ FuncDefined::FuncDefined(const TypedSym &var, Vector<pType> arg_types,
 void FuncDefined::add_body(const pInstr &instr) { body.push_back(instr); }
 
 void FuncDefined::add_imm(const pVal &val) { imms.push_back(val); }
-
-void FuncDefined::inline_self()
-{
-    for(const auto &use : users) {
-        auto user = use->user;
-        if (user->type() == VAL_INSTR && 
-            dynamic_cast<Instr*>(user)->instr_type() == INSTR_CALL) {
-            /*
-            before:
-                OriginalBlock:
-                    ...front...
-                    [%n = ] call (ty) %func (args...)
-                    ...back...
-            after:
-                FrontBlock:
-                    ...
-                    (if not void) %m = alloca (ty)
-                    goto BodyBlock
-                (new) BodyBlock:
-                    ...
-                    all ret modified to:
-                    * (if not void) store (ret_value), %m
-                    * br BackBlock
-                (new) BackBlock:
-                    (if not void) %n = load (ty) %m
-                    ...
-            */
-            CallInstr* call_instr = dynamic_cast<CallInstr*>(user);
-            BlockedProgram* fun = call_instr->block->program;
-
-            Block* frontBlock = call_instr->block;
-            pBlock backBlock = fun->make_block();
-            backBlock->push_back(make_label_instr());
-
-            pInstr alloca_instr;
-            if (call_instr->ty->type_type() != TYPE_VOID_TYPE)
-                alloca_instr = make_alloc_instr(call_instr->ty);
-
-            // Step 1: copy the will-inline function and replace
-            //     all arguments with new arguments
-            BlockedProgram new_p = p.copy_self();
-            for (size_t i = 1; i < call_instr->operand_size(); ++i) {
-                new_p.args[i-1]->replace_self(call_instr->operand(i)->usee);
-            }
-            // Step 2: split original block where CallInstr exists
-            auto call_instr_at = frontBlock->body.begin();
-            for (; call_instr_at != frontBlock->body.end(); ++call_instr_at) {
-                if (call_instr_at->get() == call_instr) {
-                    break;
-                }
-            }
-            for (auto i = call_instr_at; i != frontBlock->body.end(); ++i) {
-                backBlock->push_back(*i);
-            }
-            frontBlock->body.erase(call_instr_at, frontBlock->body.end());
-            // Step 3: change call to br
-            if (alloca_instr)
-                fun->blocks.front()->push_behind_end(alloca_instr);
-            frontBlock->push_back(make_br_instr(new_p.blocks.front()->label()));
-            // Step 4: replace all ret in copied program to two statement:
-            // 1. (if not void) store my value to 
-            // 2. jump to BackBlock
-            for (auto i : new_p.blocks) {
-                if (i->back()->instr_type() == INSTR_RET) {
-                    pInstr ret_instr = i->back();
-                    i->body.pop_back();
-                    if (alloca_instr) {
-                        i->body.push_back(make_store_instr(alloca_instr.get(),
-                                                ret_instr->operand(0)->usee));
-                    }
-                    i->body.push_back(make_br_instr(backBlock->label()));
-                }
-            }
-            // Step 5: load ret value (if exists)
-            if (alloca_instr) {
-                auto load_instr = make_load_instr(alloca_instr.get());
-                backBlock->push_after_label(load_instr);
-                call_instr->replace_self(load_instr.get());
-            }
-            // Step 6: add new blocks to original function
-            for (auto i : new_p.blocks) {
-                fun->blocks.push_back(i);
-            }
-            fun->blocks.push_back(backBlock);
-        }
-    }
-}
 
 void FuncDefined::end_function() {
     if (body.empty() || body.back()->instr_type() != INSTR_RET) {
@@ -146,7 +59,7 @@ void FuncDefined::end_function() {
         }
     }
     body.clear();
-    p.from_instrs(final, args, imms);
+    p.from_instrs(final, params, imms);
 }
 
 String FuncDefined::print_func() const {

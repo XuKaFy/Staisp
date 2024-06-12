@@ -3,6 +3,8 @@
 #include "ir_block.h"
 #include "ir_func.h"
 
+#include "ast_node.h"
+
 namespace Ir {
 
 struct FuncDefined : public Func {
@@ -10,9 +12,6 @@ struct FuncDefined : public Func {
                 Vector<String> arg_name);
 
     String print_func() const;
-
-    // 将函数自己内联到其他函数
-    void inline_self();
 
     void add_body(const pInstr &instr);
     // 将该块使用到的临时变量存放起来
@@ -24,10 +23,12 @@ struct FuncDefined : public Func {
 
     Vector<String> arg_name;
     Vector<pVal> imms;
+    Vector<pVal> params;
     Vector<pInstr> args;
     Instrs body;
 
     BlockedProgram p;
+    Pointer<Ast::FuncDefNode> ast_root;
 };
 
 using pFuncDefined = Pointer<FuncDefined>;

@@ -2,6 +2,7 @@
 
 #include "ir_control_instr.h"
 #include "ir_func_defined.h"
+#include "convert_ast_to_ir.h"
 #include "ir_instr.h"
 #include "ir_line_generator.h"
 
@@ -53,6 +54,7 @@ void Block::connect_in_and_out() {
 String Block::print_block() const {
     String whole_block;
     for (const auto &i : body) {
+        // printf("%s\n", i->instr_print().c_str());
         whole_block += i->instr_print();
         whole_block += "\n";
     }
@@ -101,11 +103,11 @@ void BlockedProgram::push_back(const pInstr &instr) {
     blocks.back()->push_back(instr);
 }
 
-void BlockedProgram::from_instrs(Instrs &instrs, Vector<pInstr> &args, Vector<pVal> &imms) {
+void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms) {
     LineGenerator g;
     g.generate(instrs);
 
-    this->args = args;
+    this->params = args;
     this->imms = imms;
     // args.clear();
     imms.clear();
@@ -283,10 +285,6 @@ void BlockedProgram::opt_remove_dead_code() {
     }
 }
 
-void opt_inline() {
-    ;
-}
-
 void BlockedProgram::normal_opt() {
     opt_remove_empty_block();
     opt_connect_empty_block();
@@ -314,11 +312,6 @@ void BlockedProgram::opt_trivial() {
             }
         }
     }
-}
-
-BlockedProgram BlockedProgram::copy_self() const
-{
-    // TODO: how? HOW? H-O-W?
 }
 
 } // namespace Ir
