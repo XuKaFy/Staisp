@@ -238,6 +238,7 @@ Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
 
 ImmValue Convertor::find_const_value(const pNode &root, const String &sym) {
     if (!_const_env.env()->count(sym)) {
+        printf("Warning: couldn't find symbol %s\n", sym.c_str());
         throw_error(root, 29, "not a constant");
     }
     return _const_env.env()->find(sym);
@@ -1089,7 +1090,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
 
     _initializer_func->end_function();
 
-    _const_env.end_env();
+    // _const_env.end_env();
     return _mod;
 }
 
