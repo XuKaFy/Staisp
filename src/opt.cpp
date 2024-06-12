@@ -61,6 +61,8 @@ void func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
         if(&func->p == fun) // don't inline self
             continue;
 
+        // printf("***REPLACE %s\n", call_instr->instr_print().c_str());
+
         Ir::Block* frontBlock = call_instr->block;
         Ir::pBlock backBlock = fun->make_block();
         backBlock->push_back(Ir::make_label_instr());
@@ -102,11 +104,11 @@ void func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
                 i->body.pop_back();
                 if (alloca_instr) {
                     // printf("new alloca type = %s\n", alloca_instr->ty->type_name().c_str());
-                    i->body.push_back(Ir::make_store_instr(alloca_instr.get(),
+                    i->push_back(Ir::make_store_instr(alloca_instr.get(),
                                       ret_instr->operand(0)->usee));
                     // printf("generated store: %s\n", i->body.back()->instr_print().c_str());
                 }
-                i->body.push_back(make_br_instr(backBlock->label()));
+                i->push_back(make_br_instr(backBlock->label()));
             }
         }
         // Step 5: load ret value (if exists)
@@ -114,6 +116,7 @@ void func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
             auto load_instr = make_load_instr(alloca_instr.get());
             backBlock->push_after_label(load_instr);
             call_instr->replace_self(load_instr.get());
+            load_instr->block = backBlock.get();
         }
         // Step 6: add new blocks to original function
         for (auto i : new_p.blocks) {

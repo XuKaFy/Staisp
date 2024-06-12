@@ -23,11 +23,13 @@ pInstr Block::back() const { return body.back(); }
 void Block::push_behind_end(const pInstr &instr)
 {
     body.insert(std::prev(body.end()), instr);
+    instr->block = this;
 }
 
 void Block::push_after_label(const pInstr &instr)
 {
     body.insert(std::next(body.begin()), instr);
+    instr->block = this;
 }
 
 void Block::add_imm(const pVal &imm) {
@@ -54,14 +56,17 @@ void Block::connect_in_and_out() {
 String Block::print_block() const {
     String whole_block;
     for (const auto &i : body) {
-        // printf("%s\n", i->instr_print().c_str());
+        // printf("    %s\n", i->instr_print().c_str());
         whole_block += i->instr_print();
         whole_block += "\n";
     }
     return whole_block;
 }
 
-void Block::push_back(const pInstr &instr) { body.push_back(instr); }
+void Block::push_back(const pInstr &instr) {
+    body.push_back(instr);
+    instr->block = this;
+}
 
 pBlock BlockedProgram::make_block() {
     auto j = std::make_shared<Block>(this);

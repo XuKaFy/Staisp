@@ -896,7 +896,6 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
             }
             _env.env()->set(root->args[i].name, {func->args[i], false});
         }
-        set_func(func->name(), func);
     }
     _cur_func = func;
     analyze_statement_node(root->body);

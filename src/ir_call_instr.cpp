@@ -10,6 +10,10 @@ String CallInstr::instr_print() const {
     res += "call " + func_ty->ret_type->type_name() + " @" +
            operand(0)->usee->name() + "("; // %1 = call @fun(i32 1, i64 2)
 
+    if (func_ty->arg_type.size() + 1 != operand_size()) {
+        printf("Call of %s\n", operand(0)->usee->name().c_str());
+    }
+
     my_assert(func_ty->arg_type.size() + 1 == operand_size(),
               "Error: size of arguments unequal to the inputs");
 
