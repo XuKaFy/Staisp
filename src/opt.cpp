@@ -118,6 +118,13 @@ void func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
             call_instr->replace_self(load_instr.get());
             load_instr->block = backBlock.get();
         }
+        // Step 5.99: move old alloca to first block
+        for (auto i = new_p.blocks.front()->body.begin(); i != new_p.blocks.front()->body.end(); ) {
+            if ((*i)->instr_type() == Ir::INSTR_ALLOCA) {
+                fun->blocks.front()->push_after_label(*i);
+                i = new_p.blocks.front()->body.erase(i);
+            } else ++i;
+        }
         // Step 6: add new blocks to original function
         for (auto i : new_p.blocks) {
             fun->blocks.push_back(i);
@@ -138,7 +145,7 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     }
     // might be inlined so re_generate
     for (auto &&i : mod->funsDefined) {
-        // i->p.normal_opt();
+        i->p.normal_opt();
         i->p.re_generate();
     }
     for (auto &&i : mod->funsDefined) {
