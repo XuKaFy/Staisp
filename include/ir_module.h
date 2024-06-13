@@ -13,6 +13,8 @@ struct Module {
     void add_func_declaration(const pFunc &f);
     void add_global(const pGlobal &g);
 
+    void remove_unused_function();
+
     Vector<pFuncDefined> funsDefined;
     Vector<pGlobal> globs;
     Vector<pFunc> funsDeclared;

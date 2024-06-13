@@ -33,6 +33,15 @@ String Module::print_module() const {
     return ans;
 }
 
+void Module::remove_unused_function()
+{
+    for (auto i = funsDefined.begin(); i != funsDefined.end(); ) {
+        if ((*i)->users.empty() && (*i)->has_name() && (*i)->name() != "main") {
+            i = funsDefined.erase(i);
+        } else ++i;
+    }
+}
+
 pModule make_module() { return std::make_shared<Module>(); }
 
 } // namespace Ir

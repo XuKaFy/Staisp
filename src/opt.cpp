@@ -144,6 +144,8 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
     for (auto &&i : mod->funsDefined) {
         func_inline(i, convertor);
     }
+    // remove functions that be all inlined
+    mod->remove_unused_function();
     // might be inlined so re_generate
     for (auto &&i : mod->funsDefined) {
         i->p.normal_opt();
