@@ -138,7 +138,8 @@ void func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
     }
 }
 
-void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
+void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
+{
     // inline all function that can be inlined
     for (auto &&i : mod->funsDefined) {
         func_inline(i, convertor);
@@ -148,19 +149,24 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         i->p.normal_opt();
         i->p.re_generate();
     }
+}
+
+void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
+    inline_all_function(mod, convertor);
     for (auto &&i : mod->funsDefined) {
-        // SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
-        // pass.pass_transform();
+        SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
+        pass.pass_transform();
         // i->print_func()
-        // for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
-        //     opt_cnt = from_button_analysis<Opt2::BlockValue,
-        //     Opt2::Utils>(i->p); i->p.normal_opt(); opt_cnt +=
-        //     from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
-        //     i->p.normal_opt();
-        // }
+        /*int cnt = 0;
+        for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
+            opt_cnt = from_bottom_analysis<Opt2::BlockValue,
+            Opt2::Utils>(i->p); i->p.normal_opt(); opt_cnt +=
+            from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+            i->p.normal_opt();
+        }*/
         // // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name().c_str(), cnt);
-        // i->p.re_generate();
+        i->p.re_generate();
     }
 }
 
