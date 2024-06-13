@@ -266,8 +266,7 @@ void SSA_pass::reconstruct() {
     auto const promotable_filter = [](Ir::Val *arg_alloca_instr) -> bool {
         auto pointee_ty = to_pointed_type(arg_alloca_instr->ty);
         return !is_array(pointee_ty) && !is_struct(pointee_ty) &&
-               !(arg_alloca_instr->type() == Ir::VAL_GLOBAL) &&
-               pointee_ty->length() <= 4;
+               !(arg_alloca_instr->type() == Ir::VAL_GLOBAL);
     };
 
     // static pointer or run time initialized pointer
