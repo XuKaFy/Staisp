@@ -17,27 +17,10 @@ namespace Ir {
 
 FuncDefined::FuncDefined(const TypedSym &var, Vector<pType> arg_types,
                          Vector<String> arg_name)
-    : Func(var, arg_types) {
-    this->arg_name = arg_name;
-    size_t length = arg_types.size();
-    add_body(make_label_instr());
-    for (size_t i = 0; i < length; ++i) {
-        auto sym_node =
-            make_sym_instr(TypedSym("%" + arg_name[i], arg_types[i]));
-        pInstr alloced = make_alloc_instr(arg_types[i]);
-        pInstr stored = make_store_instr(alloced, sym_node);
-        add_body(alloced);
-        add_body(stored);
-        params.push_back(sym_node);
-        args.push_back(alloced);
-    }
+    : Func(var, arg_types), arg_name(arg_name) {
 }
 
-void FuncDefined::add_body(const pInstr &instr) { body.push_back(instr); }
-
-void FuncDefined::add_imm(const pVal &val) { imms.push_back(val); }
-
-void FuncDefined::end_function() {
+void FuncDefined::end_function(Instrs &body, Vector<pVal> &params, Vector<pVal> &imms) {
     if (body.empty() || body.back()->instr_type() != INSTR_RET) {
         if (ty->type_type() == TYPE_VOID_TYPE) {
             body.push_back(make_ret_instr());
@@ -70,7 +53,7 @@ String FuncDefined::print_func() const {
 
     auto func_ty = function_type();
 
-    for (size_t i = 0; i < args.size(); ++i) {
+    for (size_t i = 0; i < func_ty->arg_type.size(); ++i) {
         if (i > 0) {
             whole_function += ", ";
         }
@@ -94,6 +77,34 @@ pFuncDefined make_func_defined(const TypedSym &var, Vector<pType> arg_types,
                                Vector<String> syms) {
     return std::make_shared<FuncDefined>(std::move(var), std::move(arg_types),
                                          std::move(syms));
+}
+
+void FunctionContext::clear() {
+    imms.clear();
+    body.clear();
+    args.clear();
+    params.clear();
+    func_type = nullptr;
+}
+
+void FunctionContext::init(Ir::pFuncDefined func) {
+    clear();
+
+    func_type = func->function_type();
+
+    Vector<pType> arg_types = func->function_type()->arg_type;
+    size_t length = func_type->arg_type.size();
+    body.push_back(make_label_instr());
+    for (size_t i = 0; i < length; ++i) {
+        auto sym_node =
+            make_sym_instr(TypedSym("%" + func->arg_name[i], arg_types[i]));
+        pInstr alloced = make_alloc_instr(arg_types[i]);
+        pInstr stored = make_store_instr(alloced, sym_node);
+        body.push_back(alloced);
+        body.push_back(stored);
+        params.push_back(sym_node);
+        args.push_back(alloced);
+    }
 }
 
 } // namespace Ir

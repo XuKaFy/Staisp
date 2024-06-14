@@ -46,7 +46,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     // printf("***REPLACE %s\n", call_instr->instr_print().c_str());
 
     Ir::Block* frontBlock = call_instr->block();
-    Ir::pBlock backBlock = fun->make_block();
+    Ir::pBlock backBlock = Ir::make_block();
     backBlock->push_back(Ir::make_label_instr());
 
     Ir::pInstr alloca_instr;
@@ -56,7 +56,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     // Step 1: copy the will-inline function and replace
     //     all arguments with new arguments
     for (size_t i = 1; i < call_instr->operand_size(); ++i) {
-        new_p.params[i-1]->replace_self(call_instr->operand(i)->usee);
+        new_p.params()[i-1]->replace_self(call_instr->operand(i)->usee);
     }
     // Step 2: split original block where CallInstr exists
     auto call_instr_at = frontBlock->begin();
@@ -109,7 +109,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     }
     fun->push_back(backBlock);
     // Step 7: move imms to original function
-    for (auto i : new_p.imms) {
+    for (auto i : new_p.imms()) {
         fun->add_imm(i);
     }
     // Step 8: clear new_p
@@ -169,10 +169,10 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
 }
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
-    inline_all_function(mod, convertor);
+    // inline_all_function(mod, convertor);
     for (auto &&i : mod->funsDefined) {
-        SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
-        pass.pass_transform();
+        // SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
+        // pass.pass_transform();
         // i->print_func()
         /*int cnt = 0;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {

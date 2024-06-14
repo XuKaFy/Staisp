@@ -37,11 +37,11 @@ void Convertor::throw_error(const pNode &root, int id, const String &msg) {
 Ir::pModule Convertor::module() const { return _mod; }
 
 bool Convertor::current_block_end() const {
-    return _cur_func->body.back()->is_end_of_block();
+    return _cur_ctx.body.back()->is_end_of_block();
 }
 
 Ir::pInstr Convertor::add_instr(Ir::pInstr instr) {
-    _cur_func->add_body(instr);
+    _cur_ctx.body.push_back(instr);
     return instr;
 }
 
@@ -93,7 +93,7 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
             throw_error(root, -1, "decay error?");
         }
         add_instr(r);
-        _cur_func->add_imm(imm);
+        _cur_ctx.imms.push_back(imm);
         return r;
     }
     if (!is_castable(val->ty, ty)) {
@@ -106,7 +106,7 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
     if (is_basic_type(val->ty) && is_basic_type(ty) &&
         (to_basic_type(ty)->ty == IMM_I1 || to_basic_type(ty)->ty == IMM_U1)) {
         auto imm = Ir::make_constant(ImmValue(to_basic_type(val->ty)->ty));
-        _cur_func->add_imm(imm);
+        _cur_ctx.imms.push_back(imm);
         bool is_flt = is_float(val->ty);
         return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val, imm));
     }
@@ -201,7 +201,7 @@ Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
         bool num = root->type != OPR_AND;
         auto constant = Ir::make_constant(ImmValue(num));
         add_instr(Ir::make_store_instr(a0, constant));
-        _cur_func->add_imm(constant);
+        _cur_ctx.imms.push_back(constant);
         add_instr(Ir::make_br_instr(L3));
         add_instr(L2);
         auto a2 = analyze_value(root->rhs);
@@ -397,7 +397,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
         case OPR_NOT: {
             auto imm_ty = to_basic_type(val->ty)->ty;
             auto imm = Ir::make_constant(ImmValue(0).cast_to(imm_ty));
-            _cur_func->add_imm(imm);
+            _cur_ctx.imms.push_back(imm);
             return add_instr(Ir::make_cmp_instr(
                 is_imm_integer(imm_ty) ? Ir::CMP_EQ : Ir::CMP_OEQ, val, imm));
         }
@@ -408,7 +408,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
             if (is_integer(val->ty)) {
                 auto imm = Ir::make_constant(ImmValue(0));
                 auto ty = join_type(val->ty, imm->ty);
-                _cur_func->add_imm(imm);
+                _cur_ctx.imms.push_back(imm);
                 return add_instr(Ir::make_binary_instr(
                     Ir::INSTR_SUB, cast_to_type(root, imm, ty),
                     cast_to_type(root, val, ty)));
@@ -420,7 +420,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
     case NODE_IMM: {
         auto r = std::dynamic_pointer_cast<Ast::ImmNode>(root);
         auto res = Ir::make_constant(r->imm);
-        _cur_func->add_imm(res);
+        _cur_ctx.imms.push_back(res);
         return res;
     }
     case NODE_CALL: {
@@ -570,7 +570,7 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
                 auto store =
                     Ir::make_store_instr(item, cast_to_type(root, imm, t));
                 add_instr(store);
-                _cur_func->add_imm(imm);
+                _cur_ctx.imms.push_back(imm);
                 return;
             }
             auto cur = *(begin++);
@@ -589,7 +589,7 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
         for (size_t i = 0; i < length; ++i) {
             auto index = Ir::make_constant(
                 ImmValue(static_cast<unsigned long long>(i), IMM_I32));
-            _cur_func->add_imm(index);
+            _cur_ctx.imms.push_back(index);
             indexes.push_back(index);
             fn(next_ty);
             indexes.pop_back();
@@ -644,9 +644,9 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                                                    to_array_type(ty)->length()),
                                                IMM_U64));
                 auto imm3 = Ir::make_constant(ImmValue(0LL, IMM_I1));
-                _cur_func->add_imm(imm1);
-                _cur_func->add_imm(imm2);
-                _cur_func->add_imm(imm3);
+                _cur_ctx.imms.push_back(imm1);
+                _cur_ctx.imms.push_back(imm2);
+                _cur_ctx.imms.push_back(imm3);
                 add_instr(Ir::make_call_instr(
                     find_func(MEMSET),
                     {cast_to_type(r, tmp,
@@ -694,14 +694,14 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                                        if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if ((static_cast<unsigned int>(!_cur_func->body.empty()) != 0U) &&
+            if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
                 !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_else_end));
                 need_label = true;
             }
             add_instr(if_end);
             analyze_statement_node(r->elsed);
-            if ((static_cast<unsigned int>(!_cur_func->body.empty()) != 0U) &&
+            if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
                 !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_else_end));
                 need_label = true;
@@ -725,7 +725,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                                        if_begin, if_end));
             add_instr(if_begin);
             analyze_statement_node(r->body);
-            if ((static_cast<unsigned int>(!_cur_func->body.empty()) != 0U) &&
+            if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
                 !current_block_end()) {
                 add_instr(Ir::make_br_instr(if_end));
             }
@@ -756,7 +756,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         push_loop_env(while_cond, while_end);
         analyze_statement_node(r->body);
         // add_instr(Ir::make_br_instr(while_cond));
-        if ((static_cast<unsigned int>(!_cur_func->body.empty()) != 0U) &&
+        if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
             !current_block_end()) {
             add_instr(Ir::make_br_instr(
                 while_cond)); // who will write "while(xxx) return 0"?
@@ -824,7 +824,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         if (r->ret) {
             auto res = analyze_value(r->ret);
             add_instr(Ir::make_ret_instr(
-                cast_to_type(r, res, _cur_func->function_type()->ret_type)));
+                cast_to_type(r, res, _cur_ctx.func_type->ret_type)));
         } else {
             add_instr(Ir::make_ret_instr());
         }
@@ -886,6 +886,7 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
         TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
         func->ast_root = root;
+        _cur_ctx.init(func);
         for (size_t i = 0; i < root->args.size(); ++i) {
             /*
                 由于 sysy 语法中函数参数没有 const
@@ -895,15 +896,15 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
                 printf("Warning: %s repeated.\n", root->args[i].name.c_str());
                 throw_error(root, 26, "repeated argument name");
             }
-            _env.env()->set(root->args[i].name, {func->args[i], false});
+            _env.env()->set(root->args[i].name, {_cur_ctx.args[i], false});
         }
     }
-    _cur_func = func;
+    
     analyze_statement_node(root->body);
-    func->end_function();
+    
+    func->end_function(_cur_ctx.body, _cur_ctx.params, _cur_ctx.imms);
     _const_env.end_env();
     _env.end_env();
-    _cur_func = nullptr;
 
     return func;
 }
@@ -927,6 +928,9 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
         TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
         func->ast_root = root;
+
+        _cur_ctx.init(func);
+
         for (size_t i = 0; i < root->args.size(); ++i) {
             /*
                 由于 sysy 语法中函数参数没有 const
@@ -936,20 +940,22 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
                 printf("Warning: %s repeated.\n", root->args[i].name.c_str());
                 throw_error(root, 26, "repeated argument name");
             }
-            _env.env()->set(root->args[i].name, {func->args[i], false});
+            _env.env()->set(root->args[i].name, { _cur_ctx.args[i], false});
         }
         set_func(func->name(), func);
     }
-    _cur_func = func;
     if (root->var.name == "main") {
         analyze_statement_node(
             Ast::new_call_node(nullptr, BUILTIN_INITIALIZER, {}));
     }
+
     analyze_statement_node(root->body);
-    func->end_function();
-    module()->add_func(func);
+
+    func->end_function(_cur_ctx.body, _cur_ctx.params, _cur_ctx.imms);
     _const_env.end_env();
     _env.end_env();
+
+    module()->add_func(func);
 }
 
 Value Convertor::from_array_def(const Pointer<Ast::ArrayDefNode> &n,
@@ -1049,6 +1055,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
         Ir::make_func_defined(TypedSym(BUILTIN_INITIALIZER, vd), {}, {});
     _mod->add_func(_initializer_func);
     set_func(BUILTIN_INITIALIZER, _initializer_func);
+    _init_ctx.init(_initializer_func);
 
     _mod->add_func_declaration(
         Ir::make_func(TypedSym("_sysy_starttime", vd), {i32}));
@@ -1088,7 +1095,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
         generate_single(i);
     }
 
-    _initializer_func->end_function();
+    _initializer_func->end_function(_init_ctx.body, _init_ctx.params, _init_ctx.imms);
 
     // _const_env.end_env();
     return _mod;
@@ -1097,9 +1104,10 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
 void Convertor::add_initialization(const TypedSym &var,
                                    const Pointer<Ast::ArrayDefNode> &node) {
     EnvWrapper<MaybeConstInstr> env = _env;
-    auto cur_func = _cur_func;
+    
+    Ir::FunctionContext ctx = _cur_ctx;
+    _cur_ctx = _init_ctx;
 
-    _cur_func = _initializer_func;
     _env = EnvWrapper<MaybeConstInstr>();
     _env.push_env();
 
@@ -1107,9 +1115,10 @@ void Convertor::add_initialization(const TypedSym &var,
     copy_to_array(node, arr, to_array_type(to_pointed_type(arr->ty)), node,
                   true);
 
-    _cur_func = cur_func;
     _env.end_env();
     _env = env;
+
+    _cur_ctx = ctx;
 }
 
 Ir::BinInstrType Convertor::fromBinaryOpr(const Pointer<Ast::BinaryNode> &root,

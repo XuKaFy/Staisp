@@ -92,9 +92,11 @@ private:
 
     LoopEnvStack _loop_env_stack;
     Ir::pModule _mod;
-    Ir::pFuncDefined _cur_func;
     Ir::pFuncDefined _initializer_func;
     AstProg _prog;
+
+    Ir::FunctionContext _cur_ctx;
+    Ir::FunctionContext _init_ctx; 
 };
 
 } // namespace AstToIr

@@ -14,8 +14,8 @@ using pBlock = Pointer<Block>;
 using Blocks = Vector<pBlock>;
 
 struct Block : public Val {
-    Block(BlockedProgram* program)
-        : Val(make_void_type()), program_(program) {}
+    Block()
+        : Val(make_void_type()) {}
 
     // 当该块的指令仅有一条跳转时，将块的 in_block 与 out_block 直接相连
     void connect_in_and_out();
@@ -120,8 +120,10 @@ private:
 
     Instrs body;
 
-    BlockedProgram* program_;
+    BlockedProgram* program_ {nullptr};
 };
+
+pBlock make_block();
 
 struct BlockedProgram {
     // 从 instrs 构建 CFG
@@ -146,8 +148,6 @@ struct BlockedProgram {
 
     // 平凡优化
     void opt_trivial();
-
-    pBlock make_block();
 
     Blocks::iterator begin() {
         return blocks.begin();
@@ -193,8 +193,8 @@ struct BlockedProgram {
 
     void clear() {
         blocks.clear();
-        imms.clear();
-        params.clear();
+        imms_.clear();
+        params_.clear();
     }
 
     bool empty() const {
@@ -205,14 +205,22 @@ struct BlockedProgram {
         return blocks.size();
     }
 
-    Vector<pVal> params;
-    Vector<pVal> imms;
+    const Vector<pVal> &params() const {
+        return params_;
+    }
+
+    const Vector<pVal> &imms() const {
+        return imms_;
+    }
 
 private:
     // 在最后一个块上加入最后一条语句
     void push_back(const pInstr &instr) {
         back()->push_back(instr);
     }
+
+    Vector<pVal> params_;
+    Vector<pVal> imms_;
 
     // 所有的 basic block
     Blocks blocks;

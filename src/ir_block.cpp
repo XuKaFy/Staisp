@@ -60,9 +60,8 @@ String Block::print_block() const {
     return whole_block;
 }
 
-pBlock BlockedProgram::make_block() {
-    auto j = std::make_shared<Block>(this);
-    return j;
+pBlock make_block() {
+    return std::make_shared<Block>();
 }
 
 void Block::replace_out(Block *before, Block *out) {
@@ -100,8 +99,8 @@ void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal
     LineGenerator g;
     g.generate(instrs);
 
-    this->params = args;
-    this->imms = imms;
+    this->params_ = args;
+    this->imms_ = imms;
     // args.clear();
     imms.clear();
 
@@ -134,7 +133,7 @@ void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal
 
 void BlockedProgram::add_imm(const pVal &imm)
 {
-    imms.push_back(imm);
+    imms_.push_back(imm);
 }
 
 void BlockedProgram::re_generate() const {
