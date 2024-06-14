@@ -66,7 +66,7 @@ String FuncDefined::print_func() const {
     String whole_function = "define " + ty->type_name() + " @" + name() +
                             "("; // functions are all global
 
-    my_assert(!p.blocks.empty(), "Error: function has no block");
+    my_assert(!p.empty(), "Error: function has no block");
 
     auto func_ty = function_type();
 
@@ -82,8 +82,8 @@ String FuncDefined::print_func() const {
     whole_function += ")";
 
     whole_function += " {\n";
-    for (const auto &i : p.blocks) {
-        whole_function += i->print_block();
+    for (auto i = p.cbegin(); i != p.cend(); ++i) {
+        whole_function += (*i)->print_block();
     }
     whole_function += "}\n";
 

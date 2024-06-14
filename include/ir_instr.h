@@ -53,7 +53,18 @@ struct Instr : public User {
         return false;
     }
 
-    Block *block{nullptr};
+    Block* block() {
+        return block_;
+    }
+
+private:
+    friend struct Block;
+
+    void set_block(Block* block) {
+        block_ = block;
+    }
+
+    Block *block_ {nullptr};
 };
 
 // 所有只要操作数为常量就可以计算出值的操作

@@ -27,7 +27,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
     for(auto i : v.uses) {
         printf("    current use: %s\n", i.c_str());
     } */
-    for (auto j = p->body.rbegin(); j != p->body.rend(); ++j) {
+    for (auto j = p->rbegin(); j != p->rend(); ++j) {
         auto cur_instr = *j;
         /*
             1. %n = load %k -> use
@@ -73,8 +73,8 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
     for(auto i : uses) {
         printf("    current use: %s\n", i.c_str());
     } */
-    p->body = Ir::Instrs(p->body.rbegin(), p->body.rend());
-    for (auto j = p->body.begin(); j != p->body.end();) {
+    p->reverse();
+    for (auto j = p->begin(); j != p->end();) {
         auto cur_instr = *j;
         // printf("    at %s\n", cur_instr->instr_print());
         /*
@@ -104,7 +104,7 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
             }
             if (uses.count(name) == 0U) { // this def is useless
                 // printf("    Not used def %s\n", r->instr_print());
-                j = p->body.erase(j);
+                j = p->erase(j);
                 ++ans;
                 goto End;
             } else {
@@ -121,7 +121,7 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
     End:
         continue;
     }
-    p->body = Ir::Instrs(p->body.rbegin(), p->body.rend());
+    p->reverse();
     return ans;
 }
 

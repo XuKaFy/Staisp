@@ -34,7 +34,7 @@ void BlockValue::cup(const BlockValue &v) {
 }
 
 void Utils::operator()(Ir::Block *p, BlockValue &v) {
-    for (const auto &i : p->body) {
+    for (const auto &i : *p) {
         switch (i->instr_type()) {
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);

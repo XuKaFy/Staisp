@@ -41,11 +41,11 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
             (if not void) %n = load (ty) %m
             ...
     */
-    Ir::BlockedProgram* fun = call_instr->block->program;
+    Ir::BlockedProgram* fun = call_instr->block()->program();
 
     // printf("***REPLACE %s\n", call_instr->instr_print().c_str());
 
-    Ir::Block* frontBlock = call_instr->block;
+    Ir::Block* frontBlock = call_instr->block();
     Ir::pBlock backBlock = fun->make_block();
     backBlock->push_back(Ir::make_label_instr());
 
@@ -59,29 +59,28 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
         new_p.params[i-1]->replace_self(call_instr->operand(i)->usee);
     }
     // Step 2: split original block where CallInstr exists
-    auto call_instr_at = frontBlock->body.begin();
-    for (; call_instr_at != frontBlock->body.end(); ++call_instr_at) {
+    auto call_instr_at = frontBlock->begin();
+    for (; call_instr_at != frontBlock->end(); ++call_instr_at) {
         if (call_instr_at->get() == call_instr) {
             break;
         }
     }
     Ir::pInstr call_instr_saver = *call_instr_at;
-    for (auto i = std::next(call_instr_at); i != frontBlock->body.end(); ++i) {
+    for (auto i = std::next(call_instr_at); i != frontBlock->end(); ++i) {
         backBlock->push_back(*i);
-        (*i)->block = backBlock.get();
     }
-    frontBlock->body.erase(call_instr_at, frontBlock->body.end());
+    frontBlock->erase(call_instr_at, frontBlock->end());
     // Step 3: change call to br
     if (alloca_instr)
-        fun->blocks.front()->push_behind_end(alloca_instr);
-    frontBlock->push_back(make_br_instr(new_p.blocks.front()->label()));
+        fun->front()->push_behind_end(alloca_instr);
+    frontBlock->push_back(make_br_instr(new_p.front()->label()));
     // Step 4: replace all ret in copied program to two statement:
     // 1. (if not void) store my value to 
     // 2. jump to BackBlock
-    for (auto i : new_p.blocks) {
+    for (auto i : new_p) {
         if (i->back()->instr_type() == Ir::INSTR_RET) {
             Ir::pInstr ret_instr = i->back();
-            i->body.pop_back();
+            i->pop_back();
             if (alloca_instr) {
                 // printf("new alloca type = %s\n", alloca_instr->ty->type_name().c_str());
                 i->push_back(Ir::make_store_instr(alloca_instr.get(),
@@ -96,29 +95,25 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
         auto load_instr = make_load_instr(alloca_instr.get());
         backBlock->push_after_label(load_instr);
         call_instr->replace_self(load_instr.get());
-        load_instr->block = backBlock.get();
     }
     // Step 5.99: move old alloca to first block
-    for (auto i = new_p.blocks.front()->body.begin(); i != new_p.blocks.front()->body.end(); ) {
+    for (auto i = new_p.front()->begin(); i != new_p.front()->end(); ) {
         if ((*i)->instr_type() == Ir::INSTR_ALLOCA) {
-            fun->blocks.front()->push_after_label(*i);
-            i = new_p.blocks.front()->body.erase(i);
+            fun->front()->push_after_label(*i);
+            i = new_p.front()->erase(i);
         } else ++i;
     }
     // Step 6: add new blocks to original function
-    for (auto i : new_p.blocks) {
-        fun->blocks.push_back(i);
-        i->program = fun;
+    for (auto i : new_p) {
+        fun->push_back(i);
     }
-    fun->blocks.push_back(backBlock);
+    fun->push_back(backBlock);
     // Step 7: move imms to original function
     for (auto i : new_p.imms) {
         fun->add_imm(i);
     }
     // Step 8: clear new_p
-    new_p.blocks.clear();
-    new_p.imms.clear();
-    new_p.params.clear();
+    new_p.clear();
 }
 
 bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
@@ -142,7 +137,7 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
     }
 
     for(auto call_instr : calls) {
-        Ir::BlockedProgram* fun = call_instr->block->program;
+        Ir::BlockedProgram* fun = call_instr->block()->program();
         if (&func->p == fun) // don't inline self
             continue;
         
@@ -199,7 +194,7 @@ int from_top_analysis(Ir::BlockedProgram &p) {
     std::deque<Ir::Block *> pending_blocks;
     Utils util;
     int ans = 0;
-    for (const auto &i : p.blocks) {
+    for (const auto &i : p) {
         INs[i.get()] = BlockValue();
         OUTs[i.get()] = BlockValue();
         pending_blocks.push_back(i.get());
@@ -229,7 +224,7 @@ int from_top_analysis(Ir::BlockedProgram &p) {
             pending_blocks.insert(pending_blocks.end(), out_block.begin(), out_block.end());
         }
     }
-    for (const auto &i : p.blocks) {
+    for (const auto &i : p) {
         ans += util(i.get(), INs[i.get()], OUTs[i.get()]);
     }
     return ans;
@@ -242,7 +237,7 @@ int from_bottom_analysis(Ir::BlockedProgram &p) {
     std::deque<Ir::Block *> pending_blocks;
     Utils util;
     int ans = 0;
-    for (const auto &i : p.blocks) {
+    for (const auto &i : p) {
         INs[i.get()] = BlockValue();
         OUTs[i.get()] = BlockValue();
         pending_blocks.push_back(i.get());
@@ -272,7 +267,7 @@ int from_bottom_analysis(Ir::BlockedProgram &p) {
             pending_blocks.insert(pending_blocks.end(), in_block.begin(), in_block.end());
         }
     }
-    for (const auto &i : p.blocks) {
+    for (const auto &i : p) {
         ans += util(i.get(), INs[i.get()], OUTs[i.get()]);
     }
     return ans;

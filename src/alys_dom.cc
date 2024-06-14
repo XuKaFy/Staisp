@@ -34,7 +34,7 @@ auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
 void DomTree::build_dom(Ir::BlockedProgram &p) {
     Map<Ir::Block *, int> order_map;
 
-    for (const auto &bb : p.blocks) {
+    for (const auto &bb : p) {
         auto [it, success] = dom_map.insert({bb.get(), make_domblk()});
         auto dom_it = it->second;
         my_assert(success, "insertion success");
@@ -58,7 +58,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         }
     };
 
-    auto entry = p.blocks.front().get();
+    auto entry = p.front().get();
     dfsn(entry, level);
     for (auto node : idfn) {
         level++;

@@ -4,6 +4,7 @@
 
 #include "ir_control_instr.h"
 #include "ir_instr.h"
+#include <utility>
 
 namespace Ir {
 
@@ -14,7 +15,7 @@ using Blocks = Vector<pBlock>;
 
 struct Block : public Val {
     Block(BlockedProgram* program)
-        : Val(make_void_type()), program(program) {}
+        : Val(make_void_type()), program_(program) {}
 
     // 当该块的指令仅有一条跳转时，将块的 in_block 与 out_block 直接相连
     void connect_in_and_out();
@@ -30,12 +31,6 @@ struct Block : public Val {
 
     // 该块的 label，默认为第一条 instr
     Pointer<LabelInstr> label() const;
-    // 该块的最后一条指令，一般为 ret、br 或者 cond br
-    pInstr back() const;
-    // 在 Ret 或者 Br 前面插入指令，即倒数第二条
-    void push_behind_end(const pInstr &instr);
-    // 在 Label 后面插入指令，即正数第二条
-    void push_after_label(const pInstr &instr);
 
     // 将该块使用到的临时变量存放起来
     // 避免被释放
@@ -47,26 +42,93 @@ struct Block : public Val {
     Set<Block *> in_blocks() const;
     Set<Block *> out_blocks() const;
 
-    void push_back(const pInstr &instr);
     // 将 this 与 next 连接起来
     // 只修改 in_block 与 out_block
     void connect(Block *next);
 
-    Instrs body;
-
     ValType type() const override { return VAL_BLOCK; }
 
-    BlockedProgram* program;
+    BlockedProgram *program() {
+        return program_;
+    }
+
+    Instrs::iterator begin() {
+        return body.begin();
+    }
+
+    Instrs::iterator end() {
+        return body.end();
+    }
+
+    Instrs::reverse_iterator rbegin() {
+        return body.rbegin();
+    }
+
+    Instrs::reverse_iterator rend() {
+        return body.rend();
+    }
+
+    Instrs::iterator insert(const Instrs::iterator &i, const pInstr &instr) {
+        instr->set_block(this);
+        return body.insert(std::move(i), std::move(instr));
+    }
+
+    void push_back(const pInstr &instr) {
+        instr->set_block(this);
+        body.push_back(instr);
+    }
+
+    void pop_back() {
+        body.pop_back();
+    }
+
+    pInstr back() const {
+        return body.back();
+    }
+
+    Instrs::iterator erase(const Instrs::iterator &i) {
+        return body.erase(std::move(i));
+    }
+
+    void erase(const Instrs::iterator &i, const Instrs::iterator &j) {
+        body.erase(std::move(i), std::move(j));
+    }
+
+    void reverse() {
+        body = Ir::Instrs(body.rbegin(), body.rend());
+    }
+
+    // 在 Ret 或者 Br 前面插入指令，即倒数第二条
+    void push_behind_end(const pInstr &instr);
+    // 在 Label 后面插入指令，即正数第二条
+    void push_after_label(const pInstr &instr);
+
+    bool empty() const {
+        return body.empty();
+    }
+
+    size_t size() const {
+        return body.size();
+    }
+
+private:
+    friend struct BlockedProgram;
+
+    void set_program(BlockedProgram* program) {
+        program_ = program;
+    }
+
+    Instrs body;
+
+    BlockedProgram* program_;
 };
 
 struct BlockedProgram {
     // 从 instrs 构建 CFG
     void from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms);
-    // 在最后一个块上加入最后一条语句
-    void push_back(const pInstr &instr);
     // 重新生成行号信息
     void re_generate() const;
-
+    // 加入一个立即数
     void add_imm(const pVal &imm);
 
     // 所有的常规优化
@@ -82,14 +144,78 @@ struct BlockedProgram {
     void opt_remove_empty_block();  // 去除无用 basic block
     void opt_connect_empty_block(); // 连接只有强制跳转的 basic block
 
+    // 平凡优化
     void opt_trivial();
 
     pBlock make_block();
 
-    // 所有的 basic block
-    Blocks blocks;
+    Blocks::iterator begin() {
+        return blocks.begin();
+    }
+
+    Blocks::iterator end() {
+        return blocks.end();
+    }
+
+    Blocks::const_iterator cbegin() const {
+        return blocks.cbegin();
+    }
+
+    Blocks::const_iterator cend() const {
+        return blocks.cend();
+    }
+
+    void push_back(const pBlock &block) {
+        block->set_program(this);
+        blocks.push_back(std::move(block));
+    }
+    
+    Blocks::iterator insert_block(const Blocks::iterator &i, const pBlock &block) {
+        block->set_program(this);
+        return blocks.insert(std::move(i), std::move(block));
+    }
+
+    void erase(const Blocks::iterator &i, const Blocks::iterator &j) {
+        blocks.erase(std::move(i), std::move(j));
+    }
+
+    Blocks::iterator erase(const Blocks::iterator &i) {
+        return blocks.erase(std::move(i));
+    }
+
+    pBlock front() const {
+        return blocks.front();
+    }
+
+    pBlock back() const {
+        return blocks.back();
+    }
+
+    void clear() {
+        blocks.clear();
+        imms.clear();
+        params.clear();
+    }
+
+    bool empty() const {
+        return blocks.empty();
+    }
+
+    size_t size() const {
+        return blocks.size();
+    }
+
     Vector<pVal> params;
     Vector<pVal> imms;
+
+private:
+    // 在最后一个块上加入最后一条语句
+    void push_back(const pInstr &instr) {
+        back()->push_back(instr);
+    }
+
+    // 所有的 basic block
+    Blocks blocks;
 };
 
 } // namespace Ir

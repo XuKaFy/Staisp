@@ -18,31 +18,28 @@ Pointer<LabelInstr> Block::label() const {
     return std::dynamic_pointer_cast<LabelInstr>(body.front());
 }
 
-pInstr Block::back() const { return body.back(); }
-
 void Block::push_behind_end(const pInstr &instr)
 {
+    instr->set_block(this);
     body.insert(std::prev(body.end()), instr);
-    instr->block = this;
 }
 
 void Block::push_after_label(const pInstr &instr)
 {
+    instr->set_block(this);
     body.insert(std::next(body.begin()), instr);
-    instr->block = this;
 }
 
 void Block::add_imm(const pVal &imm) {
-    program->add_imm(imm);
+    program()->add_imm(imm);
 }
 
 void Block::squeeze_out(bool selected) {
     auto end = body.back();
     auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(!selected);
-    new_br->block = this;
     // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
     body.pop_back();
-    body.push_back(new_br);
+    push_back(new_br);
 }
 
 void Block::connect_in_and_out() {
@@ -61,11 +58,6 @@ String Block::print_block() const {
         whole_block += "\n";
     }
     return whole_block;
-}
-
-void Block::push_back(const pInstr &instr) {
-    body.push_back(instr);
-    instr->block = this;
 }
 
 pBlock BlockedProgram::make_block() {
@@ -104,10 +96,6 @@ void Block::replace_out(Block *before, Block *out) {
     }
 }
 
-void BlockedProgram::push_back(const pInstr &instr) {
-    blocks.back()->push_back(instr);
-}
-
 void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms) {
     LineGenerator g;
     g.generate(instrs);
@@ -139,7 +127,6 @@ void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal
         default:
             break;
         }
-        i->block = blocks.back().get();
         push_back(i);
     }
     instrs.clear();
@@ -161,7 +148,7 @@ Set<Block *> Block::in_blocks() const {
     Set<Block *> ans;
     for (auto &&i : label()->users) {
         auto user = static_cast<Instr *>(i->user);
-        ans.insert(user->block);
+        ans.insert(user->block());
     }
     return ans;
 }
@@ -169,10 +156,10 @@ Set<Block *> Block::in_blocks() const {
 Set<Block *> Block::out_blocks() const {
     switch (back()->instr_type()) {
     case INSTR_BR:
-        return {static_cast<LabelInstr *>(back()->operand(0)->usee)->block};
+        return {static_cast<LabelInstr *>(back()->operand(0)->usee)->block()};
     case INSTR_BR_COND:
-        return {static_cast<LabelInstr *>(back()->operand(1)->usee)->block,
-                static_cast<LabelInstr *>(back()->operand(2)->usee)->block};
+        return {static_cast<LabelInstr *>(back()->operand(1)->usee)->block(),
+                static_cast<LabelInstr *>(back()->operand(2)->usee)->block()};
     default:
         break;
     }
@@ -208,8 +195,7 @@ void BlockedProgram::opt_join_blocks() {
         next_block->body.pop_back();
         for (auto j = ++cur_block->body.begin(); j != cur_block->body.end();
              ++j) {
-            (*j)->block = next_block;
-            next_block->body.push_back(std::move(*j));
+            next_block->push_back(std::move(*j));
         }
 
         i = blocks.erase(i);

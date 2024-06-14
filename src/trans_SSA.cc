@@ -46,7 +46,7 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
 }
 
 auto SSA_pass::entry_blk() -> Ir::Block * {
-    return cur_func.blocks.at(0).get();
+    return cur_func.front().get();
 }
 
 auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
@@ -93,7 +93,7 @@ auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
                   dynamic_cast<Ir::Const *>(blk_def_val),
               "defintion type must be Instr or Const");
     if (blk_def_val->type() == Ir::VAL_INSTR) {
-        if (static_cast<Ir::Instr *>(blk_def_val)->block == nullptr)
+        if (static_cast<Ir::Instr *>(blk_def_val)->block() == nullptr)
             function_args.insert(blk_def_val);
     }
     if (current_def[variable].count(block) > 0) {
@@ -130,9 +130,9 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
     if (sealedBlocks.find(block) == sealedBlocks.end()) {
         // Incomplete CFG.
         auto phi = Ir::make_phi_instr(variable->ty);
-        phi->block = block;
         val = phi.get();
-        block->body.insert(std::next(block->body.begin()), phi);
+        block->push_after_label(phi);
+        // block->body.insert(std::next(block()->begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
         incompletePhis[block].emplace_back(variable, phi);
     } else if (block->in_blocks().size() == 1) {
@@ -143,8 +143,8 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
                   "every block in such function must have predecessor");
         // Break potential cycles with operandless phi
         auto phi = Ir::make_phi_instr(variable->ty);
-        phi->block = block;
-        block->body.insert(std::next(block->body.begin()), phi);
+        block->push_after_label(phi);
+        // block->insert(std::next(block()->begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
         def_val(variable, block, phi.get());
         val = addPhiOperands(variable, phi.get(), block);
@@ -155,7 +155,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
 
 SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                                              Ir::Block *phi_blk) {
-    my_assert(phi->block == phi_blk, "comes from the same block");
+    my_assert(phi->block() == phi_blk, "comes from the same block");
     auto *phi_ins = dynamic_cast<Ir::PhiInstr *>(phi);
     for (auto *pred : phi_blk->in_blocks()) {
         auto *pred_val = use_val(variable, pred);
@@ -223,10 +223,10 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
         // remove op
         phi->labels.clear();
         Ir::val_release(phi);
-        for (auto ins_it = ++phi->block->body.begin();
-             ins_it != phi->block->body.end(); ins_it++) {
+        for (auto ins_it = ++phi->block()->begin();
+             ins_it != phi->block()->end(); ins_it++) {
             if ((*ins_it).get() == phi) {
-                phi->block->body.erase(ins_it);
+                phi->block()->erase(ins_it);
                 break;
             }
         }
@@ -251,7 +251,7 @@ void SSA_pass::sealBlock(Ir::Block *block) {
 
 auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
     Set<Ir::Block *> unreachable;
-    for (const auto &bb : cur_func.blocks) {
+    for (const auto &bb : cur_func) {
         if (dom_ctx.dom_map.count(bb.get()) == 0) {
             // unreachable block
             unreachable.insert(bb.get());
@@ -280,7 +280,7 @@ void SSA_pass::reconstruct() {
 
     Set<vrtl_reg *> alloca_vars;
     auto build_def = [this, &alloca_vars, &promotable_filter]() -> void {
-        for (const auto &ent_instr : entry_blk()->body) {
+        for (const auto &ent_instr : *entry_blk()) {
             if (ent_instr->instr_type() == Ir::INSTR_ALLOCA) {
                 auto *alloca = dynamic_cast<Ir::AllocInstr *>(ent_instr.get());
                 if (promotable_filter(alloca)) {
@@ -295,7 +295,7 @@ void SSA_pass::reconstruct() {
     }
 
     Map<Ir::Block *, size_t> pred = {};
-    std::transform(cur_func.blocks.begin(), cur_func.blocks.end(),
+    std::transform(cur_func.begin(), cur_func.end(),
                    std::inserter(pred, pred.end()), [](const auto &bb) {
                        return std::make_pair(bb.get(), bb->in_blocks().size());
                    });
@@ -317,9 +317,9 @@ void SSA_pass::reconstruct() {
     order.insert(order.begin(), dom_ctx.order().begin(), dom_ctx.order().end());
 
     for (auto *cur_block : order) {
-        auto it = cur_block->body.begin();
+        auto it = cur_block->begin();
         my_assert((*it)->instr_type() == Ir::INSTR_LABEL, "label begin"), it++;
-        for (; it != cur_block->body.end();
+        for (; it != cur_block->end();
              /* next perform increment*/) {
             auto succ_instr = std::next(it);
             auto cur_instr = *it;
@@ -329,7 +329,7 @@ void SSA_pass::reconstruct() {
                 if (alloca_vars.count(to->usee) > 0) {
                     auto val = mem_sourve_val(store);
                     def_val(to->usee, cur_block, val->usee);
-                    cur_block->body.erase(it);
+                    cur_block->erase(it);
                 } else {
                     my_assert(pointer_verifier(to->usee),
                               "store to non-alloca variable");
@@ -341,7 +341,7 @@ void SSA_pass::reconstruct() {
                 if (alloca_vars.count(src_ptr->usee) > 0) {
                     load->replace_self(use_val(src_ptr->usee, cur_block));
                     my_assert(load->users.empty(), "removable load instr");
-                    cur_block->body.erase(it);
+                    cur_block->erase(it);
                 } else {
                     my_assert(pointer_verifier(src_ptr->usee),
                               "load from non-alloca variable");
@@ -356,11 +356,11 @@ void SSA_pass::reconstruct() {
         }
     }
 
-    my_assert(sealedBlocks.size() == cur_func.blocks.size(),
+    my_assert(sealedBlocks.size() == cur_func.size(),
               "all blocks are sealed");
 
-    for (auto ent_instr_it = ++entry_blk()->body.begin();
-         ent_instr_it != entry_blk()->body.end();) {
+    for (auto ent_instr_it = ++entry_blk()->begin();
+         ent_instr_it != entry_blk()->end();) {
         if (auto *ent_instr =
                 dynamic_cast<Ir::AllocInstr *>(ent_instr_it->get());
             ent_instr != nullptr) {
@@ -368,7 +368,7 @@ void SSA_pass::reconstruct() {
                 // my_assert(ent_instr->users.empty(), "single value is
                 // removable");
                 if (ent_instr->users.empty()) {
-                    ent_instr_it = entry_blk()->body.erase(ent_instr_it);
+                    ent_instr_it = entry_blk()->erase(ent_instr_it);
                     continue;
                 }
             }
