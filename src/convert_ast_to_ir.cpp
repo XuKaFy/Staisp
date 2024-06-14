@@ -1118,6 +1118,7 @@ void Convertor::add_initialization(const TypedSym &var,
     _env.end_env();
     _env = env;
 
+    _init_ctx = _cur_ctx;
     _cur_ctx = ctx;
 }
 

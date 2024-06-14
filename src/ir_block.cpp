@@ -115,7 +115,7 @@ void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal
             switch (to_ir_type(i->ty)) {
             case IR_LABEL: {
                 auto b = make_block();
-                blocks.push_back(b);
+                push_back(b);
                 b->set_name(i->name());
                 break;
             }

@@ -169,10 +169,10 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
 }
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
-    // inline_all_function(mod, convertor);
+    inline_all_function(mod, convertor);
     for (auto &&i : mod->funsDefined) {
-        // SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
-        // pass.pass_transform();
+        SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
+        pass.pass_transform();
         // i->print_func()
         /*int cnt = 0;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
