@@ -72,10 +72,14 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_LOAD: {
             auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(i);
             auto from = r->operand(0)->usee;
-            if (from->type() == Ir::VAL_GLOBAL &&
-                !static_cast<Ir::Global *>(from)->is_const) {
-                // all global val must be VAC, except const
-                v.val[i->name()] = Val();
+            if (from->type() == Ir::VAL_GLOBAL) {
+                auto global = static_cast<Ir::Global*>(from);
+                if (global->is_effectively_final()) {
+                    v.val[i->name()] = Val(global->con.v.imm_value());
+                    v.val[i->name()].ir = i;
+                } else {
+                    v.val[i->name()] = Val();
+                }
             } else {
                 v.val[i->name()] = v.val[from->name()];
                 v.val[i->name()].ir = i;

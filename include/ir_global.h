@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <ir_mem_instr.h>
 #include <utility>
 
 #include "ir_constant.h"
@@ -21,6 +23,12 @@ struct Global : public Val {
 
     Const con;
     bool is_const;
+
+    bool is_effectively_final() {
+        return is_const || std::none_of(users.begin(), users.end(), [](const pUse& use) {
+            return dynamic_cast<StoreInstr*>(use->user);
+        });
+    }
 };
 
 using pGlobal = Pointer<Global>;

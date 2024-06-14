@@ -9,7 +9,7 @@
 #include "ir_call_instr.h"
 #include "ir_mem_instr.h"
 
-#define MAX_OPT_COUNT 10
+#define MAX_OPT_COUNT 1
 
 namespace Optimize {
 
@@ -171,16 +171,17 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     inline_all_function(mod, convertor);
     for (auto &&i : mod->funsDefined) {
+        int cnt = 0;
+        for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
+            opt_cnt = from_bottom_analysis<Opt2::BlockValue,Opt2::Utils>(i->p);
+            i->p.normal_opt();
+            opt_cnt += from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
+            i->p.normal_opt();
+        }
         SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
         // i->print_func()
-        /*int cnt = 0;
-        for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
-            opt_cnt = from_bottom_analysis<Opt2::BlockValue,
-            Opt2::Utils>(i->p); i->p.normal_opt(); opt_cnt +=
-            from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
-            i->p.normal_opt();
-        }*/
+
         // // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name().c_str(), cnt);
         i->p.re_generate();
