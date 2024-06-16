@@ -25,7 +25,8 @@ auto DomTree::build_dfsn(Set<DomBlock *> &v, DomBlock *cur) -> void {
                   return a->basic_block->label()->name() <
                          b->basic_block->label()->name();
               });
-    dom_order.push_back(cur->basic_block.get());
+    dom_order.push_back(cur->basic_block);
+    unreachable_blocks.erase(cur->basic_block);
     for (auto *out : cur->out_block) {
         build_dfsn(v, out);
     }
@@ -38,7 +39,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         auto [it, success] = dom_map.insert({bb.get(), make_domblk()});
         auto dom_it = it->second;
         my_assert(success, "insertion success");
-        dom_it->basic_block = bb;
+        dom_it->basic_block = bb.get();
         order_map.insert({bb.get(), 0});
     }
 
@@ -93,7 +94,7 @@ void DomTree::print_dom_tree() const {
         printf("\tOut Block: ");
         for (auto *j : dom_node->out_block) {
             printf("\t%s ;", get_name(j).c_str());
-            my_assert(dom_map.at(j->basic_block.get())->idom == dom_node.get(),
+            my_assert(dom_map.at(j->basic_block)->idom == dom_node.get(),
                       "dominance tree success");
         }
         puts("\n\n");
@@ -105,9 +106,9 @@ Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
     for (const auto &[bb, dom_node] : dom_map) {
         for (auto in : bb->in_blocks()) {
             Ir::Block *runner = in;
-            while (runner != dom_node->idom->basic_block.get()) {
+            while (runner != dom_node->idom->basic_block) {
                 dom_frontier[runner] = dom_node;
-                runner = dom_map.at(runner)->idom->basic_block.get();
+                runner = dom_map.at(runner)->idom->basic_block;
             }
         }
     }

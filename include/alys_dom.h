@@ -14,7 +14,7 @@ using pDomBlock = Pointer<DomBlock>;
 struct DomBlock {
     Vector<DomBlock *> out_block;
     DomBlock *idom;
-    Ir::pBlock basic_block;
+    Ir::Block *basic_block;
 };
 
 struct DomTree {
