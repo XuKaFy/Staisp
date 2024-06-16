@@ -107,8 +107,7 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
         (to_basic_type(ty)->ty == IMM_I1 || to_basic_type(ty)->ty == IMM_U1)) {
         auto imm =_cur_ctx.cpool.add(ImmValue(to_basic_type(val->ty)->ty));
         bool is_flt = is_float(val->ty);
-        return add_instr(
-            Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE : Ir::CMP_NE, val, imm));
+        return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val, imm));
     }
     auto r = Ir::make_cast_instr(ty, val);
     add_instr(r);
@@ -173,10 +172,10 @@ Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
     add_instr(Ir::make_store_instr(a0, constant));
     add_instr(Ir::make_br_instr(L3));
     add_instr(L2);
-
+    
     auto a2 = analyze_value(B);
-    add_instr(
-        Ir::make_store_instr(a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
+    add_instr(Ir::make_store_instr(
+        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
     add_instr(Ir::make_br_instr(L3));
     add_instr(L3);
 
@@ -223,8 +222,8 @@ Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
     add_instr(Ir::make_br_instr(L3));
     add_instr(L2);
     auto a2 = analyze_value(B);
-    add_instr(
-        Ir::make_store_instr(a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
+    add_instr(Ir::make_store_instr(
+        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
     add_instr(Ir::make_br_instr(L3));
     add_instr(L3);
 
@@ -676,10 +675,10 @@ Pointer<Ast::AssignNode> try_get_lv(const pNode &p)
 }
 
 int use_which(Pointer<Ast::AssignNode> mA, Pointer<Ast::AssignNode> mB) {
-    if (!mA || !mB) 
+    if (!mA || !mB)
         return -1;
-    if (mA->lv->type != NODE_SYM || mB->lv->type != NODE_SYM || 
-        std::dynamic_pointer_cast<Ast::SymNode>(mA->lv)->sym 
+    if (mA->lv->type != NODE_SYM || mB->lv->type != NODE_SYM ||
+        std::dynamic_pointer_cast<Ast::SymNode>(mA->lv)->sym
          != std::dynamic_pointer_cast<Ast::SymNode>(mB->lv)->sym)
         return -1;
     if (mA->val->type != NODE_IMM || mB->val->type != NODE_IMM)
@@ -984,8 +983,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
     return is_end;
 }
 
-Ir::pFuncDefined
-Convertor::generate_inline_function(const Pointer<Ast::FuncDefNode> &root) {
+Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefNode> &root) {
     my_assert(root, "?");
     _env.push_env();
     _const_env.push_env();
@@ -1018,7 +1016,7 @@ Convertor::generate_inline_function(const Pointer<Ast::FuncDefNode> &root) {
             _env.env()->set(root->args[i].name, {_cur_ctx.args[i], false});
         }
     }
-
+    
     analyze_statement_node(root->body);
     
     func->end_function(_cur_ctx);
@@ -1059,7 +1057,7 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
                 printf("Warning: %s repeated.\n", root->args[i].name.c_str());
                 throw_error(root, 26, "repeated argument name");
             }
-            _env.env()->set(root->args[i].name, {_cur_ctx.args[i], false});
+            _env.env()->set(root->args[i].name, { _cur_ctx.args[i], false});
         }
         set_func(func->name(), func);
     }
