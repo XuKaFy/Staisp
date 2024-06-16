@@ -136,10 +136,8 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     int ans = 0;
     for (const auto &i : OUT.val) {
-        if (i.second.ty == Val::VALUE &&
-            i.second.ir) { // has value, is a constant
-            auto imm = Ir::make_constant(i.second.v);
-            p->add_imm(imm);
+        if (i.second.ty == Val::VALUE && i.second.ir) {
+            auto imm = p->add_imm(i.second.v);
             i.second.ir->replace_self(imm.get());
             ++ans;
         }

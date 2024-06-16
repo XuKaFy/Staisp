@@ -109,9 +109,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     }
     fun->push_back(backBlock);
     // Step 7: move imms to original function
-    for (auto i : new_p.imms()) {
-        fun->add_imm(i);
-    }
+    fun->cpool.merge(new_p.cpool);
     // Step 8: clear new_p
     new_p.clear();
 }
@@ -180,6 +178,9 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         }
         SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
+        i->p.opt_trivial();
+        i->p.opt_remove_dead_code();
+        i->p.opt_remove_dead_code();
         // i->print_func()
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",

@@ -30,8 +30,8 @@ void Block::push_after_label(const pInstr &instr)
     insert(std::next(begin()), instr);
 }
 
-void Block::add_imm(const pVal &imm) {
-    program()->add_imm(imm);
+pVal Block::add_imm(Value value) {
+    return program()->add_imm(std::move(value));
 }
 
 void Block::squeeze_out(bool selected) {
@@ -95,14 +95,12 @@ void Block::replace_out(Block *before, Block *out) {
     }
 }
 
-void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms) {
+void BlockedProgram::initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool) {
     LineGenerator g;
     g.generate(instrs);
 
-    this->params_ = args;
-    this->imms_ = imms;
-    // args.clear();
-    imms.clear();
+    this->params_ = std::move(args);
+    this->cpool = std::move(cpool);
 
     /* for(auto &&i : instrs) {
         printf(":: %s\n", i->instr_print());
@@ -131,9 +129,9 @@ void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal
     instrs.clear();
 }
 
-void BlockedProgram::add_imm(const pVal &imm)
+pVal BlockedProgram::add_imm(Value value)
 {
-    imms_.push_back(imm);
+    return cpool.add(std::move(value));
 }
 
 void BlockedProgram::re_generate() const {
@@ -293,27 +291,43 @@ void BlockedProgram::normal_opt() {
     opt_remove_empty_block();
     opt_connect_empty_block();
     opt_join_blocks();
+    //opt_trivial();
     opt_remove_dead_code();
 }
 
+
+std::optional<Value> extractConstant(BinInstrType type, Val* val) {
+    if (auto bin = dynamic_cast<Ir::BinInstr*>(val)) {
+        auto rhs = bin->operand(1)->usee;
+        if (bin->binType == type && rhs->type() == VAL_CONST) {
+            return static_cast<Const *>(rhs)->v;
+        }
+    }
+    return std::nullopt;
+}
+
+void optimize_divide_after_multiply(const pInstr &instr) {
+    if (auto value1 = extractConstant(INSTR_SDIV, instr.get())) {
+        auto lhs = instr->operand(0)->usee;
+        if (auto value2 = extractConstant(INSTR_MUL, lhs); value1 == value2) {
+            auto original = static_cast<Instr*>(lhs)->operand(0)->usee;
+            instr->replace_self(original);
+        }
+    }
+}
+
+
+void optimize_accumulate(const pInstr &instr) {
+
+}
+
 void BlockedProgram::opt_trivial() {
-    // this is not correct
     for (const auto &block : blocks) {
         for (const auto &instr : block->body) {
-            if (auto bin = std::dynamic_pointer_cast<Ir::BinInstr>(instr)) {
-                auto usee = bin->operand(1)->usee;
-                if (bin->binType == INSTR_SDIV && usee->type() == VAL_CONST) {
-                    auto value = static_cast<Const *>(usee)->v;
-                    if (value.type() == ValueType::VALUE_IMM &&
-                        value.imm_value().ty == IMM_I32 &&
-                        value.imm_value().val.ival == 2) {
-                        bin->binType = INSTR_ASHR;
-                        auto imm = Ir::make_constant(ImmValue(1));
-                        block->add_imm(imm);
-                        bin->operand(1)->usee->replace_self(imm.get());
-                    }
-                }
-            }
+            optimize_divide_after_multiply(instr);
+        }
+        for (const auto &instr : block->body) {
+            optimize_accumulate(instr);
         }
     }
 }

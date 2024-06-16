@@ -1,5 +1,8 @@
 #pragma once
 
+#include <algorithm>
+#include <ir_constant.h>
+
 #include "def.h"
 
 #include "ir_control_instr.h"
@@ -36,7 +39,7 @@ struct Block : public Val {
     // 避免被释放
     // 例如临时数字，因为 Use 本身不是以 shared_ptr 指向 value
     // 最终所有的 imm 将会放到 BlockedProgram 中
-    void add_imm(const pVal &imm);
+    pVal add_imm(Value value);
 
     // 通过 Label 读取块
     Set<Block *> in_blocks() const;
@@ -99,7 +102,7 @@ struct Block : public Val {
     }
 
     void reverse() {
-        body = Ir::Instrs(body.rbegin(), body.rend());
+        std::reverse(body.begin(), body.end());
     }
 
     // 在 Ret 或者 Br 前面插入指令，即倒数第二条
@@ -130,12 +133,13 @@ private:
 pBlock make_block();
 
 struct BlockedProgram {
-    // 从 instrs 构建 CFG
-    void from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms);
+
+    void initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool);
+
     // 重新生成行号信息
     void re_generate() const;
     // 加入一个立即数
-    void add_imm(const pVal &imm);
+    pVal add_imm(Value value);
 
     // 所有的常规优化
     // 包括连接可连接的块
@@ -197,7 +201,7 @@ struct BlockedProgram {
 
     void clear() {
         blocks.clear();
-        imms_.clear();
+        //cpool.clear();
         params_.clear();
     }
 
@@ -213,10 +217,7 @@ struct BlockedProgram {
         return params_;
     }
 
-    const Vector<pVal> &imms() const {
-        return imms_;
-    }
-
+    ConstPool cpool;
 private:
     // 在最后一个块上加入最后一条语句
     void push_back(const pInstr &instr) {
@@ -224,7 +225,6 @@ private:
     }
 
     Vector<pVal> params_;
-    Vector<pVal> imms_;
 
     // 所有的 basic block
     Blocks blocks;

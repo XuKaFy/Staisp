@@ -20,7 +20,9 @@ FuncDefined::FuncDefined(const TypedSym &var, Vector<pType> arg_types,
     : Func(var, arg_types), arg_name(arg_name) {
 }
 
-void FuncDefined::end_function(Instrs &body, Vector<pVal> &params, Vector<pVal> &imms) {
+void FuncDefined::end_function(FunctionContext& context) {
+    Instrs &body = context.body;
+    Vector<pVal> &params = context.params;
     if (body.empty() || body.back()->instr_type() != INSTR_RET) {
         if (ty->type_type() == TYPE_VOID_TYPE) {
             body.push_back(make_ret_instr());
@@ -42,7 +44,7 @@ void FuncDefined::end_function(Instrs &body, Vector<pVal> &params, Vector<pVal> 
         }
     }
     body.clear();
-    p.from_instrs(final, params, imms);
+    p.initialize(std::move(final), std::move(params), std::move(context.cpool));
 }
 
 String FuncDefined::print_func() const {
@@ -80,7 +82,7 @@ pFuncDefined make_func_defined(const TypedSym &var, Vector<pType> arg_types,
 }
 
 void FunctionContext::clear() {
-    imms.clear();
+    cpool.clear();
     body.clear();
     args.clear();
     params.clear();
