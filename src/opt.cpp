@@ -1,6 +1,9 @@
 #include "opt.h"
 
+#include "def.h"
+#include "ir_block.h"
 #include "ir_func_defined.h"
+#include "ir_val.h"
 #include "opt_1.h"
 #include "opt_2.h"
 #include "trans_SSA.h"
@@ -8,6 +11,8 @@
 #include "ir_instr.h"
 #include "ir_call_instr.h"
 #include "ir_mem_instr.h"
+#include "type.h"
+#include "value.h"
 
 #define MAX_OPT_COUNT 1
 
@@ -166,9 +171,66 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
     }
 }
 
+void global2local(const Ir::pModule &mod)
+{
+    Set<Ir::BlockedProgram*> mod_funcs;
+    for (auto i = mod->globs.begin(); i != mod->globs.end(); ) {
+        bool onlyfans = true;
+        Ir::BlockedProgram *func = nullptr;
+        if ((*i)->users.empty()) {
+            i = mod->globs.erase(i);
+            continue;
+        }
+        if (!is_basic_type((*i)->con.v.ty)) {
+            ++i;
+            continue;
+        }
+        for (auto j : (*i)->users) {
+            my_assert(j->user->type() == Ir::VAL_INSTR, "?");
+            auto user_instr = dynamic_cast<Ir::Instr*>(j->user);
+            if (func == nullptr) func = user_instr->block()->program();
+            if (user_instr->block()->program() != func) {
+                onlyfans = false;
+                break;
+            }
+        }
+        if (!onlyfans) {
+            ++i;
+            continue;
+        }
+        mod_funcs.insert(func);
+        // Step 1: make a new alloca
+        auto alloca_instr = Ir::make_alloc_instr(to_pointed_type((*i)->ty));
+        // Step 2: replace global with this alloca
+        // for array, because initializer will initialize this value
+        // so just replace it will make sense
+        (*i)->replace_self(alloca_instr.get());
+        // Step 3: for imm value, store the value
+        auto store_instr = Ir::make_store_instr(alloca_instr, 
+                           func->cpool.add((*i)->con.v));
+        // Step 4: insert
+        func->front()->push_after_label(alloca_instr);
+        if (store_instr) {
+            for (auto j = std::next(func->front()->begin()); j != func->front()->end(); ++j) {
+                if ((*j)->instr_type() != Ir::INSTR_ALLOCA) {
+                    func->front()->insert(j, store_instr);
+                    break;
+                }
+            }
+        }
+        // Step 5
+        i = mod->globs.erase(i);
+    }
+    for (auto func : mod_funcs) {
+        func->re_generate();
+    }
+}
+
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     inline_all_function(mod, convertor);
+    global2local(mod);
     for (auto &&i : mod->funsDefined) {
+        // printf("%s\n", i->print_func().c_str());
         int cnt = 0;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_bottom_analysis<Opt2::BlockValue,Opt2::Utils>(i->p);
@@ -180,8 +242,6 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         pass.pass_transform();
         i->p.opt_trivial();
         i->p.opt_remove_dead_code();
-        i->p.opt_remove_dead_code();
-        // i->print_func()
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name().c_str(), cnt);
