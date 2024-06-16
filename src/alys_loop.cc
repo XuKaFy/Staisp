@@ -16,6 +16,8 @@ struct LoopHdr {
     Ir::Block *latch;
 
     Ir::Val *next;
+    LoopHdr(Ir::Block *h, Ir::Block *l, Ir::Val *n)
+        : header(h), latch(l), next(n) {}
 };
 
 using pLoopHdr = Pointer<LoopHdr>;
@@ -75,8 +77,9 @@ void loop_list::build_loop(Ir::BlockedProgram &arg_func) {
             continue;
         }
 
-        loops.push_back(
-            std::make_shared<LoopHdr>(head->block(), cur_blk, next));
+        auto cur_loop = std::make_shared<LoopHdr>(head->block(), cur_blk, next);
+
+        loops.push_back(cur_loop);
     }
 }
 

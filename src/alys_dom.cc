@@ -67,7 +67,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         my_assert(level != 1, "idfn will not changed");
         dfsn(entry, level);
         for (auto &[bb, dom_bb] : dom_map) {
-            if (order_map.at(bb) != level) {
+            if (auto b_lvl = order_map.at(bb); b_lvl != level && b_lvl >= 1) {
                 dom_bb->idom = dom_map.at(node).get();
             }
         }
@@ -77,9 +77,17 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         if (dom_bb->idom != nullptr) {
             dom_bb->idom->out_block.push_back(dom_bb.get());
         }
+        unreachable_blocks.insert(bb);
     }
     Set<DomBlock *> v;
     build_dfsn(v, dom_map[entry].get());
+    for (auto &[bb, dom_bb] : dom_map) {
+        if (v.count(dom_bb.get())) {
+            my_assert(!unreachable_blocks.count(bb), y);
+        } else {
+            my_assert(unreachable_blocks.count(bb), y);
+        }
+    }
 }
 
 void DomTree::print_dom_tree() const {

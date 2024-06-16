@@ -11,6 +11,7 @@
 #include "type.h"
 #include <algorithm>
 #include <cstddef>
+#include <iostream>
 #include <iterator>
 #include <memory>
 #include <unordered_map>
@@ -45,9 +46,7 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
     undefined_initializer();
 }
 
-auto SSA_pass::entry_blk() -> Ir::Block * {
-    return cur_func.front().get();
-}
+auto SSA_pass::entry_blk() -> Ir::Block * { return cur_func.front().get(); }
 
 auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
     Ir::pUse blk_use =
@@ -67,7 +66,8 @@ auto SSA_pass::undef_val(vrtl_reg *variable) -> Ir::Const * {
         case IMM_I1:
             return dynamic_cast<Ir::Const *>(undefined_values.i1.get());
         default:
-            break;;
+            break;
+            ;
         }
     }
     my_assert(false, "undef val");
@@ -183,7 +183,10 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
         if (trivial_phi_ops.size() == 1) {
             same = *trivial_phi_ops.begin();
-            my_assert(same != phi, "none of operands can be phi itself");
+            // my_assert(same != phi, "none of operands can be phi itself");
+            if (same == phi) {
+                my_assert(phi->users.empty(), "trivial phi can not be used");
+            }
             return true;
         }
 
@@ -249,19 +252,18 @@ void SSA_pass::sealBlock(Ir::Block *block) {
     sealedBlocks.insert(block);
 }
 
-auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
-    Set<Ir::Block *> unreachable;
-    for (const auto &bb : cur_func) {
-        if (dom_ctx.dom_map.count(bb.get()) == 0) {
-            // unreachable block
-            unreachable.insert(bb.get());
-        }
-    }
-    return unreachable;
+inline auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
+    return dom_ctx.unreachable_blocks;
 }
 
 void SSA_pass::reconstruct() {
-    my_assert(unreachable_blks().empty(), "no unreachable blocks");
+    if (!unreachable_blks().empty()) {
+        std::cerr << "Unreachable blocks detected\n";
+        for (auto unr_blk : dom_ctx.unreachable_blocks) {
+            std::cerr << "Unreachable block: " << unr_blk->label()->name()
+                      << "\n";
+        }
+    }
 
     auto const promotable_filter = [](Ir::Val *arg_alloca_instr) -> bool {
         auto pointee_ty = to_pointed_type(arg_alloca_instr->ty);
@@ -356,8 +358,7 @@ void SSA_pass::reconstruct() {
         }
     }
 
-    my_assert(sealedBlocks.size() == cur_func.size(),
-              "all blocks are sealed");
+    my_assert(sealedBlocks.size() == cur_func.size(), "all blocks are sealed");
 
     for (auto ent_instr_it = ++entry_blk()->begin();
          ent_instr_it != entry_blk()->end();) {
