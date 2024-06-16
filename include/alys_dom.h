@@ -26,6 +26,7 @@ struct DomTree {
     [[nodiscard]] Map<Ir::Block *, pDomBlock> build_dom_frontier() const;
 
     Vector<Ir::Block *> dom_order;
+    Set<Ir::Block *> unreachable_blocks;
     const Vector<Ir::Block *> &order() const { return dom_order; }
 };
 
