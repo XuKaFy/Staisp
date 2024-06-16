@@ -52,6 +52,14 @@ struct Block : public Val {
         return program_;
     }
 
+    pInstr front() const {
+        return body.front();
+    }
+
+    pInstr back() const {
+        return body.back();
+    }
+
     Instrs::iterator begin() {
         return body.begin();
     }
@@ -80,10 +88,6 @@ struct Block : public Val {
 
     void pop_back() {
         body.pop_back();
-    }
-
-    pInstr back() const {
-        return body.back();
     }
 
     Instrs::iterator erase(const Instrs::iterator &i) {

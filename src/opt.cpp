@@ -178,8 +178,8 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
             opt_cnt += from_top_analysis<Opt1::BlockValue, Opt1::Utils>(i->p);
             i->p.normal_opt();
         }
-        // SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
-        // pass.pass_transform();
+        SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
+        pass.pass_transform();
         // i->print_func()
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",

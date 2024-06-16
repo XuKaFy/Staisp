@@ -15,19 +15,19 @@
 namespace Ir {
 
 Pointer<LabelInstr> Block::label() const {
-    return std::dynamic_pointer_cast<LabelInstr>(body.front());
+    return std::dynamic_pointer_cast<LabelInstr>(front());
 }
 
 void Block::push_behind_end(const pInstr &instr)
 {
     instr->set_block(this);
-    body.insert(std::prev(body.end()), instr);
+    insert(std::prev(end()), instr);
 }
 
 void Block::push_after_label(const pInstr &instr)
 {
     instr->set_block(this);
-    body.insert(std::next(body.begin()), instr);
+    insert(std::next(begin()), instr);
 }
 
 void Block::add_imm(const pVal &imm) {
@@ -35,16 +35,16 @@ void Block::add_imm(const pVal &imm) {
 }
 
 void Block::squeeze_out(bool selected) {
-    auto end = body.back();
+    auto end = back();
     auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(!selected);
     // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
-    body.pop_back();
+    pop_back();
     push_back(new_br);
 }
 
 void Block::connect_in_and_out() {
     auto out_block = out_blocks();
-    my_assert(out_block.size() == 1 && body.size() == 2, "?");
+    my_assert(out_block.size() == 1 && size() == 2, "?");
     for (auto j : in_blocks()) {
         j->replace_out(this, *out_block.begin());
     }
@@ -65,17 +65,17 @@ pBlock make_block() {
 }
 
 void Block::replace_out(Block *before, Block *out) {
-    auto back = body.back();
-    switch (back->instr_type()) {
+    auto bk = back();
+    switch (bk->instr_type()) {
     case INSTR_BR: {
-        back->change_operand(0, out->label());
+        bk->change_operand(0, out->label());
         break;
     }
     case INSTR_BR_COND: {
         bool flag = false;
         for (size_t i = 1; i <= 2; ++i) {
-            if (back->operand(i)->usee == before->label().get()) {
-                back->change_operand(i, out->label());
+            if (bk->operand(i)->usee == before->label().get()) {
+                bk->change_operand(i, out->label());
                 flag = true;
             }
         }
@@ -90,7 +90,7 @@ void Block::replace_out(Block *before, Block *out) {
     }
     default:
         printf("Warning: block %s's last instruction is type %d\n",
-               name().c_str(), back->instr_type());
+               name().c_str(), bk->instr_type());
         throw Exception(1, "Block::replace_out", "not a br block");
     }
 }
@@ -191,8 +191,8 @@ void BlockedProgram::opt_join_blocks() {
         // next_block->print_block().c_str(), cur_block->print_block().c_str());
         // printf("Block both connected\n\n");
 
-        next_block->body.pop_back();
-        for (auto j = ++cur_block->body.begin(); j != cur_block->body.end();
+        next_block->pop_back();
+        for (auto j = ++cur_block->begin(); j != cur_block->end();
              ++j) {
             next_block->push_back(std::move(*j));
         }
@@ -203,10 +203,23 @@ void BlockedProgram::opt_join_blocks() {
 
 void BlockedProgram::opt_remove_empty_block() {
     my_assert(!blocks.empty(), "?");
-    for (auto i = blocks.begin() + 1; i != blocks.end();) {
-        if ((*i)->in_blocks().empty()) {
+    Set<Block*> visitedBlock;
+    Queue<Block*> q;
+    q.push(blocks.front().get());
+    while (!q.empty()) {
+        Block* cur = q.front();
+        q.pop();
+        for (auto i : cur->out_blocks()) {
+            if (!visitedBlock.count(i)) {
+                visitedBlock.insert(i);
+                q.push(i);
+            }
+        }
+    }
+    for (auto i = begin() + 1; i != end();) {
+        if (!visitedBlock.count(i->get())) {
             // printf("Block {\n%s} removed\n", (*i)->print_block().c_str());
-            i = blocks.erase(i);
+            i = erase(i);
         } else {
             ++i;
         }
@@ -214,12 +227,12 @@ void BlockedProgram::opt_remove_empty_block() {
 }
 
 void BlockedProgram::opt_connect_empty_block() {
-    my_assert(!blocks.empty(), "?");
-    for (auto i = blocks.begin() + 1; i != blocks.end();) {
-        if ((*i)->out_blocks().size() == 1 && (*i)->body.size() == 2) {
+    my_assert(!empty(), "?");
+    for (auto i = begin() + 1; i != end();) {
+        if ((*i)->out_blocks().size() == 1 && (*i)->size() == 2) {
             // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
             (*i)->connect_in_and_out();
-            i = blocks.erase(i);
+            i = erase(i);
         } else {
             ++i;
         }
@@ -244,9 +257,9 @@ bool can_be_removed(Ir::InstrType t) {
 void BlockedProgram::opt_remove_dead_code() {
     my_assert(!blocks.empty(), "?");
     for (const auto &i : blocks) {
-        for (auto j = ++i->body.begin(); j != i->body.end();) {
+        for (auto j = ++i->begin(); j != i->end();) {
             if ((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
-                j = i->body.erase(j);
+                j = i->erase(j);
             } else {
                 ++j;
             }
@@ -254,11 +267,11 @@ void BlockedProgram::opt_remove_dead_code() {
     }
 
     for (const auto &i : blocks) {
-        if (i->body.size() <= 1) {
+        if (i->size() <= 1) {
             continue;
         }
 
-        auto end = i->body.back();
+        auto end = i->back();
         if (end->instr_type() != Ir::INSTR_BR_COND) {
             continue;
         }

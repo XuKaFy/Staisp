@@ -165,7 +165,7 @@ Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
     auto L3 = Ir::make_label_instr();
     auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
     
-    auto constant = Ir::make_constant(ImmValue(0));
+    auto constant = Ir::make_constant(ImmValue(0ll, IMM_I1));
     _cur_ctx.imms.push_back(constant);
     
     add_instr(a0);
@@ -216,7 +216,7 @@ Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
     auto L3 = Ir::make_label_instr();
     auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
     
-    auto constant = Ir::make_constant(ImmValue(1));
+    auto constant = Ir::make_constant(ImmValue(1ll, IMM_I1));
     _cur_ctx.imms.push_back(constant);
     
     add_instr(a0);
