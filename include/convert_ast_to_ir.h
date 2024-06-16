@@ -53,6 +53,11 @@ private:
     Ir::pVal analyze_left_value(const pNode &root,
                                 bool request_not_const = false);
 
+    Ir::pVal generate_and(const pNode &A, const pNode &B);
+    Ir::pVal generate_shortcut_and(const pNode &A, const pNode &B);
+    Ir::pVal generate_or(const pNode &A, const pNode &B);
+    Ir::pVal generate_shortcut_or(const pNode &A, const pNode &B);
+
     pType analyze_type(const pNode &root);
 
     void generate_single(const pNode &root);

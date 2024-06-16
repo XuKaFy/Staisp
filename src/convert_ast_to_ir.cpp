@@ -134,6 +134,106 @@ pType Convertor::analyze_type(const pNode &root) {
     return {};
 }
 
+Ir::pVal Convertor::generate_and(const pNode &A, const pNode &B) {
+    Ir::pVal a = analyze_value(A);
+    Ir::pVal b = analyze_value(B);
+    if (is_same_type(a->ty, b->ty) && is_integer(a->ty)) {
+        return add_instr(Ir::make_binary_instr(Ir::INSTR_AND, a, b));
+    }
+    Ir::pVal xa = cast_to_type(A, a, make_basic_type(IMM_I1));
+    Ir::pVal xb = cast_to_type(B, b, make_basic_type(IMM_I1));
+    return add_instr(Ir::make_binary_instr(Ir::INSTR_AND, a, b));
+}
+
+Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
+    /* A and B that has shortcut
+        %1 = alloca i1
+        %2 = icmp ne A, 0
+        br i1 %2, L2, L1
+        L1:
+            store %1, 0
+            br L3
+        L2:
+            %3 = icmp ne B, 0
+            store %1, %3
+            br L3
+        L3:
+    */
+    auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I1));
+    auto L1 = Ir::make_label_instr();
+    auto L2 = Ir::make_label_instr();
+    auto L3 = Ir::make_label_instr();
+    auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
+    
+    auto constant = Ir::make_constant(ImmValue(0));
+    _cur_ctx.imms.push_back(constant);
+    
+    add_instr(a0);
+    add_instr(Ir::make_br_cond_instr(a1, L2, L1));
+    add_instr(L1);
+    add_instr(Ir::make_store_instr(a0, constant));
+    add_instr(Ir::make_br_instr(L3));
+    add_instr(L2);
+    
+    auto a2 = analyze_value(B);
+    add_instr(Ir::make_store_instr(
+        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
+    add_instr(Ir::make_br_instr(L3));
+    add_instr(L3);
+
+    return add_instr(Ir::make_load_instr(a0));
+}
+
+Ir::pVal Convertor::generate_or(const pNode &A, const pNode &B) {
+    Ir::pVal a = analyze_value(A);
+    Ir::pVal b = analyze_value(B);
+    if (is_same_type(a->ty, b->ty) && is_integer(a->ty)) {
+        return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a, b));
+    }
+    Ir::pVal xa = cast_to_type(A, a, make_basic_type(IMM_I1));
+    Ir::pVal xb = cast_to_type(B, b, make_basic_type(IMM_I1));
+    return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a, b));
+
+}
+
+Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
+    /* A or B that has shortcut
+        %1 = alloca i1
+        %2 = icmp ne A, 0
+        br i1 %2, L1, L2
+        L1:
+            store %1, 1
+            br L3
+        L2:
+            %3 = icmp ne B, 0
+            store %1, %3
+            br L3
+        L3:
+    */
+    auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I1));
+    auto L1 = Ir::make_label_instr();
+    auto L2 = Ir::make_label_instr();
+    auto L3 = Ir::make_label_instr();
+    auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
+    
+    auto constant = Ir::make_constant(ImmValue(1));
+    _cur_ctx.imms.push_back(constant);
+    
+    add_instr(a0);
+    add_instr(Ir::make_br_cond_instr(a1, L1, L2));
+    add_instr(L1);
+    add_instr(Ir::make_store_instr(a0, constant));
+    add_instr(Ir::make_br_instr(L3));
+    add_instr(L2);
+    auto a2 = analyze_value(B);
+    add_instr(Ir::make_store_instr(
+        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
+    add_instr(Ir::make_br_instr(L3));
+    add_instr(L3);
+
+    return add_instr(Ir::make_load_instr(a0));
+}
+
 Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
     switch (root->type) {
     case OPR_ADD:
@@ -157,61 +257,15 @@ Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
         return ir;
     }
     case OPR_AND:
-    case OPR_OR: { // shortcut evaluation
-        /*
-            A and B
-            %1 = alloca i32
-            %2 = A
-            br i32 %2, L2, L1
-            L1:
-                store %1, 0
-                br L3
-            L2:
-                store %1, B
-                br L3
-            L3:
-
-            A or B
-            %1 = alloca i32
-            %2 = A
-            br i32 %2, L1, L2
-            L1:
-                store %1, 1
-                br L3
-            L2:
-                %3 = cast B
-                store %1, %3
-                br L3
-            L3:
-        */
-        auto a0 = Ir::make_alloc_instr(make_basic_type(IMM_I1));
-        auto L1 = Ir::make_label_instr();
-        auto L2 = Ir::make_label_instr();
-        auto L3 = Ir::make_label_instr();
-
-        add_instr(a0);
-        auto a1 = cast_to_type(root->lhs, analyze_value(root->lhs),
-                               make_basic_type(IMM_I1));
-        if (root->type == OPR_AND) {
-            add_instr(Ir::make_br_cond_instr(a1, L2, L1));
-        } else {
-            add_instr(Ir::make_br_cond_instr(a1, L1, L2));
+        if (root->rhs->type == NODE_SYM) {
+            return generate_and(root->lhs, root->rhs);
         }
-        add_instr(L1);
-        bool num = root->type != OPR_AND;
-        auto constant = Ir::make_constant(ImmValue(num));
-        add_instr(Ir::make_store_instr(a0, constant));
-        _cur_ctx.imms.push_back(constant);
-        add_instr(Ir::make_br_instr(L3));
-        add_instr(L2);
-        auto a2 = analyze_value(root->rhs);
-        add_instr(Ir::make_store_instr(
-            a0, cast_to_type(root->rhs, a2, make_basic_type(IMM_I1))));
-        add_instr(Ir::make_br_instr(L3));
-        add_instr(L3);
-
-        return add_instr(Ir::make_load_instr(a0));
-    }
+        return generate_shortcut_and(root->lhs, root->rhs);
+    case OPR_OR:
+        if (root->rhs->type == NODE_SYM) {
+            return generate_or(root->lhs, root->rhs);
+        }
+        return generate_shortcut_or(root->lhs, root->rhs);
     case OPR_EQ:
     case OPR_NE:
     case OPR_GT:
