@@ -180,6 +180,9 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         }
         SSA_pass pass(i->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
+        i->p.opt_trivial();
+        i->p.opt_remove_dead_code();
+        i->p.opt_remove_dead_code();
         // i->print_func()
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",
