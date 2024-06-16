@@ -123,40 +123,40 @@ struct ImmValue {
 
     ImmValue cast_to(ImmType new_ty) const;
 
-    operator bool() const;
+    explicit operator bool() const;
     ImmValue operator^(ImmValue o) const;
     ImmValue operator+(ImmValue o) const;
     ImmValue operator-(ImmValue o) const;
     ImmValue operator*(ImmValue o) const;
     ImmValue operator/(ImmValue o) const;
     ImmValue operator%(ImmValue o) const;
-    ImmValue operator&&(ImmValue o) const;
-    ImmValue operator||(ImmValue o) const;
     ImmValue operator&(ImmValue o) const;
     ImmValue operator|(ImmValue o) const;
-    ImmValue operator<(ImmValue o) const;
-    ImmValue operator>(ImmValue o) const;
-    ImmValue operator<=(ImmValue o) const;
-    ImmValue operator>=(ImmValue o) const;
-    ImmValue operator==(ImmValue o) const;
-    ImmValue operator!=(ImmValue o) const;
     ImmValue operator>>(ImmValue o) const;
     ImmValue operator<<(ImmValue o) const;
-    ImmValue operator!() const;
+    bool operator!() const;
+    bool operator&&(ImmValue o) const;
+    bool operator||(ImmValue o) const;
+    bool operator<(ImmValue o) const;
+    bool operator>(ImmValue o) const;
+    bool operator<=(ImmValue o) const;
+    bool operator>=(ImmValue o) const;
+    bool operator==(ImmValue o) const;
+    bool operator!=(ImmValue o) const;
 
-    ImmValue neg() const;
+    ImmValue operator+() const { return *this; }
+    ImmValue operator-() const;
 
     String print() const;
-};
 
-using ImmValues = Vector<ImmValue>;
-using ImmOrVoid = Opt<ImmValue>;
-
-// TypedSym 类型即限定某个标识符的类型如何
-struct ImmTypedSym {
-    ImmTypedSym(String sym, ImmType tr, bool is_const = false);
-
-    String sym;
-    ImmType tr;
-    bool is_const;
+    size_t hash() const {
+        switch (ty) {
+            case IMM_F32:
+                return std::hash<float>()(val.f32val);
+            case IMM_F64:
+                return std::hash<double>()(val.f64val);
+            default:
+                return val.uval;
+        }
+    }
 };

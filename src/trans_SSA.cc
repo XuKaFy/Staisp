@@ -35,12 +35,9 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
 #endif
 
     auto undefined_initializer = [this]() {
-        undefined_values.i32 = Ir::make_constant(ImmValue(ImmType::IMM_I32));
-        undefined_values.f32 = Ir::make_constant(ImmValue(ImmType::IMM_F32));
-        undefined_values.i1 = Ir::make_constant(ImmValue(ImmType::IMM_I1));
-        entry_blk()->add_imm(undefined_values.i32);
-        entry_blk()->add_imm(undefined_values.f32);
-        entry_blk()->add_imm(undefined_values.i1);
+        undefined_values.i32 = entry_blk()->add_imm(ImmValue(ImmType::IMM_I32));
+        undefined_values.f32 = entry_blk()->add_imm(ImmValue(ImmType::IMM_F32));
+        undefined_values.i1 = entry_blk()->add_imm(ImmValue(ImmType::IMM_I1));
     };
 
     undefined_initializer();

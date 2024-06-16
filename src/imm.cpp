@@ -70,10 +70,10 @@ bool is_imm_integer(ImmType t) {
     return false;
 }
 
+// Yaossg's NOTE:
+// proper name: common type
+// surprising implementation (and very absurd too)
 ImmType join_imm_type(ImmType a, ImmType b) { return std::max(a, b); }
-
-ImmTypedSym::ImmTypedSym(String sym, ImmType tr, bool is_const)
-    : sym(std::move(std::move(sym))), tr(tr), is_const(is_const) {}
 
 ImmValue::operator bool() const {
     switch (ty) {
@@ -99,7 +99,6 @@ ImmValue::operator bool() const {
     }
     }
     throw Exception(1, "ImmValue", "type not implemented {operator bool()}");
-    return ImmValue();
 }
 
 ImmValue ImmValue::cast_to(ImmType new_ty) const {
@@ -227,7 +226,7 @@ OPR_DEF_INT(<<)
 #undef OPR_DEF_INT
 
 #define OPR_DEF_LOGICAL(y)                                                     \
-    ImmValue ImmValue::operator y(ImmValue o) const {                          \
+    bool ImmValue::operator y(ImmValue o) const {                          \
         auto com_ty = join_imm_type(ty, o.ty);                                 \
         ImmValue a1 = cast_to(com_ty);                                         \
         ImmValue a2 = o.cast_to(com_ty);                                       \
@@ -237,25 +236,24 @@ OPR_DEF_INT(<<)
         case IMM_I16:                                                          \
         case IMM_I32:                                                          \
         case IMM_I64: {                                                        \
-            return ImmValue(a1.val.ival y a2.val.ival);                        \
+            return a1.val.ival y a2.val.ival;                        \
         }                                                                      \
         case IMM_U1:                                                           \
         case IMM_U8:                                                           \
         case IMM_U16:                                                          \
         case IMM_U32:                                                          \
         case IMM_U64: {                                                        \
-            return ImmValue(a1.val.uval y a2.val.uval);                        \
+            return a1.val.uval y a2.val.uval;                        \
         }                                                                      \
         case IMM_F32: {                                                        \
-            return ImmValue(a1.val.f32val y a2.val.f32val);                    \
+            return a1.val.f32val y a2.val.f32val;                    \
         }                                                                      \
         case IMM_F64: {                                                        \
-            return ImmValue(a1.val.f64val y a2.val.f64val);                    \
+            return a1.val.f64val y a2.val.f64val;                    \
         }                                                                      \
         }                                                                      \
         throw Exception(1, "ImmValue",                                         \
                         "type not implemented {OPR_DEF_LOGICAL}");             \
-        return ImmValue();                                                     \
     }
 OPR_DEF_LOGICAL(&&)
 OPR_DEF_LOGICAL(||)
@@ -297,7 +295,7 @@ String ImmValue::print() const {
     return "[NOT A NUMBER]";
 }
 
-ImmValue ImmValue::neg() const {
+ImmValue ImmValue::operator-() const {
     switch (ty) {
     case IMM_I1:
     case IMM_I8:
@@ -319,7 +317,7 @@ ImmValue ImmValue::neg() const {
     return 0;
 }
 
-ImmValue ImmValue::operator!() const {
+bool ImmValue::operator!() const {
     switch (ty) {
     case IMM_I1:
     case IMM_I8:

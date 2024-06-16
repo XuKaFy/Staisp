@@ -87,13 +87,12 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
                      to_elem_type(to_pointed_type(val->ty)))) {
         // printf("found %s decay from %s to %s\n", val->name(),
         // val->ty->type_name(), ty->type_name());
-        auto imm = Ir::make_constant(ImmValue(0));
+        auto imm = _cur_ctx.cpool.add(ImmValue(0));
         auto r = Ir::make_item_instr(val, {imm});
         if (!is_same_type(ty, r->ty)) {
             throw_error(root, -1, "decay error?");
         }
         add_instr(r);
-        _cur_ctx.imms.push_back(imm);
         return r;
     }
     if (!is_castable(val->ty, ty)) {
@@ -105,8 +104,7 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
     // 这个转换因为不是 CastInstr 而是 CmpInstr，所以必须放到这里来判断
     if (is_basic_type(val->ty) && is_basic_type(ty) &&
         (to_basic_type(ty)->ty == IMM_I1 || to_basic_type(ty)->ty == IMM_U1)) {
-        auto imm = Ir::make_constant(ImmValue(to_basic_type(val->ty)->ty));
-        _cur_ctx.imms.push_back(imm);
+        auto imm =_cur_ctx.cpool.add(ImmValue(to_basic_type(val->ty)->ty));
         bool is_flt = is_float(val->ty);
         return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val, imm));
     }
@@ -165,9 +163,8 @@ Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
     auto L3 = Ir::make_label_instr();
     auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
     
-    auto constant = Ir::make_constant(ImmValue(0ll, IMM_I1));
-    _cur_ctx.imms.push_back(constant);
-    
+    auto constant = _cur_ctx.cpool.add(ImmValue(0ll, IMM_I1));
+
     add_instr(a0);
     add_instr(Ir::make_br_cond_instr(a1, L2, L1));
     add_instr(L1);
@@ -216,8 +213,7 @@ Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
     auto L3 = Ir::make_label_instr();
     auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
     
-    auto constant = Ir::make_constant(ImmValue(1ll, IMM_I1));
-    _cur_ctx.imms.push_back(constant);
+    auto constant = _cur_ctx.cpool.add(ImmValue(1LL, IMM_I1));
     
     add_instr(a0);
     add_instr(Ir::make_br_cond_instr(a1, L1, L2));
@@ -313,7 +309,7 @@ ImmValue Convertor::constant_eval(const pNode &node) {
         case OPR_NOT:
             return !imm;
         case OPR_NEG:
-            return imm.neg();
+            return -imm;
         case OPR_POS:
             break;
         }
@@ -450,8 +446,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
         }
         case OPR_NOT: {
             auto imm_ty = to_basic_type(val->ty)->ty;
-            auto imm = Ir::make_constant(ImmValue(0).cast_to(imm_ty));
-            _cur_ctx.imms.push_back(imm);
+            auto imm = _cur_ctx.cpool.add(ImmValue(0).cast_to(imm_ty));
             return add_instr(Ir::make_cmp_instr(
                 is_imm_integer(imm_ty) ? Ir::CMP_EQ : Ir::CMP_OEQ, val, imm));
         }
@@ -460,9 +455,8 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
                 return add_instr(Ir::make_unary_instr(val));
             }
             if (is_integer(val->ty)) {
-                auto imm = Ir::make_constant(ImmValue(0));
+                auto imm = _cur_ctx.cpool.add(ImmValue(0));
                 auto ty = join_type(val->ty, imm->ty);
-                _cur_ctx.imms.push_back(imm);
                 return add_instr(Ir::make_binary_instr(
                     Ir::INSTR_SUB, cast_to_type(root, imm, ty),
                     cast_to_type(root, val, ty)));
@@ -473,9 +467,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
     }
     case NODE_IMM: {
         auto r = std::dynamic_pointer_cast<Ast::ImmNode>(root);
-        auto res = Ir::make_constant(r->imm);
-        _cur_ctx.imms.push_back(res);
-        return res;
+        return _cur_ctx.cpool.add(r->imm);
     }
     case NODE_CALL: {
         auto r = std::dynamic_pointer_cast<Ast::CallNode>(root);
@@ -619,12 +611,11 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
                     return;
                 }
                 auto item = Ir::make_item_instr(addr, indexes);
-                auto imm = Ir::make_constant(val);
+                auto imm = _cur_ctx.cpool.add(val);
                 add_instr(item);
                 auto store =
                     Ir::make_store_instr(item, cast_to_type(root, imm, t));
                 add_instr(store);
-                _cur_ctx.imms.push_back(imm);
                 return;
             }
             auto cur = *(begin++);
@@ -641,9 +632,8 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
         size_t length = to_array_type(t)->elem_count;
         pType next_ty = to_array_type(t)->elem_type;
         for (size_t i = 0; i < length; ++i) {
-            auto index = Ir::make_constant(
+            auto index = _cur_ctx.cpool.add(
                 ImmValue(static_cast<unsigned long long>(i), IMM_I32));
-            _cur_ctx.imms.push_back(index);
             indexes.push_back(index);
             fn(next_ty);
             indexes.pop_back();
@@ -692,15 +682,11 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                                 "array should be initialized by a list");
                 }
                 auto rrr = std::dynamic_pointer_cast<Ast::ArrayDefNode>(r->val);
-                auto imm1 = Ir::make_constant(ImmValue(0LL, IMM_I8));
-                auto imm2 =
-                    Ir::make_constant(ImmValue(static_cast<unsigned long long>(
+                auto imm1 = _cur_ctx.cpool.add(ImmValue(0LL, IMM_I8));
+                auto imm2 = _cur_ctx.cpool.add(ImmValue(static_cast<unsigned long long>(
                                                    to_array_type(ty)->length()),
                                                IMM_U64));
-                auto imm3 = Ir::make_constant(ImmValue(0LL, IMM_I1));
-                _cur_ctx.imms.push_back(imm1);
-                _cur_ctx.imms.push_back(imm2);
-                _cur_ctx.imms.push_back(imm3);
+                auto imm3 = _cur_ctx.cpool.add(ImmValue(0LL, IMM_I1));
                 add_instr(Ir::make_call_instr(
                     find_func(MEMSET),
                     {cast_to_type(r, tmp,
@@ -956,7 +942,7 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
     
     analyze_statement_node(root->body);
     
-    func->end_function(_cur_ctx.body, _cur_ctx.params, _cur_ctx.imms);
+    func->end_function(_cur_ctx);
     _const_env.end_env();
     _env.end_env();
 
@@ -1005,7 +991,7 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
 
     analyze_statement_node(root->body);
 
-    func->end_function(_cur_ctx.body, _cur_ctx.params, _cur_ctx.imms);
+    func->end_function(_cur_ctx);
     _const_env.end_env();
     _env.end_env();
 
@@ -1025,7 +1011,7 @@ Value Convertor::from_array_def(const Pointer<Ast::ArrayDefNode> &n,
         ArrayValue v;
         v.ty = next_ty;
         for (size_t i = 0; i < length; ++i) {
-            v.arr.push_back(make_value(fn(next_ty)));
+            v.values.push_back(make_value(fn(next_ty)));
         }
         return v;
     };
@@ -1149,7 +1135,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
         generate_single(i);
     }
 
-    _initializer_func->end_function(_init_ctx.body, _init_ctx.params, _init_ctx.imms);
+    _initializer_func->end_function(_init_ctx);
 
     // _const_env.end_env();
     return _mod;

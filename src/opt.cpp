@@ -109,9 +109,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     }
     fun->push_back(backBlock);
     // Step 7: move imms to original function
-    for (auto i : new_p.imms()) {
-        fun->add_imm(i);
-    }
+    fun->cpool.merge(new_p.cpool);
     // Step 8: clear new_p
     new_p.clear();
 }

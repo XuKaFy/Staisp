@@ -30,8 +30,8 @@ void Block::push_after_label(const pInstr &instr)
     insert(std::next(begin()), instr);
 }
 
-void Block::add_imm(const pVal &imm) {
-    program()->add_imm(imm);
+pVal Block::add_imm(Value value) {
+    return program()->add_imm(std::move(value));
 }
 
 void Block::squeeze_out(bool selected) {
@@ -95,14 +95,12 @@ void Block::replace_out(Block *before, Block *out) {
     }
 }
 
-void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal> &imms) {
+void BlockedProgram::initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool) {
     LineGenerator g;
     g.generate(instrs);
 
-    this->params_ = args;
-    this->imms_ = imms;
-    // args.clear();
-    imms.clear();
+    this->params_ = std::move(args);
+    this->cpool = std::move(cpool);
 
     /* for(auto &&i : instrs) {
         printf(":: %s\n", i->instr_print());
@@ -131,9 +129,9 @@ void BlockedProgram::from_instrs(Instrs &instrs, Vector<pVal> &args, Vector<pVal
     instrs.clear();
 }
 
-void BlockedProgram::add_imm(const pVal &imm)
+pVal BlockedProgram::add_imm(Value value)
 {
-    imms_.push_back(imm);
+    return cpool.add(std::move(value));
 }
 
 void BlockedProgram::re_generate() const {
@@ -318,10 +316,18 @@ void optimize_divide_after_multiply(const pInstr &instr) {
     }
 }
 
+
+void optimize_accumulate(const pInstr &instr) {
+
+}
+
 void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
         for (const auto &instr : block->body) {
             optimize_divide_after_multiply(instr);
+        }
+        for (const auto &instr : block->body) {
+            optimize_accumulate(instr);
         }
     }
 }

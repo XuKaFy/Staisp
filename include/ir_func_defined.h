@@ -1,5 +1,7 @@
 #pragma once
 
+#include <ir_constant.h>
+
 #include "ir_block.h"
 #include "ir_func.h"
 
@@ -7,13 +9,15 @@
 
 namespace Ir {
 
+struct FunctionContext;
+
 struct FuncDefined : public Func {
     FuncDefined(const TypedSym &var, Vector<pType> arg_types,
                 Vector<String> arg_name);
 
     String print_func() const;
 
-    void end_function(Instrs &body, Vector<pVal> &params, Vector<pVal> &imms);
+    void end_function(FunctionContext& context);
 
     BlockedProgram p;
     Pointer<Ast::FuncDefNode> ast_root;
@@ -30,7 +34,7 @@ struct FunctionContext {
     void clear();
     void init(Ir::pFuncDefined func);
 
-    Vector<pVal> imms;
+    ConstPool cpool;
     Vector<pVal> params;
     Vector<pInstr> args;
     Ir::Instrs body;

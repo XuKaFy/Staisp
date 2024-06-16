@@ -71,7 +71,7 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const {
 ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const {
     my_assert(v.size() == 1, "?");
 
-    ImmValue ans = v[0].neg();
+    ImmValue ans = -v[0];
 
     // printf("[UnaryInstr] %s\n", instr_print().c_str());
     // printf("    result = %s\n", ans.print().c_str());
