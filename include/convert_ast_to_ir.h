@@ -11,6 +11,7 @@
 #include "ir_instr.h"
 #include "ir_module.h"
 #include "ir_opr_instr.h"
+#include "ir_val.h"
 #include "type.h"
 
 namespace AstToIr {
@@ -57,6 +58,9 @@ private:
     Ir::pVal generate_shortcut_and(const pNode &A, const pNode &B);
     Ir::pVal generate_or(const pNode &A, const pNode &B);
     Ir::pVal generate_shortcut_or(const pNode &A, const pNode &B);
+
+    void analyze_simple_if(const pNode &cond, const Ir::pVal &to, bool use_eq);
+    bool analyze_if(const Pointer<Ast::IfNode> &r);
 
     pType analyze_type(const pNode &root);
 

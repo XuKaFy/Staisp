@@ -17,6 +17,7 @@
 #include "ir_ptr_instr.h"
 
 #include "imm.h"
+#include "ir_val.h"
 #include "type.h"
 #include "value.h"
 #include <cstddef>
@@ -108,7 +109,8 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
         auto imm = Ir::make_constant(ImmValue(to_basic_type(val->ty)->ty));
         _cur_ctx.imms.push_back(imm);
         bool is_flt = is_float(val->ty);
-        return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val, imm));
+        return add_instr(
+            Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE : Ir::CMP_NE, val, imm));
     }
     auto r = Ir::make_cast_instr(ty, val);
     add_instr(r);
@@ -164,20 +166,20 @@ Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
     auto L2 = Ir::make_label_instr();
     auto L3 = Ir::make_label_instr();
     auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
-    
+
     auto constant = Ir::make_constant(ImmValue(0ll, IMM_I1));
     _cur_ctx.imms.push_back(constant);
-    
+
     add_instr(a0);
     add_instr(Ir::make_br_cond_instr(a1, L2, L1));
     add_instr(L1);
     add_instr(Ir::make_store_instr(a0, constant));
     add_instr(Ir::make_br_instr(L3));
     add_instr(L2);
-    
+
     auto a2 = analyze_value(B);
-    add_instr(Ir::make_store_instr(
-        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
+    add_instr(
+        Ir::make_store_instr(a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
     add_instr(Ir::make_br_instr(L3));
     add_instr(L3);
 
@@ -193,7 +195,6 @@ Ir::pVal Convertor::generate_or(const pNode &A, const pNode &B) {
     Ir::pVal xa = cast_to_type(A, a, make_basic_type(IMM_I1));
     Ir::pVal xb = cast_to_type(B, b, make_basic_type(IMM_I1));
     return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a, b));
-
 }
 
 Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
@@ -215,10 +216,10 @@ Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
     auto L2 = Ir::make_label_instr();
     auto L3 = Ir::make_label_instr();
     auto a1 = cast_to_type(A, analyze_value(A), make_basic_type(IMM_I1));
-    
+
     auto constant = Ir::make_constant(ImmValue(1ll, IMM_I1));
     _cur_ctx.imms.push_back(constant);
-    
+
     add_instr(a0);
     add_instr(Ir::make_br_cond_instr(a1, L1, L2));
     add_instr(L1);
@@ -226,8 +227,8 @@ Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
     add_instr(Ir::make_br_instr(L3));
     add_instr(L2);
     auto a2 = analyze_value(B);
-    add_instr(Ir::make_store_instr(
-        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
+    add_instr(
+        Ir::make_store_instr(a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
     add_instr(Ir::make_br_instr(L3));
     add_instr(L3);
 
@@ -493,8 +494,8 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
         for (size_t i = 0; i < r->ch.size(); ++i) {
             Ir::pVal cur_arg = analyze_value(r->ch[i]);
             if (i < length) {
-                args.push_back(cast_to_type(r->ch[i], cur_arg,
-                                            func->function_type()->arg_type[i]));
+                args.push_back(cast_to_type(
+                    r->ch[i], cur_arg, func->function_type()->arg_type[i]));
             } else {
                 args.push_back(cur_arg);
             }
@@ -652,6 +653,143 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
     fn(t);
 }
 
+void Convertor::analyze_simple_if(const pNode &cond, const Ir::pVal &to, bool use_eq)
+{
+    Ir::pVal val = analyze_value(cond);
+    if (use_eq) {
+        Ir::pVal cast_i1 = cast_to_type(cond, val, make_basic_type(IMM_I1));
+        Ir::pVal cast_ty = cast_to_type(cond, cast_i1, to_pointed_type(to->ty));
+        add_instr(Ir::make_store_instr(to, cast_ty));
+    } else {
+        ImmType ty = to_basic_type(to->ty)->ty;
+        Ir::pVal zero = Ir::make_constant(ImmValue(ty));
+        Ir::pVal cast_i1 = Ir::make_cmp_instr(is_imm_float(ty) ? Ir::CMP_UNE : Ir::CMP_NE,
+                                         val,
+                                         zero);
+        Ir::pVal cast_ty = cast_to_type(cond, cast_i1, to_pointed_type(to->ty));
+        add_instr(Ir::make_store_instr(to, cast_ty));
+        _cur_ctx.imms.push_back(zero);
+    }
+}
+
+Pointer<Ast::AssignNode> try_get_lv(const pNode &p)
+{
+    if (p->type == NODE_ASSIGN) {
+        return std::dynamic_pointer_cast<Ast::AssignNode>(p);
+    }
+    if (p->type == NODE_BLOCK) {
+        AstProg &body = std::dynamic_pointer_cast<Ast::BlockNode>(p)->body;
+        if (body.size() == 1) {
+            return try_get_lv(body.front());
+        }
+    }
+    return nullptr;
+}
+
+int use_which(Pointer<Ast::AssignNode> mA, Pointer<Ast::AssignNode> mB) {
+    if (!mA || !mB) 
+        return -1;
+    if (mA->lv->type != NODE_SYM || mB->lv->type != NODE_SYM || 
+        std::dynamic_pointer_cast<Ast::SymNode>(mA->lv)->sym 
+         != std::dynamic_pointer_cast<Ast::SymNode>(mB->lv)->sym)
+        return -1;
+    if (mA->val->type != NODE_IMM || mB->val->type != NODE_IMM)
+        return -1;
+    ImmValue imma = std::dynamic_pointer_cast<Ast::ImmNode>(mA->val)->imm;
+    ImmValue immb = std::dynamic_pointer_cast<Ast::ImmNode>(mB->val)->imm;
+    if (!is_imm_integer(imma.ty) || !is_imm_integer(immb.ty))
+        return -1;
+    if (imma.val.ival == 0 && immb.val.ival == 1) {
+        return 0;
+    }
+    if (imma.val.ival == 1 && immb.val.ival == 0) {
+        return 1;
+    }
+    return -1;
+}
+
+bool Convertor::analyze_if(const Pointer<Ast::IfNode> &r) {
+    // judge whether it is a simple if
+    // if (...) { SOME = 1; } else { SOME = 0; }
+    // if (...) { SOME = 0; } else { SOME = 1; }
+    if (r->elsed) {
+        Pointer<Ast::AssignNode> mA, mB;
+
+        mA = try_get_lv(r->body);
+        mB = try_get_lv(r->elsed);
+
+        int res = use_which(mA, mB);
+
+        if (res != -1) {
+            analyze_simple_if(r->cond, analyze_left_value(mA->lv), res);
+            return false;
+        }
+    }
+
+    // it is not a simple if
+    bool is_end = false;
+    if (r->elsed) {
+        /*
+            br xxx IF_BEGIN, ELSE_BEGIN
+            IF_BEGIN:
+                xxx
+                GOTO ELSE_END:
+            IF_END/ELSE_BEGIN:
+                YYY
+                GOTO ELSE_END:
+            ELSE_END:
+        */
+
+        auto if_begin = Ir::make_label_instr();
+        auto if_end = Ir::make_label_instr();
+        auto if_else_end = Ir::make_label_instr();
+        bool need_label = false;
+        add_instr(Ir::make_br_cond_instr(
+            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)),
+            if_begin, if_end));
+        add_instr(if_begin);
+        analyze_statement_node(r->body);
+        if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
+            !current_block_end()) {
+            add_instr(Ir::make_br_instr(if_else_end));
+            need_label = true;
+        }
+        add_instr(if_end);
+        analyze_statement_node(r->elsed);
+        if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
+            !current_block_end()) {
+            add_instr(Ir::make_br_instr(if_else_end));
+            need_label = true;
+        }
+        if (need_label) {
+            add_instr(if_else_end);
+        } else {
+            is_end = true;
+        }
+    } else {
+        /*
+            br xxx IF_BEGIN, IF_END
+            IF_BEGIN:
+                xxx
+                GOTO IF_END:
+            IF_END:
+        */
+        auto if_begin = Ir::make_label_instr();
+        auto if_end = Ir::make_label_instr();
+        add_instr(Ir::make_br_cond_instr(
+            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)),
+            if_begin, if_end));
+        add_instr(if_begin);
+        analyze_statement_node(r->body);
+        if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
+            !current_block_end()) {
+            add_instr(Ir::make_br_instr(if_end));
+        }
+        add_instr(if_end);
+    }
+    return is_end;
+}
+
 bool Convertor::analyze_statement_node(const pNode &root) {
     bool is_end = false;
     switch (root->type) {
@@ -726,66 +864,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         break;
     }
     case NODE_IF: {
-        auto r = std::dynamic_pointer_cast<Ast::IfNode>(root);
-        auto if_begin = Ir::make_label_instr();
-        auto if_end = Ir::make_label_instr();
-        auto if_else_end = Ir::make_label_instr();
-        if (r->elsed) {
-            /*
-                br xxx IF_BEGIN, ELSE_BEGIN
-                IF_BEGIN:
-                    xxx
-                    GOTO ELSE_END:
-                IF_END/ELSE_BEGIN:
-                    YYY
-                    GOTO ELSE_END:
-                ELSE_END:
-            */
-            bool need_label = false;
-            add_instr(
-                Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond),
-                                                    make_basic_type(IMM_I1)),
-                                       if_begin, if_end));
-            add_instr(if_begin);
-            analyze_statement_node(r->body);
-            if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
-                !current_block_end()) {
-                add_instr(Ir::make_br_instr(if_else_end));
-                need_label = true;
-            }
-            add_instr(if_end);
-            analyze_statement_node(r->elsed);
-            if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
-                !current_block_end()) {
-                add_instr(Ir::make_br_instr(if_else_end));
-                need_label = true;
-            }
-            if (need_label) {
-                add_instr(if_else_end);
-            } else {
-                is_end = true;
-            }
-        } else {
-            /*
-                br xxx IF_BEGIN, IF_END
-                IF_BEGIN:
-                    xxx
-                    GOTO IF_END:
-                IF_END:
-            */
-            add_instr(
-                Ir::make_br_cond_instr(cast_to_type(r, analyze_value(r->cond),
-                                                    make_basic_type(IMM_I1)),
-                                       if_begin, if_end));
-            add_instr(if_begin);
-            analyze_statement_node(r->body);
-            if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
-                !current_block_end()) {
-                add_instr(Ir::make_br_instr(if_end));
-            }
-            add_instr(if_end);
-        }
-        break;
+        return analyze_if(std::dynamic_pointer_cast<Ast::IfNode>(root));
     }
     case NODE_WHILE: {
         auto r = std::dynamic_pointer_cast<Ast::WhileNode>(root);
@@ -920,7 +999,8 @@ bool Convertor::analyze_statement_node(const pNode &root) {
     return is_end;
 }
 
-Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefNode> &root) {
+Ir::pFuncDefined
+Convertor::generate_inline_function(const Pointer<Ast::FuncDefNode> &root) {
     my_assert(root, "?");
     _env.push_env();
     _const_env.push_env();
@@ -953,9 +1033,9 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
             _env.env()->set(root->args[i].name, {_cur_ctx.args[i], false});
         }
     }
-    
+
     analyze_statement_node(root->body);
-    
+
     func->end_function(_cur_ctx.body, _cur_ctx.params, _cur_ctx.imms);
     _const_env.end_env();
     _env.end_env();
@@ -994,7 +1074,7 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
                 printf("Warning: %s repeated.\n", root->args[i].name.c_str());
                 throw_error(root, 26, "repeated argument name");
             }
-            _env.env()->set(root->args[i].name, { _cur_ctx.args[i], false});
+            _env.env()->set(root->args[i].name, {_cur_ctx.args[i], false});
         }
         set_func(func->name(), func);
     }
@@ -1149,7 +1229,8 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
         generate_single(i);
     }
 
-    _initializer_func->end_function(_init_ctx.body, _init_ctx.params, _init_ctx.imms);
+    _initializer_func->end_function(_init_ctx.body, _init_ctx.params,
+                                    _init_ctx.imms);
 
     // _const_env.end_env();
     return _mod;
@@ -1158,7 +1239,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
 void Convertor::add_initialization(const TypedSym &var,
                                    const Pointer<Ast::ArrayDefNode> &node) {
     EnvWrapper<MaybeConstInstr> env = _env;
-    
+
     Ir::FunctionContext ctx = _cur_ctx;
     _cur_ctx = _init_ctx;
 
