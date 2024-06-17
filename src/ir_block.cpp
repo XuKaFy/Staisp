@@ -1,5 +1,6 @@
 #include "ir_block.h"
 
+#include "alys_dom.h"
 #include "ir_control_instr.h"
 #include "ir_func_defined.h"
 #include "convert_ast_to_ir.h"
@@ -35,7 +36,15 @@ pVal Block::add_imm(Value value) {
 
 void Block::squeeze_out(bool selected) {
     auto end = back();
-    auto new_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end)->select(!selected);
+    auto origin_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end);
+    auto label_will_remove = dynamic_cast<LabelInstr*>(origin_br->operand(static_cast<int>(selected) + 1)->usee);
+    for (auto i : label()->users) {
+        auto phi = dynamic_cast<Ir::PhiInstr*>(i->user);
+        if (phi && phi->block() == label_will_remove->block()) {
+            phi->remove(label().get());
+        }
+    }
+    auto new_br = origin_br->select(!selected);
     // printf("Block {\n%s\n} selected %d\n\n", this->name().c_str(), selected);
     pop_back();
     push_back(new_br);

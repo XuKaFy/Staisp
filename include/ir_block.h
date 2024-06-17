@@ -144,8 +144,9 @@ struct BlockedProgram {
     // 影响 bb 的普通优化
     void plain_opt_bb() {
         opt_join_blocks();
-        opt_remove_empty_block();
-        opt_connect_empty_block();
+        opt_remove_unreachable_block();
+        opt_remove_only_jump_block();
+        opt_simplify_branch();
     }
 
     // 不影响 bb 的普通优化
@@ -161,9 +162,10 @@ struct BlockedProgram {
         plain_opt_no_bb();
     }
 
-    void opt_join_blocks();         // 连接可连接的块
-    void opt_remove_empty_block();  // 去除无用 basic block
-    void opt_connect_empty_block(); // 连接只有强制跳转的 basic block
+    void opt_join_blocks();              // 连接可连接的块
+    void opt_remove_unreachable_block(); // 去除无用 basic block
+    void opt_remove_only_jump_block();   // 连接只有强制跳转的 basic block
+    void opt_simplify_branch();          // 简化分支
 
     void opt_remove_dead_code();    // 消除死代码
     void opt_trivial();             // 针对个别指令的优化

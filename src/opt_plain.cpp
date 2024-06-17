@@ -1,4 +1,6 @@
+#include "alys_dom.h"
 #include "ir_block.h"
+#include "ir_control_instr.h"
 #include "ir_opr_instr.h"
 
 namespace Ir {
@@ -49,7 +51,7 @@ void BlockedProgram::opt_join_blocks() {
     }
 }
 
-void BlockedProgram::opt_remove_empty_block() {
+void BlockedProgram::opt_remove_unreachable_block() {
     my_assert(!blocks.empty(), "?");
     Set<Block*> visitedBlock;
     Queue<Block*> q;
@@ -74,10 +76,21 @@ void BlockedProgram::opt_remove_empty_block() {
     }
 }
 
-void BlockedProgram::opt_connect_empty_block() {
+void BlockedProgram::opt_remove_only_jump_block() {
     my_assert(!empty(), "?");
     for (auto i = ++begin(); i != end();) {
         if ((*i)->out_blocks().size() == 1 && (*i)->size() == 2) {
+            bool can_remove = true;
+            for (auto j : (*i)->label()->users) {
+                if (dynamic_cast<Ir::PhiInstr*>(j->user)) {
+                    can_remove = false;
+                    break;
+                }
+            }
+            if (!can_remove) {
+                ++i;
+                continue;
+            }
             // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
             (*i)->connect_in_and_out();
             i = erase(i);
@@ -113,7 +126,10 @@ void BlockedProgram::opt_remove_dead_code() {
             }
         }
     }
+}
 
+void BlockedProgram::opt_simplify_branch()
+{
     for (const auto &i : blocks) {
         if (i->size() <= 1) {
             continue;
