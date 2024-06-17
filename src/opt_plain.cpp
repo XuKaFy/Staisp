@@ -80,6 +80,7 @@ void BlockedProgram::opt_connect_empty_block() {
 
 bool can_be_removed(Ir::InstrType t) {
     switch (t) {
+    case Ir::INSTR_LABEL:
     case Ir::INSTR_RET:
     case Ir::INSTR_BR:
     case Ir::INSTR_BR_COND:
@@ -96,12 +97,10 @@ bool can_be_removed(Ir::InstrType t) {
 
 void BlockedProgram::opt_remove_dead_code() {
     my_assert(!blocks.empty(), "?");
-    for (const auto &i : blocks) {
-        for (auto j = ++i->begin(); j != i->end();) {
-            if ((*j)->users.empty() && can_be_removed((*j)->instr_type())) {
-                j = i->erase(j);
-            } else {
-                ++j;
+    for (const auto &block : blocks) {
+        for (auto it = --block->end(); it != block->begin(); --it) {
+            if ((*it)->users.empty() && can_be_removed((*it)->instr_type())) {
+                it = block->erase(it);
             }
         }
     }
@@ -153,29 +152,44 @@ void BlockedProgram::opt_trivial() {
         for (const auto &instr : block->body) {
             optimize_divide_after_multiply(instr);
         }
-        // accumulate a + a + ... + a => k*a
+        // accumulate b + a + ... + a => b + k*a
+        std::unordered_set<Val*> merged;
         for (auto it = block->begin(); it != block->end(); ++it) {
+            if (merged.count(it->get())) continue;
             if (auto bin = dynamic_cast<Ir::BinInstr*>(it->get())) {
                 auto lhs = bin->operand(0)->usee;
-                auto rhs = bin->operand(1)->usee;
-                if (bin->binType == INSTR_ADD && lhs == rhs && bin->users.size() == 1) {
+                auto rhs0 = bin->operand(1)->usee;
+                if (bin->binType == INSTR_ADD && bin->users.size() == 1) {
                     // start to accumulate
-                    int cnt = 2;
+                    int cnt = 1;
+                    merged.insert(bin);
                     auto old_acc = bin;
                     auto acc = bin->users[0]->user;
                     while ((bin = dynamic_cast<Ir::BinInstr*>(acc))) {
-                        rhs = bin->operand(1)->usee;
-                        if (bin->binType == INSTR_ADD && lhs == rhs && bin->users.size() == 1) {
+                        auto rhs = bin->operand(1)->usee;
+                        if (bin->binType == INSTR_ADD && rhs0 == rhs && bin->users.size() == 1) {
                             ++cnt;
+                            merged.insert(bin);
                             old_acc = bin;
                             acc = bin->users[0]->user;
                         } else {
                             break;
                         }
                     }
-                    auto inserted = std::make_shared<BinInstr>(INSTR_MUL, lhs, add_imm(ImmValue(cnt)).get());
-                    it = block->insert(it, inserted);
-                    old_acc->replace_self(inserted.get());
+                    if (cnt > 1) {
+                        if (lhs == rhs0) {
+                            ++cnt;
+                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, rhs0, add_imm(ImmValue(cnt)).get());
+                            it = block->insert(it, multiply);
+                            old_acc->replace_self(multiply.get());
+                        } else {
+                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, rhs0, add_imm(ImmValue(cnt)).get());
+                            auto add = std::make_shared<BinInstr>(INSTR_ADD, lhs, multiply.get());
+                            it = block->insert(it, add);
+                            it = block->insert(it, multiply);
+                            old_acc->replace_self(add.get());
+                        }
+                    }
                 }
             }
         }

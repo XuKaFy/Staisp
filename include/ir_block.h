@@ -154,7 +154,6 @@ struct BlockedProgram {
         opt_trivial();
         opt_trivial();
         opt_remove_dead_code();
-        opt_remove_dead_code();
     }
 
     void plain_opt_all() {
