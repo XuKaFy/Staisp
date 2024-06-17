@@ -186,7 +186,7 @@ struct BlockedProgram {
 
     void push_back(const pBlock &block) {
         block->set_program(this);
-        blocks.push_back(std::move(block));
+        blocks.push_back(block);
     }
 
     Blocks::iterator erase(const Blocks::iterator &i) {

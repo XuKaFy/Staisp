@@ -146,11 +146,33 @@ void optimize_divide_after_multiply(const pInstr &instr) {
         }
     }
 }
+void optimize_subtract_after_add(const pInstr &instr) {
+    if (auto value1 = extractConstant(INSTR_SUB, instr.get())) {
+        auto lhs = instr->operand(0)->usee;
+        if (auto value2 = extractConstant(INSTR_ADD, lhs); value1 == value2) {
+            auto original = static_cast<Instr*>(lhs)->operand(0)->usee;
+            instr->replace_self(original);
+        }
+    }
+}
+
+
+void optimize_multiply_one(const pInstr &instr) {
+    if (auto value1 = extractConstant(INSTR_MUL, instr.get())) {
+        auto lhs = instr->operand(0)->usee;
+        if (value1 == Value(ImmValue(1))) {
+            instr->replace_self(lhs);
+        }
+    }
+}
+
 
 void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
         for (const auto &instr : block->body) {
             optimize_divide_after_multiply(instr);
+            optimize_multiply_one(instr);
+            optimize_subtract_after_add(instr);
         }
         // accumulate b + a + ... + a => b + k*a
         std::unordered_set<Val*> merged;
@@ -179,11 +201,11 @@ void BlockedProgram::opt_trivial() {
                     if (cnt > 1) {
                         if (lhs == rhs0) {
                             ++cnt;
-                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, rhs0, add_imm(ImmValue(cnt)).get());
+                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, add_imm(ImmValue(cnt)).get(), rhs0);
                             it = block->insert(it, multiply);
                             old_acc->replace_self(multiply.get());
                         } else {
-                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, rhs0, add_imm(ImmValue(cnt)).get());
+                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, add_imm(ImmValue(cnt)).get(), rhs0);
                             auto add = std::make_shared<BinInstr>(INSTR_ADD, lhs, multiply.get());
                             it = block->insert(it, add);
                             it = block->insert(it, multiply);
