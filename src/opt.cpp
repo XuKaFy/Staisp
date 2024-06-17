@@ -23,11 +23,8 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         }
         SSA_pass pass(func->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
-        func->p.plain_opt_no_bb();
-        // func->p.opt_join_blocks();
-        func->p.opt_remove_unreachable_block();
-        func->p.opt_remove_only_jump_block();
-        func->p.opt_simplify_branch();
+        func->p.plain_opt_all();
+        
         // printf("%s\n", i->print_func().c_str());
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",
