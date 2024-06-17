@@ -28,7 +28,7 @@ namespace Optimize {
 SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
                    const ssa_type &arg_ssa_type)
     : promotion_type(arg_ssa_type), cur_func(arg_function) {
-    arg_function.normal_opt();
+    arg_function.plain_opt_all();
     dom_ctx.build_dom(arg_function);
 #ifdef ssa_debug
     dom_ctx.print_dom_tree();

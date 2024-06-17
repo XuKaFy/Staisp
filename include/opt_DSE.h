@@ -1,10 +1,8 @@
-// 优化二：活跃变量分析，删除无用 store
-
 #pragma once
 
 #include "ir_block.h"
 
-namespace Opt2 {
+namespace OptDSE {
 
 struct BlockValue {
     bool operator==(const BlockValue &b) const;
@@ -17,10 +15,9 @@ struct BlockValue {
     Set<String> uses;
 };
 
-struct Utils {
-    // transfer function
+struct TransferFunction {
     void operator()(Ir::Block *p, BlockValue &v);
     int operator()(Ir::Block *p, const BlockValue &IN, const BlockValue &OUT);
 };
 
-} // namespace Opt2
+}

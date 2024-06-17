@@ -141,21 +141,30 @@ struct BlockedProgram {
     // 加入一个立即数
     pVal add_imm(Value value);
 
-    // 所有的常规优化
-    // 包括连接可连接的块
-    // 消除死代码
-    // 去除无用 basic block
-    // 与连接只有强制跳转的 basic block
-    void normal_opt();
+    // 影响 bb 的普通优化
+    void plain_opt_bb() {
+        opt_join_blocks();
+        opt_remove_empty_block();
+        opt_connect_empty_block();
+    }
 
-    // 单个常规优化
+    // 不影响 bb 的普通优化
+    void plain_opt_no_bb() {
+        opt_remove_dead_code();
+        opt_trivial();
+    }
+
+    void plain_opt_all() {
+        plain_opt_bb();
+        plain_opt_no_bb();
+    }
+
     void opt_join_blocks();         // 连接可连接的块
-    void opt_remove_dead_code();    // 消除死代码
     void opt_remove_empty_block();  // 去除无用 basic block
     void opt_connect_empty_block(); // 连接只有强制跳转的 basic block
 
-    // 平凡优化
-    void opt_trivial();
+    void opt_remove_dead_code();    // 消除死代码
+    void opt_trivial();             // 针对个别指令的优化
 
     Blocks::iterator begin() {
         return blocks.begin();

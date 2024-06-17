@@ -1,10 +1,8 @@
-// 优化三：GVN
-
 #pragma once
 
 #include "ir_block.h"
 
-namespace Opt3 {
+namespace OptGVN {
 
 struct Exp {
     // 判断两个指令是否 “形式上一致”
@@ -17,6 +15,7 @@ struct Exp {
     // 因为其不参与运算
     bool operator==(const Exp &exp) const;
 
+	// Yaossg's NOTE: use HASH instead of CMP
     // 需要一个比较函数，才能使用 Set 进行查找
     bool operator<(const Exp &exp) const;
 
@@ -42,10 +41,9 @@ struct BlockValue {
         exp_func; // 某个 Instr 对应的子表达式，用于查找 father
 };
 
-struct Utils {
-    // transfer function
+struct TransferFunction {
     void operator()(Ir::Block *p, BlockValue &v);
     void operator()(Ir::Block *p, const BlockValue &IN, const BlockValue &OUT);
 };
 
-} // namespace Opt3
+}

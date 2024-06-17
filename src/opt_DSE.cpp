@@ -1,10 +1,10 @@
-#include "opt_2.h"
+#include "opt_DSE.h"
 
 #include "ir_mem_instr.h"
 #include "ir_ptr_instr.h"
 #include "ir_val.h"
 
-namespace Opt2 {
+namespace OptDSE {
 
 bool BlockValue::operator==(const BlockValue &b) const {
     return uses == b.uses;
@@ -22,7 +22,7 @@ void BlockValue::cup(const BlockValue &v) {
 
 void BlockValue::clear() { uses.clear(); }
 
-void Utils::operator()(Ir::Block *p, BlockValue &v) {
+void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
     /* printf("Calculate block %s\n", p->name());
     for(auto i : v.uses) {
         printf("    current use: %s\n", i.c_str());
@@ -65,7 +65,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
     }
 }
 
-int Utils::operator()(Ir::Block *p, const BlockValue &IN,
+int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     Set<String> uses = OUT.uses;
     int ans = 0;
@@ -125,4 +125,4 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
     return ans;
 }
 
-} // namespace Opt2
+}

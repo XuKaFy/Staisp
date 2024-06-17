@@ -1,4 +1,4 @@
-#include "opt_1.h"
+#include "opt_const_propagate.h"
 
 #include "ir_constant.h"
 #include "ir_global.h"
@@ -6,13 +6,7 @@
 #include "ir_val.h"
 #include <memory>
 
-namespace Opt1 {
-
-bool BlockValue::operator==(const BlockValue &b) const { return val == b.val; }
-
-bool BlockValue::operator!=(const BlockValue &b) { return !((*this) == b); }
-
-void BlockValue::clear() { val.clear(); }
+namespace OptConstPropagate {
 
 void BlockValue::cup(const BlockValue &v) {
     Map<String, Val> copied_val;
@@ -33,7 +27,7 @@ void BlockValue::cup(const BlockValue &v) {
     val = copied_val;
 }
 
-void Utils::operator()(Ir::Block *p, BlockValue &v) {
+void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
     for (const auto &i : *p) {
         switch (i->instr_type()) {
         case Ir::INSTR_STORE: {
@@ -132,7 +126,7 @@ void Utils::operator()(Ir::Block *p, BlockValue &v) {
     }
 }
 
-int Utils::operator()(Ir::Block *p, const BlockValue &IN,
+int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
     int ans = 0;
     for (const auto &i : OUT.val) {
@@ -145,4 +139,4 @@ int Utils::operator()(Ir::Block *p, const BlockValue &IN,
     return ans;
 }
 
-}; // namespace Opt1
+}
