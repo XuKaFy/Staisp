@@ -3,8 +3,8 @@
 #include "def.h"
 
 #include "gtest/gtest.h"
-#include <fstream>
 
+#include <chrono>
 #include <cstdlib>
 #include <string>
 #include <filesystem>
@@ -12,13 +12,14 @@
 namespace fs = std::filesystem;
 
 String read(const String &file) {
-    std::ifstream in;
-    in.open(file, std::fstream::in);
-    EXPECT_TRUE(in.is_open()) << file;
-
-    String code((std::istreambuf_iterator<char>(in)),
-                std::istreambuf_iterator<char>());
-    return code;
+    FILE* input_file = fopen(file.c_str(), "rb");
+    fseek(input_file, 0, SEEK_END);
+    size_t size = ftell(input_file);
+    fseek(input_file, 0, SEEK_SET);
+    std::string fileBuffer(size, '\0');
+    fread(fileBuffer.data(), 1, size, input_file);
+    fclose(input_file);
+    return fileBuffer;
 }
 
 std::string normalizeLineEndings(const std::string &str) {
@@ -51,6 +52,24 @@ std::string normalizeLineEndings(const std::string &str) {
 }
 
 const bool interpret = false;
+
+class Stopwatch {
+private:
+    std::chrono::time_point<std::chrono::steady_clock> start_time;
+
+public:
+
+    void reset() {
+        start_time = std::chrono::steady_clock::now();
+    }
+
+    void stop(const std::string &id, const std::string &tag) {
+        auto end_time = std::chrono::steady_clock::now();
+        std::chrono::duration<double> elapsed_time = end_time - start_time;
+        printf("\033[1;35m%s\033[1;32m[%s]\033[0m: %.2f sec\n", id.c_str(), tag.c_str(), elapsed_time.count());
+    }
+};
+
 
 void judge(const String &id, const String& ll, const String &in, const String &out) {
     ASSERT_FALSE(
@@ -110,13 +129,20 @@ String get_id(String path) {
 
 void run_sysy(String path) {
 
-    // in ./build/test
+    // pwd: ./build/test
     path = "../../" + path;
+    auto id = get_id(path.substr(6));
+
+    Stopwatch stopwatch;
+
+    stopwatch.reset();
+
     ASSERT_FALSE(
         system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
 
-    auto id = get_id(path.substr(6));
+    stopwatch.stop(id, "compile");
 
-    printf("running %s.sy\n", path.c_str());
+    stopwatch.reset();
     judge(id, path + ".sy.ll", path + ".in", path + ".out");
+    stopwatch.stop(id, "judge");
 }
