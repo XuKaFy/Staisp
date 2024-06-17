@@ -155,7 +155,6 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
     // might be inlined so re_generate
     for (auto &&i : mod->funsDefined) {
         i->p.plain_opt_all();
-        i->p.re_generate();
     }
 }
 
@@ -208,9 +207,6 @@ void global2local(const Ir::pModule &mod)
         }
         // Step 5
         i = mod->globs.erase(i);
-    }
-    for (auto func : mod_funcs) {
-        func->re_generate();
     }
 }
 

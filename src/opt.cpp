@@ -14,24 +14,17 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     inline_all_function(mod, convertor);
     global2local(mod);
     for (auto &&func : mod->funsDefined) {
+        SSA_pass pass(func->p, ssa_type::RECONSTRUCTION);
+        pass.pass_transform();
+        func->p.plain_opt_all();
+
         int cnt = 0;
+        func->p.re_generate(); // must re-generate for 
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_bottom_analysis<OptDSE::BlockValue, OptDSE::TransferFunction>(func->p);
             func->p.plain_opt_all();
             opt_cnt += from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
             func->p.plain_opt_all();
-        }
-
-        SSA_pass pass(func->p, ssa_type::RECONSTRUCTION);
-        pass.pass_transform();
-        func->p.plain_opt_all();
-
-        cnt = 0;
-        for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
-            opt_cnt = from_bottom_analysis<OptDSE::BlockValue, OptDSE::TransferFunction>(func->p);
-            func->p.plain_opt_all();
-            // opt_cnt += from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
-            // func->p.plain_opt_all();
         }
         // printf("%s\n", i->print_func().c_str());
 
