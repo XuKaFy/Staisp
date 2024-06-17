@@ -85,7 +85,7 @@ pInstr make_unary_instr(const pVal &oprd) {
 
 pInstr make_binary_instr(BinInstrType type, const pVal &oprd1,
                          const pVal &oprd2) {
-    return pInstr(new BinInstr(type, oprd1, oprd2));
+    return pInstr(new BinInstr(type, oprd1.get(), oprd2.get()));
 }
 
 } // namespace Ir

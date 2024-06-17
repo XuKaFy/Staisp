@@ -52,7 +52,7 @@ struct UnaryInstr : public CalculatableInstr {
 };
 
 struct BinInstr : public CalculatableInstr {
-    BinInstr(BinInstrType binType, const pVal &oprd1, const pVal &oprd2)
+    BinInstr(BinInstrType binType, Val* oprd1, Val* oprd2)
         : CalculatableInstr(oprd1->ty), binType(binType) {
         add_operand(oprd1);
         add_operand(oprd2);

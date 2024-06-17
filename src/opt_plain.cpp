@@ -55,7 +55,7 @@ void BlockedProgram::opt_remove_empty_block() {
             }
         }
     }
-    for (auto i = begin() + 1; i != end();) {
+    for (auto i = ++begin(); i != end();) {
         if (!visitedBlock.count(i->get())) {
             // printf("Block {\n%s} removed\n", (*i)->print_block().c_str());
             i = erase(i);
@@ -67,7 +67,7 @@ void BlockedProgram::opt_remove_empty_block() {
 
 void BlockedProgram::opt_connect_empty_block() {
     my_assert(!empty(), "?");
-    for (auto i = begin() + 1; i != end();) {
+    for (auto i = ++begin(); i != end();) {
         if ((*i)->out_blocks().size() == 1 && (*i)->size() == 2) {
             // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
             (*i)->connect_in_and_out();
@@ -148,17 +148,36 @@ void optimize_divide_after_multiply(const pInstr &instr) {
     }
 }
 
-void optimize_accumulate(const pInstr &instr) {
-
-}
-
 void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
         for (const auto &instr : block->body) {
             optimize_divide_after_multiply(instr);
         }
-        for (const auto &instr : block->body) {
-            optimize_accumulate(instr);
+        // accumulate a + a + ... + a => k*a
+        for (auto it = block->begin(); it != block->end(); ++it) {
+            if (auto bin = dynamic_cast<Ir::BinInstr*>(it->get())) {
+                auto lhs = bin->operand(0)->usee;
+                auto rhs = bin->operand(1)->usee;
+                if (bin->binType == INSTR_ADD && lhs == rhs && bin->users.size() == 1) {
+                    // start to accumulate
+                    int cnt = 2;
+                    auto old_acc = bin;
+                    auto acc = bin->users[0]->user;
+                    while ((bin = dynamic_cast<Ir::BinInstr*>(acc))) {
+                        rhs = bin->operand(1)->usee;
+                        if (bin->binType == INSTR_ADD && lhs == rhs && bin->users.size() == 1) {
+                            ++cnt;
+                            old_acc = bin;
+                            acc = bin->users[0]->user;
+                        } else {
+                            break;
+                        }
+                    }
+                    auto inserted = std::make_shared<BinInstr>(INSTR_MUL, lhs, add_imm(ImmValue(cnt)).get());
+                    it = block->insert(it, inserted);
+                    old_acc->replace_self(inserted.get());
+                }
+            }
         }
     }
 }

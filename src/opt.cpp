@@ -24,8 +24,6 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         }
         SSA_pass pass(func->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
-        // DO NOT EDIT: OPTIMIZE TWICE AS INTENDED
-        func->p.plain_opt_no_bb();
         func->p.plain_opt_no_bb();
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",

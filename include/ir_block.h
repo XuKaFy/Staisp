@@ -14,7 +14,7 @@ namespace Ir {
 struct Block;
 struct BlockedProgram;
 using pBlock = Pointer<Block>;
-using Blocks = Vector<pBlock>;
+using Blocks = List<pBlock>;
 
 struct Block : public Val {
     Block()
@@ -150,8 +150,11 @@ struct BlockedProgram {
 
     // 不影响 bb 的普通优化
     void plain_opt_no_bb() {
-        opt_remove_dead_code();
+        // DO NOT EDIT: TWICE AS INTENDED
         opt_trivial();
+        opt_trivial();
+        opt_remove_dead_code();
+        opt_remove_dead_code();
     }
 
     void plain_opt_all() {
@@ -186,18 +189,9 @@ struct BlockedProgram {
         block->set_program(this);
         blocks.push_back(std::move(block));
     }
-    
-    Blocks::iterator insert_block(const Blocks::iterator &i, const pBlock &block) {
-        block->set_program(this);
-        return blocks.insert(std::move(i), std::move(block));
-    }
-
-    void erase(const Blocks::iterator &i, const Blocks::iterator &j) {
-        blocks.erase(std::move(i), std::move(j));
-    }
 
     Blocks::iterator erase(const Blocks::iterator &i) {
-        return blocks.erase(std::move(i));
+        return blocks.erase(i);
     }
 
     pBlock front() const {
@@ -210,7 +204,7 @@ struct BlockedProgram {
 
     void clear() {
         blocks.clear();
-        //cpool.clear();
+        cpool.clear();
         params_.clear();
     }
 
