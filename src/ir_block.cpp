@@ -4,6 +4,7 @@
 #include "ir_control_instr.h"
 #include "ir_func_defined.h"
 #include "convert_ast_to_ir.h"
+#include "ir_phi_instr.h"
 #include "ir_instr.h"
 #include "ir_line_generator.h"
 

@@ -6,6 +6,8 @@
 #include "ir_instr.h"
 #include "ir_val.h"
 
+#include "ir_phi_instr.h"
+
 #include <functional>
 
 namespace Optimize {

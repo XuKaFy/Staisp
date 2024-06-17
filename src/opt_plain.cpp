@@ -2,6 +2,7 @@
 #include "ir_block.h"
 #include "ir_control_instr.h"
 #include "ir_opr_instr.h"
+#include "ir_phi_instr.h"
 
 namespace Ir {
 

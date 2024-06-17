@@ -7,6 +7,7 @@
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
 #include "ir_ptr_instr.h"
+#include "ir_phi_instr.h"
 #include "ir_val.h"
 #include "type.h"
 #include <algorithm>

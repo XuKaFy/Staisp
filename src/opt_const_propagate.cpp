@@ -2,7 +2,9 @@
 
 #include "ir_constant.h"
 #include "ir_global.h"
+#include "ir_instr.h"
 #include "ir_mem_instr.h"
+#include "ir_phi_instr.h"
 #include "ir_val.h"
 #include <memory>
 
@@ -30,6 +32,25 @@ void BlockValue::cup(const BlockValue &v) {
 void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
     for (const auto &i : *p) {
         switch (i->instr_type()) {
+        case Ir::INSTR_PHI: {
+            auto r = std::dynamic_pointer_cast<Ir::PhiInstr>(i);
+            bool constant = true;
+            for (size_t i=0; i<r->operand_size()/2; ++i) {
+                if (!v.val.count(r->phi_val(i)->name())) {
+                    constant = false;
+                    break;
+                }
+                if (i != 0 && v.val[r->phi_val(i)->name()].v != v.val[r->phi_val(i-1)->name()].v) {
+                    constant = false;
+                    break;
+                }
+            }
+            if (constant) {
+                printf("PHI once to constant");
+                v.val[r->name()] = v.val[r->phi_val(0)->name()].v;
+            }
+            break;
+        }
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);
             auto to = r->operand(0)->usee;
