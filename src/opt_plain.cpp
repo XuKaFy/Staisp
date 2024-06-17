@@ -46,6 +46,26 @@ void BlockedProgram::opt_join_blocks() {
             next_block->push_back(std::move(*j));
         }
 
+        // printf("For Instr: %s\n", next_block->label()->name().c_str());
+        for (auto i : next_block->label()->users) {
+            /*if (!i) {
+                printf("    there's empty Use\n");
+                continue;
+            } else {
+                printf("    User: %s\n", dynamic_cast<Instr*>(i->user)->instr_print().c_str());
+            }*/
+            Ir::PhiInstr *phi = dynamic_cast<PhiInstr*>(i->user);
+            if (phi && phi->block() == next_block) {
+                for (size_t i=0; i<phi->operand_size()/2; ++i) {
+                    if (phi->phi_label(i) == next_block->label().get()) {
+                        phi->replace_self(phi->phi_val(i));
+                        next_block->erase(phi);
+                        break;
+                    }
+                }
+            }
+        }
+
         cur_block->label()->replace_self(next_block->label().get());
 
         i = blocks.erase(i);

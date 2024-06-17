@@ -21,10 +21,18 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
             opt_cnt += from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
             func->p.plain_opt_all();
         }
+
         SSA_pass pass(func->p, ssa_type::RECONSTRUCTION);
         pass.pass_transform();
         func->p.plain_opt_all();
-        
+
+        cnt = 0;
+        for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
+            opt_cnt = from_bottom_analysis<OptDSE::BlockValue, OptDSE::TransferFunction>(func->p);
+            func->p.plain_opt_all();
+            // opt_cnt += from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
+            // func->p.plain_opt_all();
+        }
         // printf("%s\n", i->print_func().c_str());
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",
