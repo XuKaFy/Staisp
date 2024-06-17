@@ -46,6 +46,7 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
 auto SSA_pass::entry_blk() -> Ir::Block * { return cur_func.front().get(); }
 
 auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
+
     Ir::pUse blk_use =
         std::make_shared<Ir::Use>(block->label().get(), blk_def_val);
     blk_def_val->users.push_back(blk_use);
@@ -221,14 +222,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
     auto remove_trivial = [](Ir::PhiInstr *&phi) {
         // remove op
-        Ir::val_release(phi);
-        for (auto ins_it = ++phi->block()->begin();
-             ins_it != phi->block()->end(); ins_it++) {
-            if ((*ins_it).get() == phi) {
-                phi->block()->erase(ins_it);
-                break;
-            }
-        }
+        phi->block()->erase(phi);
     };
     remove_trivial(phi);
     for (auto *user : phiUsers) {

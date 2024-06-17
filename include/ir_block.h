@@ -97,6 +97,15 @@ struct Block : public Val {
         return body.erase(std::move(i));
     }
 
+    void erase(Instr* instr) {
+        for (auto i = body.begin(); i != body.end(); ++i) {
+            if ((*i).get() == instr) {
+                erase(i);
+                break;
+            }
+        }
+    }
+
     void erase(const Instrs::iterator &i, const Instrs::iterator &j) {
         body.erase(std::move(i), std::move(j));
     }
