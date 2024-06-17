@@ -40,11 +40,15 @@ struct PhiInstr final : Instr {
 
     String instr_print() const override;
 
-    void add_incoming(Block *blk, Val *val);
-    void add_label(Block *blk);
+    void add_incoming(LabelInstr *blk, Val *val);
 
-    //    Map<Block *, pUse> incoming_tuples;
-    Vector<Ir::LabelInstr *> labels;
+    Ir::LabelInstr *phi_label(size_t x) const {
+        return static_cast<Ir::LabelInstr*>(operand(x * 2 + 1)->usee);
+    }
+
+    Ir::Val *phi_val(size_t x) const {
+        return static_cast<Ir::Block*>(operand(x * 2)->usee);    
+    }
 };
 
 // make_phi_instr: create a new PhiInstr with the given type

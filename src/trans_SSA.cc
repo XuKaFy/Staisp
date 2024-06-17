@@ -157,7 +157,7 @@ SSA_pass::vrtl_reg *SSA_pass::addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
     for (auto *pred : phi_blk->in_blocks()) {
         auto *pred_val = use_val(variable, pred);
         // phi->add_incoming(pred, val);
-        phi_ins->add_incoming(pred, pred_val);
+        phi_ins->add_incoming(pred->label().get(), pred_val);
     }
     return tryRemoveTrivialPhi(phi_ins);
 }
@@ -168,9 +168,9 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
     auto is_trivial = [&same, &phi]() -> bool {
         Set<Ir::Val *> trivial_phi_ops;
-        my_assert(phi->operands.size() == phi->labels.size(), "valid phi");
-        for (const auto &phi_op : phi->operands) {
-            trivial_phi_ops.insert(phi_op->usee);
+        // my_assert(phi->operands.size() == phi->labels.size(), "valid phi");
+        for (size_t i = 0; i < phi->operand_size() / 2; ++i) {
+            trivial_phi_ops.insert(phi->phi_val(i));
         }
         my_assert(!trivial_phi_ops.empty(), "non-empty operands");
 
@@ -221,7 +221,6 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
     auto remove_trivial = [](Ir::PhiInstr *&phi) {
         // remove op
-        phi->labels.clear();
         Ir::val_release(phi);
         for (auto ins_it = ++phi->block()->begin();
              ins_it != phi->block()->end(); ins_it++) {

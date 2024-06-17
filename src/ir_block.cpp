@@ -144,6 +144,8 @@ Set<Block *> Block::in_blocks() const {
     Set<Block *> ans;
     for (auto &&i : label()->users) {
         auto user = static_cast<Instr *>(i->user);
+        if (user->instr_type() != INSTR_BR && user->instr_type() != INSTR_BR_COND)
+            continue;
         ans.insert(user->block());
     }
     return ans;

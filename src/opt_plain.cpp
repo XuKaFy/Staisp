@@ -26,11 +26,20 @@ void BlockedProgram::opt_join_blocks() {
             continue;
         }
 
-        // printf("Block {\n%s} connected with {\n%s}\n",
-        // next_block->print_block().c_str(), cur_block->print_block().c_str());
-        // printf("Block both connected\n\n");
+        /*
+        printf("Block {\n%s} connected with {\n%s}\n",
+        next_block->print_block().c_str(), cur_block->print_block().c_str());
+        printf("Block both connected\n\n");
+        */
 
         next_block->pop_back();
+
+        /*
+        printf("Label %s -> %s\n", cur_block->label()->name().c_str(),
+                                    next_block->label()->name().c_str());
+        */
+
+        cur_block->label()->replace_self(next_block->label().get());
         for (auto j = ++cur_block->begin(); j != cur_block->end();
              ++j) {
             next_block->push_back(std::move(*j));

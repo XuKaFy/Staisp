@@ -1,6 +1,7 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_control_instr.h"
 #include "ir_instr.h"
 #include "ir_val.h"
 #include "type.h"
@@ -142,11 +143,11 @@ String PhiInstr::instr_print() const {
     ret = name() + " = ";
 
     ret += "phi " + ty->type_name() + " ";
-    for (size_t index = 0; index < operands.size(); ++index) {
-        auto val = operands.at(index);
-        auto *lab_use = labels.at(index);
+    for (size_t index = 0; index < operands.size() / 2; ++index) {
+        auto val = phi_val(index);
+        auto lab_use = phi_label(index);
         ret += "[ ";
-        ret += val->usee->name();
+        ret += val->name();
         ret += ", %";
         ret += lab_use->name();
         ret += " ], ";
@@ -157,15 +158,10 @@ String PhiInstr::instr_print() const {
     return ret;
 }
 
-void PhiInstr::add_incoming(Block *blk, Val *val) {
+void PhiInstr::add_incoming(LabelInstr *blk, Val *val) {
     my_assert(is_same_type(val->ty, ty), "operand is same as type of phi node");
     add_operand(val);
-    add_label(blk);
-}
-
-void PhiInstr::add_label(Block *blk) {
-    auto blk_label = blk->label();
-    labels.push_back(blk_label.get());
+    add_operand(blk);
 }
 
 pInstr make_phi_instr(const pType &type) {
