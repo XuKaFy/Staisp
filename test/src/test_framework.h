@@ -63,10 +63,10 @@ public:
         start_time = std::chrono::steady_clock::now();
     }
 
-    void stop(const std::string &id, const std::string &tag) {
+    double stop() {
         auto end_time = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed_time = end_time - start_time;
-        printf("\033[1;35m%s\033[1;32m[%s]\033[0m: %.2f sec\n", id.c_str(), tag.c_str(), elapsed_time.count());
+        return elapsed_time.count();
     }
 };
 
@@ -140,9 +140,13 @@ void run_sysy(String path) {
     ASSERT_FALSE(
         system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
 
-    stopwatch.stop(id, "compile");
+    double t1 = stopwatch.stop();
 
     stopwatch.reset();
     judge(id, path + ".sy.ll", path + ".in", path + ".out");
-    stopwatch.stop(id, "judge");
+    double t2 = stopwatch.stop();
+
+    // if you hope to watch detailed time info, use following command:
+    // ctest -V | grep sysy_tests
+    printf("\t| %-55s | %5.2fs | %5.2fs | \n", id.c_str(), t1, t2);
 }
