@@ -20,6 +20,14 @@ void BlockedProgram::plain_opt_bb() {
         puts("");
         */
         modified = 0;
+        /*
+        static int cnt = 0;
+        printf("Opt %d\n", ++cnt);
+        for(auto i : *this) {
+            printf("%s", i->print_block().c_str());
+        }
+        puts("");
+        */
         // 连接块不需要考虑 PHI
         // 因为所有的 PHI 在无分支的情况下
         // 会替换自身为某个量
@@ -37,12 +45,6 @@ void BlockedProgram::plain_opt_bb() {
         // PHI 指令可能存在某些入边
         // 来自于永远不会执行的块
         // 此时对 PHI 的修改体现在 erase_from_phi
-        static int cnt = 0;
-        printf("Opt %d\n", ++cnt);
-        for(auto i : *this) {
-            printf("%s", i->print_block().c_str());
-        }
-        puts("");
         modified += opt_remove_unreachable_block();
         my_assert(check_empty_use("REMOVE UNREACHABLE") == 0, "REMOVE UNREACHABLE FAILED");
         my_assert(check_invalid_phi("REMOVE UNREACHABLE") == 0, "REMOVE UNREACHABLE FAILED");
@@ -104,12 +106,19 @@ bool BlockedProgram::opt_join_blocks() {
 
         next_block->pop_back();
 
+        /*
+        printf("REPLACE LABEL %s -> %s\n", cur_block->label()->name().c_str(),
+            next_block->label()->name().c_str());
+        */
+        
+        cur_block->label()->replace_self(next_block->label().get());
+        
         for (auto j = ++cur_block->begin(); j != cur_block->end();
              ++j) {
             next_block->push_back(std::move(*j));
         }
 
-        cur_block->label()->replace_self(next_block->label().get());
+        // printf("REMOVE BLOCK %s\n", cur_block->name().c_str());
 
         i = erase(i);
         modified = true;

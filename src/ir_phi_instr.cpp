@@ -7,7 +7,7 @@ PhiInstr::PhiInstr(const pType &type)
 
 void PhiInstr::remove(LabelInstr *label) {
     my_assert(operand_size() % 2 == 0, "?");
-    printf("PHI BEFORE REMOVE: %s, %lu\n", instr_print().c_str(), operand_size());
+    // printf("PHI BEFORE REMOVE: %s, %lu\n", instr_print().c_str(), operand_size());
     for (size_t i=0; i<operand_size();) {
         if (!operand(i + 1)) {
             printf("EMPTY OPERAND\n");
@@ -22,9 +22,9 @@ void PhiInstr::remove(LabelInstr *label) {
             ++(++i);
         }
     }
-    printf("PHI AFTER REMOVE: %s\n", instr_print().c_str());
+    // printf("PHI AFTER REMOVE: %s\n", instr_print().c_str());
     if (operand_size() == 2) {
-        printf("PHI INVAILD: %s\n", instr_print().c_str());
+        // printf("PHI INVAILD: %s\n", instr_print().c_str());
         replace_self(phi_val(0));
         block()->erase(this);
         // danger: do NOT execute anything after this line
@@ -37,12 +37,6 @@ String PhiInstr::instr_print() const {
     %indvar = phi i32 [ 0, %LoopHeader ], [ %nextindvar, %Loop ]
     <result> = phi [fast-math-flags] <ty> [ <val0>, <label0>],
     */
-    if (operand_size() % 2) {
-        printf("FATAL ERROR %s\n", name().c_str());
-        for (size_t i=0; i<operand_size(); ++i) {
-            printf("    arg: %s\n", operand(i)->usee->name().c_str());
-        }
-    }
     my_assert(operand_size() % 2 == 0, "?");
     String ret;
     my_assert(ty->type_type() != TYPE_VOID_TYPE,

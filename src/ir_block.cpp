@@ -24,7 +24,7 @@ void Block::erase_from_phi() {
         }
         auto phi = dynamic_cast<PhiInstr*>(j->user);
         if (phi) {
-            printf("BLOCK RELEASE WITH PHI [%s]\n", phi->instr_print().c_str());
+            // printf("BLOCK RELEASE WITH PHI [%s]\n", phi->instr_print().c_str());
             phi->remove(label().get());
         }
     }
@@ -55,9 +55,25 @@ bool BlockedProgram::check_invalid_phi(String state)
     for (auto i : *this) {
         for (auto j : *i) {
             auto phi = dynamic_cast<PhiInstr*>(j.get());
-            if (phi && phi->operand_size() % 2) {
+            if (!phi) continue;
+            if (phi->operand_size() % 2) {
                 printf("IN STATE %s\n", state.c_str());
                 printf("    INVALID PHI in %s\n", j->name().c_str());
+                for (size_t i=0; i<phi->operand_size(); ++i) {
+                    printf("    arg: %s\n", phi->operand(i)->usee->name().c_str());
+                }
+                return true;
+            }
+            Set<LabelInstr*> lbs;
+            for (auto j : i->in_blocks()) {
+                lbs.insert(j->label().get());
+            }
+            for (size_t i=0; i<phi->operand_size()/2; ++i) {
+                lbs.erase(phi->phi_label(i));
+            }
+            if (!lbs.empty()) {
+                printf("IN STATE %s\n", state.c_str());
+                printf("    WRONG PHI in %s\n", j->name().c_str());
                 for (size_t i=0; i<phi->operand_size(); ++i) {
                     printf("    arg: %s\n", phi->operand(i)->usee->name().c_str());
                 }
@@ -88,15 +104,15 @@ void Block::squeeze_out(bool selected) {
     auto end = back();
     auto origin_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end);
     auto label_will_remove = dynamic_cast<LabelInstr*>(origin_br->operand(static_cast<int>(selected) + 1)->usee);
-    for (auto i : label()->users) {
-        if (!i) {
-            printf("Warning [squeeze] Label %s has empty Use\n", label()->name().c_str());
-            continue;
-        }
+    // because of phi will remove itself from the use-def chain
+    // so label()->users will be modified
+    // we SHOULD copy users
+    auto users = label()->users;
+    for (auto i : users) {
         auto phi = dynamic_cast<Ir::PhiInstr*>(i->user);
         if (phi && phi->block() == label_will_remove->block()) {
-            printf("SELECT BRANCH WITH PHI [%s]\n", phi->instr_print().c_str());
-            printf("  remove %s\n", label()->name().c_str());
+            // printf("SELECT BRANCH WITH PHI [%s]\n", phi->instr_print().c_str());
+            // printf("  remove %s\n", label()->name().c_str());
             phi->remove(label().get());
         }
     }
@@ -125,19 +141,19 @@ void Block::connect_in_and_out() {
         
         for (size_t i=0; i<k->operand_size()/2; ++i) {
             if (phi->phi_label(i) == label().get()) {
-                printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
-                printf("  %s -> %s\n", label()->name().c_str(), (*labels.begin())->name().c_str());
+                // printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
+                // printf("  %s -> %s\n", label()->name().c_str(), (*labels.begin())->name().c_str());
                 phi->change_phi_label(i, *labels.begin());
                 branch_value = phi->phi_val(i);
-                printf("    AFTER: [%s]\n", phi->instr_print().c_str());
+                // printf("    AFTER: [%s]\n", phi->instr_print().c_str());
                 break;
             }
         }
         
         for (auto j = std::next(labels.begin()); j != labels.end(); ++j) {
-            printf("CONNECT ADDED WITH PHI: [%s]\n", phi->instr_print().c_str());
+            // printf("CONNECT ADDED WITH PHI: [%s]\n", phi->instr_print().c_str());
             phi->add_incoming(*j, branch_value);
-            printf("    AFTER: [%s]\n", phi->instr_print().c_str());
+            // printf("    AFTER: [%s]\n", phi->instr_print().c_str());
         }
     }
 }
