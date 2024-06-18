@@ -9,7 +9,7 @@ namespace Ir {
 
 void BlockedProgram::plain_opt_bb() {
     int modified = 1;
-    re_generate();
+    // re_generate();
     while (modified) {
         /*
         static int cnt = 0;
@@ -76,7 +76,6 @@ void BlockedProgram::plain_opt_no_bb() {
 
 void BlockedProgram::plain_opt_all() {
     plain_opt_bb();
-    plain_opt_no_bb();
 }
 
 

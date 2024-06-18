@@ -22,7 +22,7 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         my_assert(func->p.check_empty_use("SSA") == 0, "SSA Failed");
         
         int cnt = 0;
-        func->p.re_generate(); // must re-generate for 
+        func->p.re_generate(); // must re-generate for DFA
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_bottom_analysis<OptDSE::BlockValue, OptDSE::TransferFunction>(func->p);
             func->p.plain_opt_all();
