@@ -213,6 +213,41 @@ void optimize_multiply_one(const pInstr &instr) {
     }
 }
 
+// accumulate b + a + ... + a => b + k*a
+void optimize_accumulate(const pBlock &block) {
+    std::unordered_set<Val*> merged;
+    for (auto it = block->begin(); it != block->end(); ++it) {
+        if (merged.count(it->get())) continue;
+        if (auto bin = dynamic_cast<Ir::BinInstr*>(it->get())) {
+            auto lhs = bin->operand(0)->usee;
+            auto rhs0 = bin->operand(1)->usee;
+            auto acc = bin;
+            int cnt = 0;
+            while (bin && bin->binType == INSTR_ADD && bin->users.size() == 1) {
+                auto rhs = bin->operand(1)->usee;
+                if (rhs != rhs0) break;
+                ++cnt;
+                merged.insert(bin);
+                acc = bin;
+                bin = dynamic_cast<Ir::BinInstr*>(bin->users[0]->user);
+            }
+            if (cnt <= 1) continue;
+            if (lhs == rhs0) {
+                ++cnt;
+                auto multiply = std::make_shared<BinInstr>(INSTR_MUL, block->add_imm(ImmValue(cnt)).get(), rhs0);
+                it = block->insert(it, multiply);
+                acc->replace_self(multiply.get());
+            } else {
+                auto multiply = std::make_shared<BinInstr>(INSTR_MUL, block->add_imm(ImmValue(cnt)).get(), rhs0);
+                auto add = std::make_shared<BinInstr>(INSTR_ADD, lhs, multiply.get());
+                it = block->insert(it, add);
+                it = block->insert(it, multiply);
+                acc->replace_self(add.get());
+            }
+        }
+    }
+}
+
 
 void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
@@ -221,47 +256,7 @@ void BlockedProgram::opt_trivial() {
             optimize_multiply_one(instr);
             optimize_subtract_after_add(instr);
         }
-        // accumulate b + a + ... + a => b + k*a
-        std::unordered_set<Val*> merged;
-        for (auto it = block->begin(); it != block->end(); ++it) {
-            if (merged.count(it->get())) continue;
-            if (auto bin = dynamic_cast<Ir::BinInstr*>(it->get())) {
-                auto lhs = bin->operand(0)->usee;
-                auto rhs0 = bin->operand(1)->usee;
-                if (bin->binType == INSTR_ADD && bin->users.size() == 1) {
-                    // start to accumulate
-                    int cnt = 1;
-                    merged.insert(bin);
-                    auto old_acc = bin;
-                    auto acc = bin->users[0]->user;
-                    while ((bin = dynamic_cast<Ir::BinInstr*>(acc))) {
-                        auto rhs = bin->operand(1)->usee;
-                        if (bin->binType == INSTR_ADD && rhs0 == rhs && bin->users.size() == 1) {
-                            ++cnt;
-                            merged.insert(bin);
-                            old_acc = bin;
-                            acc = bin->users[0]->user;
-                        } else {
-                            break;
-                        }
-                    }
-                    if (cnt > 1) {
-                        if (lhs == rhs0) {
-                            ++cnt;
-                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, add_imm(ImmValue(cnt)).get(), rhs0);
-                            it = block->insert(it, multiply);
-                            old_acc->replace_self(multiply.get());
-                        } else {
-                            auto multiply = std::make_shared<BinInstr>(INSTR_MUL, add_imm(ImmValue(cnt)).get(), rhs0);
-                            auto add = std::make_shared<BinInstr>(INSTR_ADD, lhs, multiply.get());
-                            it = block->insert(it, add);
-                            it = block->insert(it, multiply);
-                            old_acc->replace_self(add.get());
-                        }
-                    }
-                }
-            }
-        }
+        optimize_accumulate(block);
     }
 }
 
