@@ -1,12 +1,87 @@
 #include "alys_dom.h"
 #include "ir_block.h"
 #include "ir_control_instr.h"
+#include "ir_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
 
 namespace Ir {
 
-void BlockedProgram::opt_join_blocks() {
+void BlockedProgram::plain_opt_bb() {
+    int modified = 1;
+    re_generate();
+    while (modified) {
+        /*
+        static int cnt = 0;
+        printf("Opt %d\n", ++cnt);
+        for(auto i : *this) {
+            printf("%s", i->print_block().c_str());
+        }
+        puts("");
+        */
+        modified = 0;
+        /*
+        static int cnt = 0;
+        printf("Opt %d\n", ++cnt);
+        for(auto i : *this) {
+            printf("%s", i->print_block().c_str());
+        }
+        puts("");
+        */
+        // 连接块不需要考虑 PHI
+        // 因为所有的 PHI 在无分支的情况下
+        // 会替换自身为某个量
+        modified += opt_join_blocks();
+        my_assert(check_empty_use("JOIN BLOCK") == 0, "JOIN BLOCK FAILED");
+        my_assert(check_invalid_phi("JOIN BLOCK") == 0, "JOIN BLOCK FAILED");
+        // 简化分支需要考虑 PHI
+        // 当某个分支被裁剪
+        // 相应的 PHI 也要删掉入边
+        // 此处对 PHI 的修改是 release_operand
+        modified += opt_simplify_branch();
+        my_assert(check_empty_use("SIMPLIFY BRANCH") == 0, "SIMPLIFY BRANCH FAILED");
+        my_assert(check_invalid_phi("SIMPLIFY BRANCH") == 0, "SIMPLIFY BRANCH FAILED");
+        // 删除块需要考虑 PHI
+        // PHI 指令可能存在某些入边
+        // 来自于永远不会执行的块
+        // 此时对 PHI 的修改体现在 erase_from_phi
+        modified += opt_remove_unreachable_block();
+        my_assert(check_empty_use("REMOVE UNREACHABLE") == 0, "REMOVE UNREACHABLE FAILED");
+        my_assert(check_invalid_phi("REMOVE UNREACHABLE") == 0, "REMOVE UNREACHABLE FAILED");
+        // 简化简单块也需要考虑 PHI
+        // 考虑以下情况：
+        // L1: jmp L2
+        // L2: jmp L3
+        // L3: phi [1, L2], ...
+        // PHI 指令需要被修改
+        // 注意，若是以下情况：
+        // L1: if ... jmp L2 else jmp L3
+        // L2: jmp L3
+        // L3: phi [1, L2], [2, L1]
+        // 这个块就不能被删掉
+        // 此处对 PHI 的修改体现在 change_operand 和 erase_from_phi
+        modified += opt_remove_only_jump_block();
+        my_assert(check_empty_use("REMOVE ONLY JUMP") == 0, "REMOVE ONLY JUMP FAILED");
+        my_assert(check_invalid_phi("REMOVE ONLY JUMP") == 0, "REMOVE ONLY JUMP FAILED");
+        plain_opt_no_bb();
+    }
+}
+
+void BlockedProgram::plain_opt_no_bb() {
+    // DO NOT EDIT: TWICE AS INTENDED
+    opt_trivial();
+    opt_trivial();
+    opt_remove_dead_code();
+}
+
+void BlockedProgram::plain_opt_all() {
+    plain_opt_bb();
+    plain_opt_no_bb();
+}
+
+
+bool BlockedProgram::opt_join_blocks() {
+    bool modified = false;
 
     for (auto i = blocks.begin(); i != blocks.end();) {
         /*
@@ -29,52 +104,31 @@ void BlockedProgram::opt_join_blocks() {
             continue;
         }
 
-        /*
-        printf("Block {\n%s} connected with {\n%s}\n",
-        next_block->print_block().c_str(), cur_block->print_block().c_str());
-        printf("Block both connected\n\n");
-        */
-
-        /*
-        printf("Label %s -> %s\n", cur_block->label()->name().c_str(),
-                                    next_block->label()->name().c_str());
-        */
-
         next_block->pop_back();
 
+        /*
+        printf("REPLACE LABEL %s -> %s\n", cur_block->label()->name().c_str(),
+            next_block->label()->name().c_str());
+        */
+        
+        cur_block->label()->replace_self(next_block->label().get());
+        
         for (auto j = ++cur_block->begin(); j != cur_block->end();
              ++j) {
             next_block->push_back(std::move(*j));
         }
 
-        // printf("For Instr: %s\n", next_block->label()->name().c_str());
-        for (auto i : next_block->label()->users) {
-            /*if (!i) {
-                printf("    there's empty Use\n");
-                continue;
-            } else {
-                printf("    User: %s\n", dynamic_cast<Instr*>(i->user)->instr_print().c_str());
-            }*/
-            Ir::PhiInstr *phi = dynamic_cast<PhiInstr*>(i->user);
-            if (phi && phi->block() == next_block) {
-                for (size_t i=0; i<phi->operand_size()/2; ++i) {
-                    if (phi->phi_label(i) == next_block->label().get()) {
-                        phi->replace_self(phi->phi_val(i));
-                        next_block->erase(phi);
-                        break;
-                    }
-                }
-            }
-        }
+        // printf("REMOVE BLOCK %s\n", cur_block->name().c_str());
 
-        cur_block->label()->replace_self(next_block->label().get());
-
-        i = blocks.erase(i);
+        i = erase(i);
+        modified = true;
     }
+    return modified;
 }
 
-void BlockedProgram::opt_remove_unreachable_block() {
+bool BlockedProgram::opt_remove_unreachable_block() {
     my_assert(!blocks.empty(), "?");
+    bool modified = false;
     Set<Block*> visitedBlock;
     Queue<Block*> q;
     q.push(blocks.front().get());
@@ -88,38 +142,47 @@ void BlockedProgram::opt_remove_unreachable_block() {
             }
         }
     }
+    for (auto i = ++begin(); i != end(); ++i) {
+        if (!visitedBlock.count(i->get())) {
+            modified = true;
+            (*i)->erase_from_phi();
+        }
+    }
     for (auto i = ++begin(); i != end();) {
         if (!visitedBlock.count(i->get())) {
-            // printf("Block {\n%s} removed\n", (*i)->print_block().c_str());
             i = erase(i);
         } else {
             ++i;
         }
     }
+    return modified;
 }
 
-void BlockedProgram::opt_remove_only_jump_block() {
+bool BlockedProgram::opt_remove_only_jump_block() {
     my_assert(!empty(), "?");
+    bool modified = false;
+
     for (auto i = ++begin(); i != end();) {
-        if ((*i)->out_blocks().size() == 1 && (*i)->size() == 2) {
-            bool can_remove = true;
-            for (auto j : (*i)->label()->users) {
-                if (dynamic_cast<Ir::PhiInstr*>(j->user)) {
-                    can_remove = false;
-                    break;
-                }
-            }
-            if (!can_remove) {
-                ++i;
-                continue;
-            }
-            // printf("Block {\n%s} connected\n", (*i)->print_block().c_str());
-            (*i)->connect_in_and_out();
-            i = erase(i);
-        } else {
+        if ((*i)->out_blocks().size() != 1 || (*i)->size() != 2) {
             ++i;
+            continue;
         }
+        bool can_be_removed = true;
+        for (auto k : (*i)->in_blocks()) {
+            if (k->back()->instr_type() == INSTR_BR_COND) {
+                can_be_removed = false;
+                break;
+            }
+        }
+        if (!can_be_removed) {
+            ++i;
+            continue;
+        }
+        (*i)->connect_in_and_out();
+        i = erase(i);
+        modified = true;
     }
+    return modified;
 }
 
 bool can_be_removed(Ir::InstrType t) {
@@ -150,8 +213,10 @@ void BlockedProgram::opt_remove_dead_code() {
     }
 }
 
-void BlockedProgram::opt_simplify_branch()
+bool BlockedProgram::opt_simplify_branch()
 {
+    bool modified = false;
+
     for (const auto &i : blocks) {
         if (i->size() <= 1) {
             continue;
@@ -171,7 +236,10 @@ void BlockedProgram::opt_simplify_branch()
         if (con->v.type() == VALUE_IMM) {
             i->squeeze_out((bool)con->v);
         }
+
+        modified = true;
     }
+    return modified;
 }
 
 std::optional<Value> extractConstant(BinInstrType type, Val* val) {

@@ -16,6 +16,8 @@ struct User;
 
 void val_release(Val *val);
 void user_release(User *user);
+void val_release_use(Val *usee, const pUse &i);
+void user_release_use(User *user, const pUse &i);
 
 enum ValType {
     VAL_CONST,
@@ -55,10 +57,17 @@ struct User : public Val {
     void add_operand(Val *val);
     void change_operand(size_t index, Val *val);
     void change_operand(size_t index, const pVal &val);
+    void release_operand(size_t index);
 
     pUse operand(size_t index) const;
     size_t operand_size() const;
 
+private:
+    friend void val_release(Val *val);
+    friend void user_release(User *user);
+    friend void val_release_use(Val *usee, const pUse &i);
+    friend void user_release_use(User *user, const pUse &i);
+    
     Vector<pUse> operands;
 };
 using pUser = Pointer<User>;

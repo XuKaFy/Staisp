@@ -1,6 +1,7 @@
 #include "ir_block.h"
 
 #include "alys_dom.h"
+#include "def.h"
 #include "ir_control_instr.h"
 #include "ir_func_defined.h"
 #include "convert_ast_to_ir.h"
@@ -14,6 +15,20 @@
 #include <utility>
 
 namespace Ir {
+
+void Block::erase_from_phi() {
+    for (auto j : label()->users) {
+        if (!j) {
+            printf("Warning [erase from phi] Label %s has empty use\n", label()->name().c_str());
+            continue;
+        }
+        auto phi = dynamic_cast<PhiInstr*>(j->user);
+        if (phi) {
+            // printf("BLOCK RELEASE WITH PHI [%s]\n", phi->instr_print().c_str());
+            phi->remove(label().get());
+        }
+    }
+}
 
 Pointer<LabelInstr> Block::label() const {
     return std::dynamic_pointer_cast<LabelInstr>(front());
@@ -35,13 +50,69 @@ pVal Block::add_imm(Value value) {
     return program()->add_imm(std::move(value));
 }
 
+bool BlockedProgram::check_invalid_phi(String state)
+{
+    for (auto i : *this) {
+        for (auto j : *i) {
+            auto phi = dynamic_cast<PhiInstr*>(j.get());
+            if (!phi) continue;
+            if (phi->operand_size() % 2) {
+                printf("IN STATE %s\n", state.c_str());
+                printf("    INVALID PHI in %s\n", j->name().c_str());
+                for (size_t i=0; i<phi->operand_size(); ++i) {
+                    printf("    arg: %s\n", phi->operand(i)->usee->name().c_str());
+                }
+                return true;
+            }
+            Set<LabelInstr*> lbs;
+            for (auto j : i->in_blocks()) {
+                lbs.insert(j->label().get());
+            }
+            for (size_t i=0; i<phi->operand_size()/2; ++i) {
+                lbs.erase(phi->phi_label(i));
+            }
+            if (!lbs.empty()) {
+                printf("IN STATE %s\n", state.c_str());
+                printf("    WRONG PHI in %s\n", j->name().c_str());
+                for (size_t i=0; i<phi->operand_size(); ++i) {
+                    printf("    arg: %s\n", phi->operand(i)->usee->name().c_str());
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool BlockedProgram::check_empty_use(String state)
+{
+    for (auto i : *this) {
+        for (auto j : *i) {
+            for (auto k : j->users) {
+                if(!k) {
+                    printf("IN STATE %s\n", state.c_str());
+                    printf("    EMPTY USE CHECKED in %s\n", j->name().c_str());
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 void Block::squeeze_out(bool selected) {
     auto end = back();
     auto origin_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end);
     auto label_will_remove = dynamic_cast<LabelInstr*>(origin_br->operand(static_cast<int>(selected) + 1)->usee);
-    for (auto i : label()->users) {
+    // because of phi will remove itself from the use-def chain
+    // so label()->users will be modified
+    // we SHOULD copy users
+    auto users = label()->users;
+    for (auto i : users) {
         auto phi = dynamic_cast<Ir::PhiInstr*>(i->user);
         if (phi && phi->block() == label_will_remove->block()) {
+            // printf("SELECT BRANCH WITH PHI [%s]\n", phi->instr_print().c_str());
+            // printf("  remove %s\n", label()->name().c_str());
             phi->remove(label().get());
         }
     }
@@ -52,10 +123,38 @@ void Block::squeeze_out(bool selected) {
 }
 
 void Block::connect_in_and_out() {
-    auto out_block = out_blocks();
-    my_assert(out_block.size() == 1 && size() == 2, "?");
+    auto out_block = *out_blocks().begin();
+
+    Set<LabelInstr*> labels;
+
     for (auto j : in_blocks()) {
-        j->replace_out(this, *out_block.begin());
+        labels.insert(j->label().get());
+        j->replace_out(this, out_block);
+    }
+
+    for (auto k : *out_block) {
+        auto phi = dynamic_cast<PhiInstr*>(k.get());
+        if (!phi)
+            continue;
+            
+        Val* branch_value = nullptr;
+        
+        for (size_t i=0; i<k->operand_size()/2; ++i) {
+            if (phi->phi_label(i) == label().get()) {
+                // printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
+                // printf("  %s -> %s\n", label()->name().c_str(), (*labels.begin())->name().c_str());
+                phi->change_phi_label(i, *labels.begin());
+                branch_value = phi->phi_val(i);
+                // printf("    AFTER: [%s]\n", phi->instr_print().c_str());
+                break;
+            }
+        }
+        
+        for (auto j = std::next(labels.begin()); j != labels.end(); ++j) {
+            // printf("CONNECT ADDED WITH PHI: [%s]\n", phi->instr_print().c_str());
+            phi->add_incoming(*j, branch_value);
+            // printf("    AFTER: [%s]\n", phi->instr_print().c_str());
+        }
     }
 }
 

@@ -299,11 +299,11 @@ void SSA_pass::reconstruct() {
     };
 
     auto mem_destination_val = [](Ir::StoreInstr *arg_instr) -> Ir::pUse {
-        return arg_instr->operands.at(0);
+        return arg_instr->operand(0);
     };
 
     auto mem_sourve_val = [](Ir::StoreInstr *arg_instr) -> Ir::pUse {
-        return arg_instr->operands.at(1);
+        return arg_instr->operand(1);
     };
 
     Vector<Ir::Block *> order;
@@ -330,7 +330,7 @@ void SSA_pass::reconstruct() {
 
             } else if (cur_instr->instr_type() == Ir::INSTR_LOAD) {
                 auto *load = dynamic_cast<Ir::LoadInstr *>(cur_instr.get());
-                auto src_ptr = load->operands.at(0);
+                auto src_ptr = load->operand(0);
                 if (alloca_vars.count(src_ptr->usee) > 0) {
                     load->replace_self(use_val(src_ptr->usee, cur_block));
                     my_assert(load->users.empty(), "removable load instr");

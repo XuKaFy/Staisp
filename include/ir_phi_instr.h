@@ -14,22 +14,14 @@ struct PhiInstr final : Instr {
     String instr_print() const override;
 
     void add_incoming(LabelInstr *blk, Val *val);
-
-    void remove(LabelInstr *label) {
-        my_assert(label->operands.size() % 2 == 0, "?");
-        for (auto i = operands.begin(); i != operands.end(); ) {
-            LabelInstr *j = dynamic_cast<LabelInstr*>((*(i + 1))->usee);
-            if (j == label) {
-                i = operands.erase(i);
-                i = operands.erase(i);
-            } else {
-                ++(++i);
-            }
-        }
-    }
+    void remove(LabelInstr *label);
 
     Ir::LabelInstr *phi_label(size_t x) const {
         return static_cast<Ir::LabelInstr*>(operand(x * 2 + 1)->usee);
+    }
+
+    void change_phi_label(size_t x, LabelInstr* l) {
+        change_operand(x * 2 + 1, l);
     }
 
     Ir::Val *phi_val(size_t x) const {
