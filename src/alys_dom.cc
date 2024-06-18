@@ -46,8 +46,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
 
     int level = 1;
     Vector<Ir::Block *> idfn;
-    std::function<void(Ir::Block *, int &)> dfsn =
-        [&dfsn, &idfn, &order_map](Ir::Block *bb, int &level) -> void {
+    auto dfsn = [&idfn, &order_map](auto dfsn, Ir::Block *bb, int &level) -> void {
         if (order_map.at(bb) == level) {
             return;
         }
@@ -56,17 +55,17 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
         }
         order_map.at(bb) = level;
         for (Ir::Block *succ : bb->out_blocks()) {
-            dfsn(succ, level);
+            dfsn(dfsn, succ, level);
         }
     };
 
     auto entry = p.front().get();
-    dfsn(entry, level);
+    dfsn(dfsn, entry, level);
     for (auto node : idfn) {
         level++;
         order_map.at(node) = level;
         my_assert(level != 1, "idfn will not changed");
-        dfsn(entry, level);
+        dfsn(dfsn, entry, level);
         for (auto &[bb, dom_bb] : dom_map) {
             if (auto b_lvl = order_map.at(bb); b_lvl != level && b_lvl >= 1) {
                 dom_bb->idom = dom_map.at(node).get();

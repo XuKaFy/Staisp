@@ -12,10 +12,8 @@
 
 namespace Optimize {
 
-enum class ssa_type { LLVM_MEM2REG, RECONSTRUCTION };
 class SSA_pass {
 
-    ssa_type promotion_type;
     using vrtl_reg = Ir::Val;
     Map<vrtl_reg *, Map<Ir::Block *, Ir::pUse>> current_def;
     Set<Ir::Block *> sealedBlocks;
@@ -24,7 +22,7 @@ class SSA_pass {
     Map<Ir::Block *, Vector<Pair<vrtl_reg *, Ir::pInstr>>> incompletePhis;
 
 public:
-    SSA_pass(Ir::BlockedProgram &arg_function, const ssa_type &arg_ssa_type);
+    SSA_pass(Ir::BlockedProgram &arg_function);
 
     auto entry_blk() -> Ir::Block *;
 
@@ -52,7 +50,6 @@ public:
 
     void sealBlock(Ir::Block *block);
     auto unreachable_blks() -> Set<Ir::Block *>;
-    void pass_transform();
     void reconstruct();
 
 private:

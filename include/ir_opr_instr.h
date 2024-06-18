@@ -47,8 +47,6 @@ struct UnaryInstr : public CalculatableInstr {
     InstrType instr_type() const override { return INSTR_UNARY; }
 
     ImmValue calculate(Vector<ImmValue> v) const override;
-
-    InstrType binType;
 };
 
 struct BinInstr : public CalculatableInstr {

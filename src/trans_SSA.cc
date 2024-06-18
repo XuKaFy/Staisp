@@ -26,9 +26,8 @@ https:doi.org/10.1007/978-3-642-37051-9_6
 
 namespace Optimize {
 
-SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
-                   const ssa_type &arg_ssa_type)
-    : promotion_type(arg_ssa_type), cur_func(arg_function) {
+SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function)
+    : cur_func(arg_function) {
     arg_function.plain_opt_all();
     dom_ctx.build_dom(arg_function);
 #ifdef ssa_debug
@@ -47,7 +46,6 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function,
 auto SSA_pass::entry_blk() -> Ir::Block * { return cur_func.front().get(); }
 
 auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
-
     Ir::pUse blk_use =
         std::make_shared<Ir::Use>(block->label().get(), blk_def_val);
     blk_def_val->users.push_back(blk_use);
@@ -235,7 +233,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
 void SSA_pass::sealBlock(Ir::Block *block) {
     if (incompletePhis.find(block) != incompletePhis.end()) {
-        for (auto [variable, phi] : incompletePhis[block]) {
+        for (auto&& [variable, phi] : incompletePhis[block]) {
             addPhiOperands(variable, phi.get(), block);
         }
         incompletePhis.erase(block);
@@ -368,16 +366,11 @@ void SSA_pass::reconstruct() {
         ent_instr_it++;
     }
 
-    for (auto [_, def_map] : current_def) {
+    for (auto&& [_, def_map] : current_def) {
         for (auto [_, blk_def_use] : def_map) {
             erase_blk_def(blk_def_use);
         }
     }
-}
-
-void SSA_pass::pass_transform() {
-    my_assert(promotion_type == ssa_type::RECONSTRUCTION, "RECONS");
-    reconstruct();
 }
 
 } // namespace Optimize

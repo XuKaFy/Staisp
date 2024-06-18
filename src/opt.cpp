@@ -16,8 +16,8 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     global2local(mod);
     for (auto &&func : mod->funsDefined) {
         func->p.check_empty_use();
-        SSA_pass pass(func->p, ssa_type::RECONSTRUCTION);
-        pass.pass_transform();
+        SSA_pass pass(func->p);
+        pass.reconstruct();
         func->p.plain_opt_all();
         my_assert(func->p.check_empty_use("SSA") == 0, "SSA Failed");
         
