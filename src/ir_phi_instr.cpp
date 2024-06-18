@@ -6,9 +6,6 @@ PhiInstr::PhiInstr(const pType &type)
     : Instr(is_pointer(type) ? to_pointed_type(type) : type) {};
 
 void PhiInstr::remove(LabelInstr *label) {
-    if (operand_size() % 2) {
-        return ;
-    }
     my_assert(operand_size() % 2 == 0, "?");
     printf("PHI BEFORE REMOVE: %s, %lu\n", instr_print().c_str(), operand_size());
     for (size_t i=0; i<operand_size();) {
@@ -40,6 +37,13 @@ String PhiInstr::instr_print() const {
     %indvar = phi i32 [ 0, %LoopHeader ], [ %nextindvar, %Loop ]
     <result> = phi [fast-math-flags] <ty> [ <val0>, <label0>],
     */
+    if (operand_size() % 2) {
+        printf("FATAL ERROR %s\n", name().c_str());
+        for (size_t i=0; i<operand_size(); ++i) {
+            printf("    arg: %s\n", operand(i)->usee->name().c_str());
+        }
+    }
+    my_assert(operand_size() % 2 == 0, "?");
     String ret;
     my_assert(ty->type_type() != TYPE_VOID_TYPE,
               "Phi Instruction type must be non-void");

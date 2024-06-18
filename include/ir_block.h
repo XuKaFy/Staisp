@@ -169,6 +169,8 @@ struct BlockedProgram {
 
     // 检查是否存在空的 Use 链
     bool check_empty_use(String state = {});
+    // 检查是否有非法的 Phi
+    bool check_invalid_phi(String state = {});
 
     Blocks::iterator begin() {
         return blocks.begin();
@@ -192,6 +194,7 @@ struct BlockedProgram {
     }
 
     Blocks::iterator erase(const Blocks::iterator &i) {
+        (*i)->erase_from_phi();
         return blocks.erase(i);
     }
 

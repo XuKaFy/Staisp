@@ -25,18 +25,27 @@ void BlockedProgram::plain_opt_bb() {
         // 会替换自身为某个量
         modified += opt_join_blocks();
         my_assert(check_empty_use("JOIN BLOCK") == 0, "JOIN BLOCK FAILED");
+        my_assert(check_invalid_phi("JOIN BLOCK") == 0, "JOIN BLOCK FAILED");
         // 简化分支需要考虑 PHI
         // 当某个分支被裁剪
         // 相应的 PHI 也要删掉入边
         // 此处对 PHI 的修改是 release_operand
         modified += opt_simplify_branch();
         my_assert(check_empty_use("SIMPLIFY BRANCH") == 0, "SIMPLIFY BRANCH FAILED");
+        my_assert(check_invalid_phi("SIMPLIFY BRANCH") == 0, "SIMPLIFY BRANCH FAILED");
         // 删除块需要考虑 PHI
         // PHI 指令可能存在某些入边
         // 来自于永远不会执行的块
         // 此时对 PHI 的修改体现在 erase_from_phi
+        static int cnt = 0;
+        printf("Opt %d\n", ++cnt);
+        for(auto i : *this) {
+            printf("%s", i->print_block().c_str());
+        }
+        puts("");
         modified += opt_remove_unreachable_block();
         my_assert(check_empty_use("REMOVE UNREACHABLE") == 0, "REMOVE UNREACHABLE FAILED");
+        my_assert(check_invalid_phi("REMOVE UNREACHABLE") == 0, "REMOVE UNREACHABLE FAILED");
         // 简化简单块也需要考虑 PHI
         // 考虑以下情况：
         // L1: jmp L2
@@ -51,6 +60,7 @@ void BlockedProgram::plain_opt_bb() {
         // 此处对 PHI 的修改体现在 change_operand 和 erase_from_phi
         modified += opt_remove_only_jump_block();
         my_assert(check_empty_use("REMOVE ONLY JUMP") == 0, "REMOVE ONLY JUMP FAILED");
+        my_assert(check_invalid_phi("REMOVE ONLY JUMP") == 0, "REMOVE ONLY JUMP FAILED");
         plain_opt_no_bb();
     }
 }
@@ -101,7 +111,7 @@ bool BlockedProgram::opt_join_blocks() {
 
         cur_block->label()->replace_self(next_block->label().get());
 
-        i = blocks.erase(i);
+        i = erase(i);
         modified = true;
     }
     return modified;
@@ -123,10 +133,14 @@ bool BlockedProgram::opt_remove_unreachable_block() {
             }
         }
     }
-    for (auto i = ++begin(); i != end();) {
+    for (auto i = ++begin(); i != end(); ++i) {
         if (!visitedBlock.count(i->get())) {
             modified = true;
             (*i)->erase_from_phi();
+        }
+    }
+    for (auto i = ++begin(); i != end();) {
+        if (!visitedBlock.count(i->get())) {
             i = erase(i);
         } else {
             ++i;
@@ -156,7 +170,6 @@ bool BlockedProgram::opt_remove_only_jump_block() {
             continue;
         }
         (*i)->connect_in_and_out();
-        (*i)->erase_from_phi();
         i = erase(i);
         modified = true;
     }

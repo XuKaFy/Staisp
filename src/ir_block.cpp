@@ -50,6 +50,24 @@ pVal Block::add_imm(Value value) {
     return program()->add_imm(std::move(value));
 }
 
+bool BlockedProgram::check_invalid_phi(String state)
+{
+    for (auto i : *this) {
+        for (auto j : *i) {
+            auto phi = dynamic_cast<PhiInstr*>(j.get());
+            if (phi && phi->operand_size() % 2) {
+                printf("IN STATE %s\n", state.c_str());
+                printf("    INVALID PHI in %s\n", j->name().c_str());
+                for (size_t i=0; i<phi->operand_size(); ++i) {
+                    printf("    arg: %s\n", phi->operand(i)->usee->name().c_str());
+                }
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 bool BlockedProgram::check_empty_use(String state)
 {
     for (auto i : *this) {
@@ -57,7 +75,7 @@ bool BlockedProgram::check_empty_use(String state)
             for (auto k : j->users) {
                 if(!k) {
                     printf("IN STATE %s\n", state.c_str());
-                    printf("EMPTY USE CHECKED in %s\n", j->name().c_str());
+                    printf("    EMPTY USE CHECKED in %s\n", j->name().c_str());
                     return true;
                 }
             }
