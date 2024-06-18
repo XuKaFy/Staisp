@@ -19,7 +19,7 @@ namespace Ir {
 void Block::erase_from_phi() {
     for (auto j : label()->users) {
         if (!j) {
-            printf("Warning [~Block] Label %s has empty use\n", label()->name().c_str());
+            printf("Warning [erase from phi] Label %s has empty use\n", label()->name().c_str());
             continue;
         }
         auto phi = dynamic_cast<PhiInstr*>(j->user);
@@ -90,18 +90,25 @@ void Block::squeeze_out(bool selected) {
 
 void Block::connect_in_and_out() {
     auto out_block = *out_blocks().begin();
+    Val* branch_value = nullptr;
     for (auto j : in_blocks()) {
         for (auto k : *out_block) {
             auto phi = dynamic_cast<PhiInstr*>(k.get());
             if (!phi)
                 continue;
 
-            for (size_t i=0; i<k->operand_size()/2; ++i) {
-                if (phi->phi_label(i) == label().get()) {
-                    printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
-                    printf("  %s -> %s\n", label()->name().c_str(), j->label()->name().c_str());
-                    phi->change_phi_label(i, j->label().get());
+            if (!branch_value) {
+                for (size_t i=0; i<k->operand_size()/2; ++i) {
+                    if (phi->phi_label(i) == label().get()) {
+                        printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
+                        printf("  %s -> %s\n", label()->name().c_str(), j->label()->name().c_str());
+                        phi->change_phi_label(i, j->label().get());
+                        branch_value = phi->phi_val(i);
+                    }
                 }
+            } else {
+                printf("CONNECT ADDED WITH PHI: [%s]\n", phi->instr_print().c_str());
+                phi->add_incoming(j->label().get(), branch_value);
             }
         }
         j->replace_out(this, out_block);
