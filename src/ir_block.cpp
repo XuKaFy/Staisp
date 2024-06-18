@@ -90,28 +90,37 @@ void Block::squeeze_out(bool selected) {
 
 void Block::connect_in_and_out() {
     auto out_block = *out_blocks().begin();
-    Val* branch_value = nullptr;
-    for (auto j : in_blocks()) {
-        for (auto k : *out_block) {
-            auto phi = dynamic_cast<PhiInstr*>(k.get());
-            if (!phi)
-                continue;
 
-            if (!branch_value) {
-                for (size_t i=0; i<k->operand_size()/2; ++i) {
-                    if (phi->phi_label(i) == label().get()) {
-                        printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
-                        printf("  %s -> %s\n", label()->name().c_str(), j->label()->name().c_str());
-                        phi->change_phi_label(i, j->label().get());
-                        branch_value = phi->phi_val(i);
-                    }
-                }
-            } else {
-                printf("CONNECT ADDED WITH PHI: [%s]\n", phi->instr_print().c_str());
-                phi->add_incoming(j->label().get(), branch_value);
+    Set<LabelInstr*> labels;
+
+    for (auto j : in_blocks()) {
+        labels.insert(j->label().get());
+        j->replace_out(this, out_block);
+    }
+
+    for (auto k : *out_block) {
+        auto phi = dynamic_cast<PhiInstr*>(k.get());
+        if (!phi)
+            continue;
+            
+        Val* branch_value = nullptr;
+        
+        for (size_t i=0; i<k->operand_size()/2; ++i) {
+            if (phi->phi_label(i) == label().get()) {
+                printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
+                printf("  %s -> %s\n", label()->name().c_str(), (*labels.begin())->name().c_str());
+                phi->change_phi_label(i, *labels.begin());
+                branch_value = phi->phi_val(i);
+                printf("    AFTER: [%s]\n", phi->instr_print().c_str());
+                break;
             }
         }
-        j->replace_out(this, out_block);
+        
+        for (auto j = std::next(labels.begin()); j != labels.end(); ++j) {
+            printf("CONNECT ADDED WITH PHI: [%s]\n", phi->instr_print().c_str());
+            phi->add_incoming(*j, branch_value);
+            printf("    AFTER: [%s]\n", phi->instr_print().c_str());
+        }
     }
 }
 
