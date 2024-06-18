@@ -5,6 +5,35 @@ namespace Ir {
 PhiInstr::PhiInstr(const pType &type)
     : Instr(is_pointer(type) ? to_pointed_type(type) : type) {};
 
+void PhiInstr::remove(LabelInstr *label) {
+    if (operand_size() % 2) {
+        return ;
+    }
+    my_assert(operand_size() % 2 == 0, "?");
+    printf("PHI BEFORE REMOVE: %s, %lu\n", instr_print().c_str(), operand_size());
+    for (size_t i=0; i<operand_size();) {
+        if (!operand(i + 1)) {
+            printf("EMPTY OPERAND\n");
+            i += 2;
+            continue;
+        }
+        LabelInstr *j = dynamic_cast<LabelInstr*>((operand(i + 1))->usee);
+        if (j == label) {
+            release_operand(i);
+            release_operand(i);
+        } else {
+            ++(++i);
+        }
+    }
+    printf("PHI AFTER REMOVE: %s\n", instr_print().c_str());
+    if (operand_size() == 2) {
+        printf("PHI INVAILD: %s\n", instr_print().c_str());
+        replace_self(phi_val(0));
+        block()->erase(this);
+        // danger: do NOT execute anything after this line
+    }
+}
+
 String PhiInstr::instr_print() const {
     /*
     Phi syntax:
@@ -17,7 +46,7 @@ String PhiInstr::instr_print() const {
     ret = name() + " = ";
 
     ret += "phi " + ty->type_name() + " ";
-    for (size_t index = 0; index < operands.size() / 2; ++index) {
+    for (size_t index = 0; index < operand_size() / 2; ++index) {
         auto val = phi_val(index);
         auto lab_use = phi_label(index);
         ret += "[ ";

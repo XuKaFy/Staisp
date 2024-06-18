@@ -1,6 +1,7 @@
 #include "ir_block.h"
 
 #include "alys_dom.h"
+#include "def.h"
 #include "ir_control_instr.h"
 #include "ir_func_defined.h"
 #include "convert_ast_to_ir.h"
@@ -14,6 +15,20 @@
 #include <utility>
 
 namespace Ir {
+
+void Block::erase_from_phi() {
+    for (auto j : label()->users) {
+        if (!j) {
+            printf("Warning [~Block] Label %s has empty use\n", label()->name().c_str());
+            continue;
+        }
+        auto phi = dynamic_cast<PhiInstr*>(j->user);
+        if (phi) {
+            printf("BLOCK RELEASE WITH PHI [%s]\n", phi->instr_print().c_str());
+            phi->remove(label().get());
+        }
+    }
+}
 
 Pointer<LabelInstr> Block::label() const {
     return std::dynamic_pointer_cast<LabelInstr>(front());
@@ -35,13 +50,35 @@ pVal Block::add_imm(Value value) {
     return program()->add_imm(std::move(value));
 }
 
+bool BlockedProgram::check_empty_use(String state)
+{
+    for (auto i : *this) {
+        for (auto j : *i) {
+            for (auto k : j->users) {
+                if(!k) {
+                    printf("IN STATE %s\n", state.c_str());
+                    printf("EMPTY USE CHECKED in %s\n", j->name().c_str());
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
+
 void Block::squeeze_out(bool selected) {
     auto end = back();
     auto origin_br = std::dynamic_pointer_cast<Ir::BrCondInstr>(end);
     auto label_will_remove = dynamic_cast<LabelInstr*>(origin_br->operand(static_cast<int>(selected) + 1)->usee);
     for (auto i : label()->users) {
+        if (!i) {
+            printf("Warning [squeeze] Label %s has empty Use\n", label()->name().c_str());
+            continue;
+        }
         auto phi = dynamic_cast<Ir::PhiInstr*>(i->user);
         if (phi && phi->block() == label_will_remove->block()) {
+            printf("SELECT BRANCH WITH PHI [%s]\n", phi->instr_print().c_str());
+            printf("  remove %s\n", label()->name().c_str());
             phi->remove(label().get());
         }
     }
@@ -52,10 +89,22 @@ void Block::squeeze_out(bool selected) {
 }
 
 void Block::connect_in_and_out() {
-    auto out_block = out_blocks();
-    my_assert(out_block.size() == 1 && size() == 2, "?");
+    auto out_block = *out_blocks().begin();
     for (auto j : in_blocks()) {
-        j->replace_out(this, *out_block.begin());
+        for (auto k : *out_block) {
+            auto phi = dynamic_cast<PhiInstr*>(k.get());
+            if (!phi)
+                continue;
+
+            for (size_t i=0; i<k->operand_size()/2; ++i) {
+                if (phi->phi_label(i) == label().get()) {
+                    printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
+                    printf("  %s -> %s\n", label()->name().c_str(), j->label()->name().c_str());
+                    phi->change_phi_label(i, j->label().get());
+                }
+            }
+        }
+        j->replace_out(this, out_block);
     }
 }
 

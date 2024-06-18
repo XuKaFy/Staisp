@@ -8,7 +8,7 @@ namespace Ir {
 
 void user_release_use(User *user, const pUse &i) {
     for (auto j = user->operands.begin(); j != user->operands.end();) {
-        if (*j == i) {
+        if (j->get() == i.get()) {
             j = user->operands.erase(j);
         } else {
             ++j;
@@ -18,7 +18,7 @@ void user_release_use(User *user, const pUse &i) {
 
 void val_release_use(Val *usee, const pUse &i) {
     for (auto j = usee->users.begin(); j != usee->users.end();) {
-        if (*j == i) {
+        if (j->get() == i.get()) {
             j = usee->users.erase(j);
         } else {
             ++j;
@@ -55,6 +55,12 @@ void User::change_operand(size_t index, Val *val) {
     val_release_use(operands[index]->usee, operands[index]);
     operands[index]->usee = val;
     val->users.push_back(operands[index]);
+}
+
+void User::release_operand(size_t index)
+{
+    val_release_use(operands[index]->usee, operands[index]);
+    operands.erase(operands.begin() + index);
 }
 
 void User::change_operand(size_t index, const pVal &val) {

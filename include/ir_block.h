@@ -20,6 +20,8 @@ struct Block : public Val {
     Block()
         : Val(make_void_type()) {}
 
+    void erase_from_phi();
+
     // 当该块的指令仅有一条跳转时，将块的 in_block 与 out_block 直接相连
     void connect_in_and_out();
     // 当该块的最后一条指令是 conditional br 时，指定其 cond 内的值，把 cond br
@@ -151,33 +153,22 @@ struct BlockedProgram {
     pVal add_imm(Value value);
 
     // 影响 bb 的普通优化
-    void plain_opt_bb() {
-        opt_join_blocks();
-        opt_remove_unreachable_block();
-        opt_remove_only_jump_block();
-        opt_simplify_branch();
-    }
-
+    void plain_opt_bb();
     // 不影响 bb 的普通优化
-    void plain_opt_no_bb() {
-        // DO NOT EDIT: TWICE AS INTENDED
-        opt_trivial();
-        opt_trivial();
-        opt_remove_dead_code();
-    }
+    void plain_opt_no_bb();
+    // 所有的 plain 优化
+    void plain_opt_all();
 
-    void plain_opt_all() {
-        plain_opt_bb();
-        plain_opt_no_bb();
-    }
-
-    void opt_join_blocks();              // 连接可连接的块
-    void opt_remove_unreachable_block(); // 去除无用 basic block
-    void opt_remove_only_jump_block();   // 连接只有强制跳转的 basic block
-    void opt_simplify_branch();          // 简化分支
+    bool opt_join_blocks();              // 连接可连接的块
+    bool opt_remove_unreachable_block(); // 去除无用 basic block
+    bool opt_remove_only_jump_block();   // 连接只有强制跳转的 basic block
+    bool opt_simplify_branch();          // 简化分支
 
     void opt_remove_dead_code();    // 消除死代码
     void opt_trivial();             // 针对个别指令的优化
+
+    // 检查是否存在空的 Use 链
+    bool check_empty_use(String state = {});
 
     Blocks::iterator begin() {
         return blocks.begin();
