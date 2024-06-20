@@ -28,15 +28,6 @@ public:
 
     auto def_val(vrtl_reg *variable, Ir::Block *block, vrtl_reg *val) -> void;
 
-    template <typename a, typename b>
-    auto fmap(std::function<b(a)> f, Vector<a> &v1) -> Vector<b> {
-        Vector<b> v2;
-        for (const auto &vs : v1) {
-            v2.push_back(f(vs));
-        }
-        return v2;
-    };
-
     static auto is_phi(Ir::User *user) -> bool;
 
     vrtl_reg *use_val(vrtl_reg *variable, Ir::Block *block);
@@ -49,7 +40,6 @@ public:
     auto tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg *;
 
     void sealBlock(Ir::Block *block);
-    auto unreachable_blks() -> Set<Ir::Block *>;
     void reconstruct();
 
 private:

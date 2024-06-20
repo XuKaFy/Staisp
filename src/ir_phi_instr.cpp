@@ -44,13 +44,11 @@ String PhiInstr::instr_print() const {
     ret = name() + " = ";
 
     ret += "phi " + ty->type_name() + " ";
-    for (size_t index = 0; index < operand_size() / 2; ++index) {
-        auto val = phi_val(index);
-        auto lab_use = phi_label(index);
+    for (auto [label, val] : *this) {
         ret += "[ ";
         ret += val->name();
         ret += ", %";
-        ret += lab_use->name();
+        ret += label->name();
         ret += " ], ";
     }
 

@@ -83,7 +83,7 @@ struct Block : public Val {
 
     Instrs::iterator insert(const Instrs::iterator &i, const pInstr &instr) {
         instr->set_block(this);
-        return body.insert(std::move(i), std::move(instr));
+        return body.insert(i, instr);
     }
 
     void push_back(const pInstr &instr) {
@@ -96,7 +96,7 @@ struct Block : public Val {
     }
 
     Instrs::iterator erase(const Instrs::iterator &i) {
-        return body.erase(std::move(i));
+        return body.erase(i);
     }
 
     void erase(Instr* instr) {
@@ -109,7 +109,7 @@ struct Block : public Val {
     }
 
     void erase(const Instrs::iterator &i, const Instrs::iterator &j) {
-        body.erase(std::move(i), std::move(j));
+        body.erase(i, j);
     }
 
     void reverse() {

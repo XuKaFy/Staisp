@@ -35,7 +35,7 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
         case Ir::INSTR_PHI: {
             auto r = std::dynamic_pointer_cast<Ir::PhiInstr>(i);
             bool constant = true;
-            for (size_t i=0; i<r->operand_size()/2; ++i) {
+            for (size_t i=0; i<r->phi_pairs(); ++i) {
                 if (!v.val.count(r->phi_val(i)->name())) {
                     constant = false;
                     break;

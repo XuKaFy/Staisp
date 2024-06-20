@@ -17,12 +17,12 @@
 namespace Ir {
 
 void Block::erase_from_phi() {
-    for (auto j : label()->users) {
-        if (!j) {
+    for (auto& use : label()->users) {
+        if (!use) {
             printf("Warning [erase from phi] Label %s has empty use\n", label()->name().c_str());
             continue;
         }
-        auto phi = dynamic_cast<PhiInstr*>(j->user);
+        auto phi = dynamic_cast<PhiInstr*>(use->user);
         if (phi) {
             // printf("BLOCK RELEASE WITH PHI [%s]\n", phi->instr_print().c_str());
             phi->remove(label().get());
@@ -68,7 +68,7 @@ bool BlockedProgram::check_invalid_phi(String state)
             for (auto j : i->in_blocks()) {
                 lbs.insert(j->label().get());
             }
-            for (size_t i=0; i<phi->operand_size()/2; ++i) {
+            for (size_t i=0; i<phi->phi_pairs(); ++i) {
                 lbs.erase(phi->phi_label(i));
             }
             if (!lbs.empty()) {
@@ -127,19 +127,19 @@ void Block::connect_in_and_out() {
 
     Set<LabelInstr*> labels;
 
-    for (auto j : in_blocks()) {
-        labels.insert(j->label().get());
-        j->replace_out(this, out_block);
+    for (auto block : in_blocks()) {
+        labels.insert(block->label().get());
+        block->replace_out(this, out_block);
     }
 
-    for (auto k : *out_block) {
-        auto phi = dynamic_cast<PhiInstr*>(k.get());
+    for (auto&& instr : *out_block) {
+        auto phi = dynamic_cast<PhiInstr*>(instr.get());
         if (!phi)
             continue;
             
         Val* branch_value = nullptr;
         
-        for (size_t i=0; i<k->operand_size()/2; ++i) {
+        for (size_t i=0; i<phi->phi_pairs(); ++i) {
             if (phi->phi_label(i) == label().get()) {
                 // printf("CONNECT WITH PHI: [%s]\n", phi->instr_print().c_str());
                 // printf("  %s -> %s\n", label()->name().c_str(), (*labels.begin())->name().c_str());

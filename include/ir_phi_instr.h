@@ -27,6 +27,37 @@ struct PhiInstr final : Instr {
     Ir::Val *phi_val(size_t x) const {
         return static_cast<Ir::Block*>(operand(x * 2)->usee);    
     }
+
+    size_t phi_pairs() const {
+        return operand_size() / 2;
+    }
+
+    struct iterator {
+        const PhiInstr* phi; size_t i;
+
+        std::pair<LabelInstr*, Val*> operator*() const {
+            return {phi->phi_label(i), phi->phi_val(i)};
+        }
+
+        iterator& operator++() {
+            ++i; return *this;
+        }
+        iterator& operator++(int) = delete;
+        bool operator==(iterator const& other) const {
+            return phi == other.phi && i == other.i;
+        }
+        bool operator!=(iterator const& other) const {
+            return !operator==(other);
+        }
+    };
+
+    iterator begin() const {
+        return {this, 0};
+    }
+
+    iterator end() const {
+        return {this, phi_pairs()};
+    }
 };
 
 // make_phi_instr: create a new PhiInstr with the given type
