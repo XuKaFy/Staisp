@@ -1,5 +1,7 @@
 #include "opt.h"
 
+#include <reg2mem.h>
+
 #include "def.h"
 #include "trans_SSA.h"
 #include "opt_interprocedural.h"
@@ -35,6 +37,10 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name().c_str(), cnt);
+        func->p.re_generate();
+    }
+    for (auto &&func : mod->funsDefined) {
+        reg2mem(func->p);
         func->p.re_generate();
     }
 }
