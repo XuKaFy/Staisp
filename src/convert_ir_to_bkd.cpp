@@ -30,10 +30,12 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
     switch (con.type()) {
     case VALUE_IMM:
         // all imm should be regard as int32
-        return Backend::Global(glob->name(), con.imm_value().val.ival % 2147483648);
+        return Backend::Global(glob->name().substr(1), con.imm_value().val.ival % 2147483648);
     case VALUE_ARRAY:
-        return Backend::Global(glob->name(), con.array_value());
+        return Backend::Global(glob->name().substr(1), con.array_value());
     }
+    my_assert(false, "?");
+    return Backend::Global("", 0);
 }
 
 Backend::Func Convertor::convert(const Ir::pFuncDefined &func)

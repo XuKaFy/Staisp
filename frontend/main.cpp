@@ -33,12 +33,14 @@ int main(int argc, char *argv[]) {
         out << mod->print_module();
         out.close();
 
-        /*BackendConvertor::Convertor bkd_convertor;
+        // printf("Optimization end\n");
+
+        BackendConvertor::Convertor bkd_convertor;
         Backend::pModule bkd_mod = bkd_convertor.convert(mod);
 
         out.open(String(argv[1]) + ".s", std::fstream::out);
         out << bkd_mod->print_module();
-        out.close();*/
+        out.close();
     } catch (Exception e) {
         printf("Exception Catched: [%s] error %lu: %s\n", e.object.c_str(),
                e.id, e.message.c_str());

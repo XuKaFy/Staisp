@@ -1037,6 +1037,7 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
 Value Convertor::value_flatten(InitializerVisitor &list,
                       const Pointer<ArrayType> &type) {
     ArrayValue ans;
+    ans.ty = type;
     size_t size = type->elem_count;
     pType elem_ty = type->elem_type;
 

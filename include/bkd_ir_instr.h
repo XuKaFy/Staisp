@@ -244,7 +244,7 @@ struct JTypeInstr final : public NoNameInstr {
 };
 
 struct LabelInstr final : public MachineInstr {
-    LabelInstr(String name)
+    LabelInstr(String name = "[UNDEF]")
         : label_name(name) { }
 
     MachineInstrType instr_type() const override {
