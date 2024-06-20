@@ -9,7 +9,7 @@ void reg2mem(Ir::BlockedProgram& program) {
         for (auto it = block->begin(); it != block->end(); ++it) {
             if (auto phi = dynamic_cast<Ir::PhiInstr*>(it->get())) {
                 auto alloc = Ir::make_alloc_instr(phi->ty);
-                program.front()->push_behind_end(alloc);
+                program.front()->push_after_label(alloc);
                 for (auto [label, val] : *phi) {
                     auto store = Ir::make_store_instr(alloc.get(), val);
                     if (label->block() == block.get()) {
