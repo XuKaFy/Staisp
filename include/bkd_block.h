@@ -6,9 +6,10 @@
 namespace Backend {
 
 struct Block {
-    Vector<pMachineInstr> body;
-};
+    String print() const;
 
-typedef Pointer<Block> pBlock;
+    pLabelInstr label;
+    MachineInstrs body;
+};
 
 } // namespace Backend

@@ -1,8 +1,10 @@
 #include <ast_node.h>
 
+#include "bkd_module.h"
 #include "common_node.h"
 #include "convert_ast_to_ir.h"
 #include "opt.h"
+#include "convert_ir_to_bkd.h"
 
 #include <fstream>
 
@@ -20,12 +22,6 @@ int main(int argc, char *argv[]) {
 
     AstProg ast_root(root.begin(), root.end());
 
-    /*printf("root elements: %zu\n", root.size());
-    for(auto &&i : root) {
-        i->print();
-        puts("");
-    }*/
-
     try {
         AstToIr::Convertor convertor;
         Ir::pModule mod = convertor.generate(ast_root);
@@ -36,6 +32,13 @@ int main(int argc, char *argv[]) {
         out.open(String(argv[1]) + ".ll", std::fstream::out);
         out << mod->print_module();
         out.close();
+
+        /*BackendConvertor::Convertor bkd_convertor;
+        Backend::pModule bkd_mod = bkd_convertor.convert(mod);
+
+        out.open(String(argv[1]) + ".s", std::fstream::out);
+        out << bkd_mod->print_module();
+        out.close();*/
     } catch (Exception e) {
         printf("Exception Catched: [%s] error %lu: %s\n", e.object.c_str(),
                e.id, e.message.c_str());

@@ -109,22 +109,27 @@ enum class MachineInstrType {
     BTYPE,
     UTYPE,
     JTYPE,
+    LABEL,
+    IMM,
 };
 
 struct MachineInstr {
     virtual String instr_print() const = 0;
+    virtual String name() const = 0;
     virtual MachineInstrType instr_type() const = 0;
 };
 
 typedef Pointer<MachineInstr> pMachineInstr;
+typedef Vector<pMachineInstr> MachineInstrs;
 
 struct RegPos {
-    operator int() {
-        return reg_id;
-    }
+    String to_string() const;
 
-    int reg_id { -1 }; // -1 means register not allocated
-    pMachineInstr instr;
+    // -1 means register not allocated
+    // -2 means use imm value
+    int reg_id { -1 };
+    int imm { 0 };
+    pMachineInstr instr { nullptr };
 };
 
 enum class RTypeCode {
@@ -141,7 +146,13 @@ enum class RTypeCode {
     FEQ_S, FLT_S, FLE_S
 };
 
-struct RTypeInstr final : public MachineInstr {
+struct NoNameInstr : public MachineInstr {
+    String name() const override {
+        return "[NO_NAME]";
+    }
+};
+
+struct RTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::RTYPE;
     }
@@ -159,7 +170,7 @@ enum class ITypeCode {
     FLW
 };
 
-struct ITypeInstr final : public MachineInstr {
+struct ITypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::ITYPE;
     }
@@ -175,7 +186,7 @@ enum class STypeCode {
     FSW,
 };
 
-struct STypeInstr final : public MachineInstr {
+struct STypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::STYPE;
     }
@@ -187,10 +198,10 @@ struct STypeInstr final : public MachineInstr {
 };
 
 enum class UTypeCode {
-    LUI
+    LUI, AUIPC,
 };
 
-struct UTypeInstr final : public MachineInstr {
+struct UTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::UTYPE;
     }
@@ -206,7 +217,7 @@ enum class BTypeCode {
     BLTU, BGEU,
 };
 
-struct BTypeInstr final : public MachineInstr {
+struct BTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::BTYPE;
     }
@@ -221,7 +232,7 @@ enum class JTypeCode {
     JAL, JALR,
 };
 
-struct JTypeInstr final : public MachineInstr {
+struct JTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::JTYPE;
     }
@@ -231,5 +242,24 @@ struct JTypeInstr final : public MachineInstr {
     RegPos rd;
     int imm;
 };
+
+struct LabelInstr final : public MachineInstr {
+    LabelInstr(String name)
+        : label_name(name) { }
+
+    MachineInstrType instr_type() const override {
+        return MachineInstrType::LABEL;
+    }
+    String instr_print() const override {
+        return label_name + ":";
+    }
+    String name() const override {
+        return label_name;
+    }
+
+    String label_name;
+};
+
+typedef Pointer<LabelInstr> pLabelInstr;
 
 } // namespace Backend

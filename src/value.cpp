@@ -41,6 +41,8 @@ String Value::to_string() const {
     case VALUE_IMM:
         return imm_value().print();
     case VALUE_ARRAY: {
+        return "zeroinitializer";
+/* depreciated
         String s = " [";
         bool first = true;
         for (const auto &i : array_value().values) {
@@ -55,6 +57,7 @@ String Value::to_string() const {
         }
         s += "]";
         return s;
+*/
     }
     default:
         throw Exception(1, "Value", "not implemented");

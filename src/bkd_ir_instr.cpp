@@ -1,7 +1,20 @@
 #include "bkd_ir_instr.h"
+#include "def.h"
 #include <string>
 
 namespace Backend {
+
+String RegPos::to_string() const
+{
+    if (reg_id == -1) {
+        my_assert(instr, "?");
+        return instr->name();
+    }
+    if (reg_id == -2) {
+        return std::to_string(imm);
+    }
+    return "x" + std::to_string(reg_id);
+}
 
 String RTypeInstr::instr_print() const
 {
@@ -43,7 +56,7 @@ String RTypeInstr::instr_print() const
     case RTypeCode::SUB:            name = "sub"; break;
     case RTypeCode::XOR:            name = "xor"; break; 
     }
-    return name + " " + std::to_string(rd.reg_id) + ", " + std::to_string(rs1.reg_id) + ", " + std::to_string(rs2.reg_id);
+    return name + " " + rd.to_string() + ", " + rs1.to_string() + ", " + rs2.to_string();
 }
 
 String ITypeInstr::instr_print() const
@@ -66,7 +79,7 @@ String ITypeInstr::instr_print() const
     case ITypeCode::LBU:        name = "lbu"; break;
     case ITypeCode::FLW:        name = "flw"; break;
     }
-    return name + " " + std::to_string(rd.reg_id) + ", " + std::to_string(rs.reg_id) + ", " + std::to_string(imm);
+    return name + " " + rd.to_string() + ", " + rs.to_string() + ", " + std::to_string(imm);
 }
 
 String STypeInstr::instr_print() const
@@ -78,7 +91,7 @@ String STypeInstr::instr_print() const
     case STypeCode::SB:        name = "sb"; break;
     case STypeCode::FSW:       name = "fsw"; break;
     }
-    return name + " " + std::to_string(rd.reg_id) + ", " + std::to_string(rs.reg_id) + ", " + std::to_string(imm);
+    return name + " " + rd.to_string() + ", " + rs.to_string() + ", " + std::to_string(imm);
 }
 
 String BTypeInstr::instr_print() const
@@ -92,7 +105,7 @@ String BTypeInstr::instr_print() const
     case BTypeCode::BGE:    name = "bge"; break;
     case BTypeCode::BGEU:   name = "bgeu"; break;
     }
-    return name + " " + std::to_string(rs1.reg_id) + ", " + std::to_string(rs2.reg_id) + ", " + std::to_string(imm);
+    return name + " " + rs1.to_string() + ", " + rs2.to_string() + ", " + std::to_string(imm);
 }
 
 String JTypeInstr::instr_print() const
@@ -102,16 +115,17 @@ String JTypeInstr::instr_print() const
     case JTypeCode::JAL:   name = "jal"; break;
     case JTypeCode::JALR:  name = "jalr"; break;
     }
-    return name + " " + std::to_string(rd.reg_id) + ", " + std::to_string(imm);
+    return name + " " + rd.to_string() + ", " + std::to_string(imm);
 }
 
 String UTypeInstr::instr_print() const
 {
     String name;
     switch (code) {
-    case UTypeCode::LUI:   name = "lui"; break;
+    case UTypeCode::LUI:    name = "lui"; break;
+    case UTypeCode::AUIPC:  name = "auipc"; break;
     }
-    return name + " " + std::to_string(rd.reg_id) + ", " + std::to_string(imm);
+    return name + " " + rd.to_string() + ", " + std::to_string(imm);
 }
 
 } // namespace Backend

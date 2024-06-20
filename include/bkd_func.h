@@ -6,10 +6,9 @@
 namespace Backend {
 
 struct Func {
-    Vector<pBlock> body;
-    String name;
-};
+    String print() const;
 
-typedef Pointer<Func> pFunc;
+    Vector<Block> body;
+};
 
 } // namespace Backend

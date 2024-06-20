@@ -499,47 +499,6 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
     return Ir::make_empty_instr();
 }
 
-struct InitializerVisitor {
-    InitializerVisitor(const Pointer<Ast::ArrayDefNode> &vst,
-                       bool is_root = false)
-        : vst(vst), is_root(is_root) {
-        if (vst) {
-            begin = vst->nums.begin();
-            end = vst->nums.end();
-            is_empty = false;
-        } else {
-            is_empty = true;
-        }
-    }
-
-    pNode peek() const {
-        if (begin == end) {
-            return nullptr;
-        }
-        if (is_empty) {
-            return nullptr;
-        }
-        return *begin;
-    }
-
-    pNode get() {
-        if (begin == end) {
-            return nullptr;
-        }
-        if (is_empty) {
-            return nullptr;
-        }
-        return *(begin++);
-    }
-
-    Pointer<Ast::ArrayDefNode> vst;
-    Vector<pNode>::iterator begin;
-    Vector<pNode>::iterator end;
-
-    bool is_empty;
-    bool is_root;
-};
-
 Vector<pNode> flatten(InitializerVisitor &list,
                       const Pointer<ArrayType> &type) {
     Vector<pNode> ans;
@@ -1075,24 +1034,49 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
     module()->add_func(func);
 }
 
+Value Convertor::value_flatten(InitializerVisitor &list,
+                      const Pointer<ArrayType> &type) {
+    ArrayValue ans;
+    size_t size = type->elem_count;
+    pType elem_ty = type->elem_type;
+
+    if (elem_ty->type_type() == TYPE_BASIC_TYPE) {
+        for (size_t i = 0; i < size; ++i) {
+            auto elem = list.get();
+            if (!elem) {
+                break;
+            }
+            ans.values.push_back(make_value(constant_eval(elem)));
+        }
+        return ans;
+    }
+
+    for (size_t i = 0; i < size; ++i) {
+        auto elem = list.peek();
+        if (!elem) {
+            break;
+        }
+        if (elem && elem->type == NODE_ARRAY_VAL) {
+            elem = list.get();
+            InitializerVisitor new_v(
+                std::dynamic_pointer_cast<Ast::ArrayDefNode>(elem));
+            Value inner =
+                value_flatten(new_v, std::dynamic_pointer_cast<ArrayType>(elem_ty));
+            ans.values.push_back(make_value(inner));
+        } else {
+            Value inner =
+                value_flatten(list, std::dynamic_pointer_cast<ArrayType>(elem_ty));
+            ans.values.push_back(make_value(inner));
+        }
+    }
+
+    return ans;
+}
+
 Value Convertor::from_array_def(const Pointer<Ast::ArrayDefNode> &n,
                                 const Pointer<ArrayType> &t) {
-    Vector<pNode> flat = flatten(n, t);
-    auto begin = flat.begin();
-    std::function<Value(pType t)> fn = [&](const pType &t) -> Value {
-        if (is_basic_type(t)) {
-            return constant_eval(*(begin++)).cast_to(to_basic_type(t)->ty);
-        }
-        size_t length = to_array_type(t)->elem_count;
-        pType next_ty = to_array_type(t)->elem_type;
-        ArrayValue v;
-        v.ty = next_ty;
-        for (size_t i = 0; i < length; ++i) {
-            v.values.push_back(make_value(fn(next_ty)));
-        }
-        return v;
-    };
-    return fn(t);
+    InitializerVisitor new_v(n, true);
+    return value_flatten(new_v, t);
 }
 
 void Convertor::generate_global_var(const Pointer<Ast::VarDefNode> &root) {
@@ -1118,14 +1102,10 @@ void Convertor::generate_global_var(const Pointer<Ast::VarDefNode> &root) {
         }
     } else {
         if (root->val) {
+            auto n = std::dynamic_pointer_cast<Ast::ArrayDefNode>(root->val);
             module()->add_global(Ir::make_global(
                 root_var,
-                /*
-                Value(from_array_def(
-                    std::dynamic_pointer_cast<Ast::ArrayDefNode>(root->val),
-                    to_array_type(root_var.ty))),
-                */
-                Value(), root->is_const));
+                from_array_def(n, to_array_type(root_var.ty)), root->is_const));
 
             add_initialization(
                 root_var,
@@ -1134,7 +1114,7 @@ void Convertor::generate_global_var(const Pointer<Ast::VarDefNode> &root) {
             module()->add_global(Ir::make_global(
                 root_var,
                 // Value(from_array_def(nullptr, to_array_type(root_var.ty))),
-                Value(), root->is_const));
+                Value(ArrayValue {{}, root_var.ty}), root->is_const));
         }
     }
 }

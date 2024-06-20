@@ -31,6 +31,47 @@ struct MaybeConstInstr {
     bool is_const;
 };
 
+struct InitializerVisitor {
+    InitializerVisitor(const Pointer<Ast::ArrayDefNode> &vst,
+                       bool is_root = false)
+        : vst(vst), is_root(is_root) {
+        if (vst) {
+            begin = vst->nums.begin();
+            end = vst->nums.end();
+            is_empty = false;
+        } else {
+            is_empty = true;
+        }
+    }
+
+    pNode peek() const {
+        if (begin == end) {
+            return nullptr;
+        }
+        if (is_empty) {
+            return nullptr;
+        }
+        return *begin;
+    }
+
+    pNode get() {
+        if (begin == end) {
+            return nullptr;
+        }
+        if (is_empty) {
+            return nullptr;
+        }
+        return *(begin++);
+    }
+
+    Pointer<Ast::ArrayDefNode> vst;
+    Vector<pNode>::iterator begin;
+    Vector<pNode>::iterator end;
+
+    bool is_empty;
+    bool is_root;
+};
+
 class Convertor {
 public:
     Ir::pModule generate(const AstProg &asts);
@@ -72,6 +113,9 @@ private:
                        const Pointer<Ast::ArrayDefNode> &n, bool constant);
     Ir::pVal analyze_opr(const Pointer<Ast::BinaryNode> &root);
     Ir::pVal cast_to_type(const pNode &root, Ir::pVal val, const pType &ty);
+
+    Value value_flatten(InitializerVisitor &list,
+                      const Pointer<ArrayType> &type);
 
     Value from_array_def(const Pointer<Ast::ArrayDefNode> &n,
                          const Pointer<ArrayType> &t);

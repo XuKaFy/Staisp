@@ -6,8 +6,10 @@
 namespace Backend {
 
 struct Module {
-    Vector<pFunc> funcs;
-    Vector<pGlobal> globs;
+    String print_module() const;
+
+    Vector<Func> funcs;
+    Vector<Global> globs;
 };
 
 typedef Pointer<Module> pModule;
