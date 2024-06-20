@@ -34,7 +34,7 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function)
     dom_ctx.print_dom_tree();
 #endif
 
-    auto undefined_initializer = [this]() {
+    auto undefined_initializer = [this] {
         undefined_values.i32 = entry_blk()->add_imm(ImmValue(ImmType::IMM_I32));
         undefined_values.f32 = entry_blk()->add_imm(ImmValue(ImmType::IMM_F32));
         undefined_values.i1 = entry_blk()->add_imm(ImmValue(ImmType::IMM_I1));
@@ -169,8 +169,8 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     auto is_trivial = [&same, &phi]() -> bool {
         Set<Ir::Val *> trivial_phi_ops;
         // my_assert(phi->operands.size() == phi->labels.size(), "valid phi");
-        for (size_t i = 0; i < phi->operand_size() / 2; ++i) {
-            trivial_phi_ops.insert(phi->phi_val(i));
+        for (auto [_, val] : *phi) {
+            trivial_phi_ops.insert(val);
         }
         my_assert(!trivial_phi_ops.empty(), "non-empty operands");
 
@@ -202,28 +202,19 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     my_assert(same, "nullptr to some val in phi incoming tuples");
     Vector<Ir::PhiInstr *> phiUsers;
 
-    auto phi_all_users = fmap<Ir::pUse, Ir::User *>(
-        [&phi](auto arg_use) {
-            my_assert(arg_use->usee == phi,
+    for (auto&& use : phi->users) {
+        my_assert(use->usee == phi,
                       "the source of such use-def edge must be phi instr");
-            return arg_use->user;
-        },
-        phi->users);
-    for (Ir::User *user : phi_all_users) {
+        auto user = use->user;
         if (user != phi && is_phi(user)) {
             my_assert(dynamic_cast<Ir::PhiInstr *>(user), "must be phi instr");
             phiUsers.push_back(static_cast<Ir::PhiInstr *>(user));
         }
     }
-
     // reset val
     phi->replace_self(same);
 
-    auto remove_trivial = [](Ir::PhiInstr *&phi) {
-        // remove op
-        phi->block()->erase(phi);
-    };
-    remove_trivial(phi);
+    phi->block()->erase(phi);
     for (auto *user : phiUsers) {
         if (user == same)
             same = tryRemoveTrivialPhi(user);
@@ -241,12 +232,8 @@ void SSA_pass::sealBlock(Ir::Block *block) {
     sealedBlocks.insert(block);
 }
 
-inline auto SSA_pass::unreachable_blks() -> Set<Ir::Block *> {
-    return dom_ctx.unreachable_blocks;
-}
-
 void SSA_pass::reconstruct() {
-    if (!unreachable_blks().empty()) {
+    if (!dom_ctx.unreachable_blocks.empty()) {
         std::cerr << "Unreachable blocks detected\n";
         for (auto unr_blk : dom_ctx.unreachable_blocks) {
             std::cerr << "Unreachable block: " << unr_blk->label()->name()
