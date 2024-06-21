@@ -24,7 +24,7 @@ struct Global {
 
     String print() const;
 
-    pLabelInstr label;
+    std::string name;
     Vector<GlobalPart> component;
 };
 

@@ -38,7 +38,7 @@ void Convertor::throw_error(const pNode &root, int id, const String &msg) {
 Ir::pModule Convertor::module() const { return _mod; }
 
 bool Convertor::current_block_end() const {
-    return _cur_ctx.body.back()->is_end_of_block();
+    return _cur_ctx.body.back()->is_terminator();
 }
 
 Ir::pInstr Convertor::add_instr(Ir::pInstr instr) {

@@ -7,10 +7,10 @@
 namespace Backend {
 
 struct Block {
-    Block()
-        : label(std::make_shared<LabelInstr>()) {}
+    explicit Block(std::string name)
+        : label(std::make_shared<LabelInstr>(std::move(name))) {}
 
-    String print() const;
+    String print(std::string const& function_name) const;
 
     pLabelInstr label;
     MachineInstrs body;

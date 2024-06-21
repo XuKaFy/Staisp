@@ -40,7 +40,7 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
 
 Backend::Func Convertor::convert(const Ir::pFuncDefined &func)
 {
-    Backend::Func bkd_func;
+    Backend::Func bkd_func(func->name());
 
     for (auto &&i : func->p) {
         bkd_func.body.push_back(convert(i));
@@ -51,7 +51,7 @@ Backend::Func Convertor::convert(const Ir::pFuncDefined &func)
 
 Backend::Block Convertor::convert(const Ir::pBlock &block)
 {
-    Backend::Block bkd_block;
+    Backend::Block bkd_block(block->label()->name());
 
     for (auto &&i : *block) {
         auto res = convert(i);
@@ -67,8 +67,6 @@ Backend::MachineInstrs Convertor::convert(const Ir::pInstr &instr)
 {
     Backend::MachineInstrs res;
     switch (instr->instr_type()) {
-    case Ir::INSTR_SYM:
-    case Ir::INSTR_LABEL:
     case Ir::INSTR_BR:
     case Ir::INSTR_BR_COND:
     case Ir::INSTR_FUNC:
@@ -82,7 +80,10 @@ Backend::MachineInstrs Convertor::convert(const Ir::pInstr &instr)
     case Ir::INSTR_UNARY:
     case Ir::INSTR_BINARY:
     case Ir::INSTR_ITEM:
+        break;
+    case Ir::INSTR_LABEL:
     case Ir::INSTR_PHI:
+    case Ir::INSTR_SYM:
     case Ir::INSTR_UNREACHABLE:
         break;
     }

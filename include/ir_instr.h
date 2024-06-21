@@ -41,11 +41,12 @@ struct Instr : public User {
 
     virtual InstrType instr_type() const { return INSTR_SYM; }
 
-    bool is_end_of_block() const {
+    bool is_terminator() const {
         switch (instr_type()) {
         case INSTR_RET:
         case INSTR_BR:
         case INSTR_BR_COND:
+        case INSTR_UNREACHABLE:
             return true;
         default:
             break;

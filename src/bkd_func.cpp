@@ -5,9 +5,12 @@ namespace Backend {
 String Func::print() const
 {
     String res;
+
+    res += name;
+    res += ":\n";
     
     for (auto &&i : body) {
-        res += i.print();
+        res += i.print(name);
     }
 
     return res;

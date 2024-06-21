@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "def.h"
 
 namespace Backend {
@@ -114,7 +116,7 @@ enum class MachineInstrType {
 };
 
 struct MachineInstr {
-    virtual String instr_print() const = 0;
+    virtual String instr_print(const std::string& function_name) const = 0;
     virtual String name() const = 0;
     virtual MachineInstrType instr_type() const = 0;
 };
@@ -156,7 +158,7 @@ struct RTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::RTYPE;
     }
-    String instr_print() const override;
+    String instr_print(const std::string& function_name) const override;
     
     RTypeCode code;
     RegPos rs1, rs2, rd;
@@ -174,7 +176,7 @@ struct ITypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::ITYPE;
     }
-    String instr_print() const override;
+    String instr_print(const std::string& function_name) const override;
     
     ITypeCode code;
     RegPos rs, rd;
@@ -190,7 +192,7 @@ struct STypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::STYPE;
     }
-    String instr_print() const override;
+    String instr_print(const std::string& function_name) const override;
     
     STypeCode code;
     RegPos rd, rs;
@@ -205,7 +207,7 @@ struct UTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::UTYPE;
     }
-    String instr_print() const override;
+    String instr_print(const std::string& function_name) const override;
     
     UTypeCode code;
     RegPos rd;
@@ -221,7 +223,7 @@ struct BTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::BTYPE;
     }
-    String instr_print() const override;
+    String instr_print(const std::string& function_name) const override;
     
     BTypeCode code;
     RegPos rs1, rs2;
@@ -236,7 +238,7 @@ struct JTypeInstr final : public NoNameInstr {
     MachineInstrType instr_type() const override {
         return MachineInstrType::JTYPE;
     }
-    String instr_print() const override;
+    String instr_print(const std::string& function_name) const override;
     
     JTypeCode code;
     RegPos rd;
@@ -244,14 +246,14 @@ struct JTypeInstr final : public NoNameInstr {
 };
 
 struct LabelInstr final : public MachineInstr {
-    LabelInstr(String name = "[UNDEF]")
-        : label_name(name) { }
+    LabelInstr(String name)
+        : label_name(std::move(name)) { }
 
     MachineInstrType instr_type() const override {
         return MachineInstrType::LABEL;
     }
-    String instr_print() const override {
-        return label_name + ":";
+    String instr_print(const std::string& function_name) const override {
+        return function_name + "_" + label_name + ":";
     }
     String name() const override {
         return label_name;

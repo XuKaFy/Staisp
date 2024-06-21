@@ -2,12 +2,12 @@
 
 namespace Backend {
 
-String Block::print() const
+String Block::print(std::string const& function_name) const
 {
-    String res = label->instr_print() + "\n";
+    String res = label->instr_print(function_name) + "\n";
     
     for (auto &&i : body) {
-        res += i->instr_print();
+        res += i->instr_print(function_name);
     }
 
     return res;

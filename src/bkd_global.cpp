@@ -6,7 +6,7 @@
 namespace Backend {
 
 Global::Global(String name, int val)
-    : label(std::make_shared<LabelInstr>(name)), component({{ GlobalPartType::WORD, val}}) {
+    : name(std::move(name)), component({{ GlobalPartType::WORD, val}}) {
 }
 
 static void generate_array(Vector<GlobalPart> &component, ArrayValue v)
@@ -48,7 +48,7 @@ static void generate_array(Vector<GlobalPart> &component, ArrayValue v)
 }
 
 Global::Global(String name, ArrayValue v)
-    : label(std::make_shared<LabelInstr>(name)) {
+    : name(std::move(name)) {
     generate_array(component, v);
 }
 
@@ -68,7 +68,7 @@ String GlobalPart::print() const
 
 String Global::print() const
 {
-    String res = label->instr_print() + "\n";
+    String res = name + ":\n";
     for (auto &&i : component) {
         res += i.print() + "\n";
     }

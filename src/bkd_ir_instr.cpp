@@ -16,7 +16,7 @@ String RegPos::to_string() const
     return "x" + std::to_string(reg_id);
 }
 
-String RTypeInstr::instr_print() const
+String RTypeInstr::instr_print(const std::string& function_name) const
 {
     String name;
     switch (code) {
@@ -59,7 +59,7 @@ String RTypeInstr::instr_print() const
     return name + " " + rd.to_string() + ", " + rs1.to_string() + ", " + rs2.to_string();
 }
 
-String ITypeInstr::instr_print() const
+String ITypeInstr::instr_print(const std::string& function_name) const
 {
     String name;
     switch (code) {
@@ -82,7 +82,7 @@ String ITypeInstr::instr_print() const
     return name + " " + rd.to_string() + ", " + rs.to_string() + ", " + std::to_string(imm);
 }
 
-String STypeInstr::instr_print() const
+String STypeInstr::instr_print(const std::string& function_name) const
 {
     String name;
     switch (code) {
@@ -94,7 +94,7 @@ String STypeInstr::instr_print() const
     return name + " " + rd.to_string() + ", " + rs.to_string() + ", " + std::to_string(imm);
 }
 
-String BTypeInstr::instr_print() const
+String BTypeInstr::instr_print(const std::string& function_name) const
 {
     String name;
     switch (code) {
@@ -108,7 +108,7 @@ String BTypeInstr::instr_print() const
     return name + " " + rs1.to_string() + ", " + rs2.to_string() + ", " + std::to_string(imm);
 }
 
-String JTypeInstr::instr_print() const
+String JTypeInstr::instr_print(const std::string& function_name) const
 {
     String name;
     switch (code) {
@@ -118,7 +118,7 @@ String JTypeInstr::instr_print() const
     return name + " " + rd.to_string() + ", " + std::to_string(imm);
 }
 
-String UTypeInstr::instr_print() const
+String UTypeInstr::instr_print(const std::string& function_name) const
 {
     String name;
     switch (code) {
