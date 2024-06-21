@@ -25,6 +25,20 @@ struct loop_list final {
     void build_loop(Ir::BlockedProgram &arg_func);
 };
 
+auto dom(Ir::Block *a, Ir::Block *b, const DomTree &dom_ctx) -> bool {
+
+    auto dom_b = dom_ctx.dom_map.at(b).get();
+    auto dom_a = dom_ctx.dom_map.at(a).get();
+    while (dom_b) {
+        if (dom_a == dom_b) {
+            return true;
+        }
+        dom_b = dom_b->idom;
+    }
+    my_assert(dom_b->basic_block == dom_ctx.order().front(), "entry blk");
+    return false;
+}
+
 void loop_list::build_loop(Ir::BlockedProgram &arg_func) {
 
     DomTree dom_tree;
@@ -52,6 +66,18 @@ void loop_list::build_loop(Ir::BlockedProgram &arg_func) {
 
         Ir::Val *indvar;
         intmax_t step;
+
+        auto true_target =
+            dynamic_cast<Ir::LabelInstr *>(br_instr->operand(1)->usee);
+        auto head = true_target;
+
+        if (!dom(head->block(), cur_blk, dom_tree)) {
+            continue;
+        }
+
+        loops.push_back(
+            std::make_shared<LoopHdr>(head->block(), cur_blk, next));
     }
 }
+
 } // namespace Alys
