@@ -3,7 +3,17 @@
 #include <utility>
 
 #include "def.h"
-#include "bkd_reg.h"
+#include <bkd_reg.h>
+#include <bkd_freg.h>
+#include <bkd_imminstrtype.h>
+#include <bkd_reginstrtype.h>
+#include <bkd_regreginstrtype.h>
+#include <bkd_regimminstrtype.h>
+#include <bkd_branchinstrtype.h>
+#include <bkd_jumpinstrtype.h>
+#include <bkd_freginstrtype.h>
+#include <bkd_fregreginstrtype.h>
+#include <bkd_fregfreginstrtype.h>
 
 namespace Backend {
 /*
@@ -106,14 +116,7 @@ MachineInstr
 */
 
 enum class MachineInstrType {
-    RTYPE,
-    ITYPE,
-    STYPE,
-    BTYPE,
-    UTYPE,
-    JTYPE,
-    LABEL,
-    IMM,
+    //
 };
 
 struct MachineInstr {
@@ -123,110 +126,5 @@ struct MachineInstr {
 
 typedef Pointer<MachineInstr> pMachineInstr;
 typedef Vector<pMachineInstr> MachineInstrs;
-
-enum class RTypeCode {
-    SLL, SRL, SRA,
-    ADD, SUB, SLT, SLTU,
-    XOR, OR, AND,
-    MUL, MULH, DIV, DIVU, REM, REMU,
-    FMV_W_X, FMV_X_W,
-    FCVT_S_W, FCVT_S_WU,
-    FCVT_W_S, FCVT_WU_S,
-    FADD_S, FSUB_S, FMUL_S, FDIV_S,
-    FMADD_S, FMSUB_S, FNMADD_S, FNMSUB_S,
-    FMIN_S, FMAX_S,
-    FEQ_S, FLT_S, FLE_S
-};
-
-struct RTypeInstr final : public MachineInstr {
-    MachineInstrType instr_type() const override {
-        return MachineInstrType::RTYPE;
-    }
-    String instr_print(const std::string& function_name) const override;
-    
-    RTypeCode code;
-    Reg rs1, rs2, rd;
-};
-
-enum class ITypeCode {
-    SLLI, SRLI, SRAI,
-    ADDI, SLTI, SLTIU,
-    XORI, ORI, ANDI,
-    LW, LH, LB, LHU, LBU,
-    FLW
-};
-
-struct ITypeInstr final : public MachineInstr {
-    MachineInstrType instr_type() const override {
-        return MachineInstrType::ITYPE;
-    }
-    String instr_print(const std::string& function_name) const override;
-    
-    ITypeCode code;
-    Reg rs, rd;
-    int imm;
-};
-
-enum class STypeCode {
-    SW, SH, SB,
-    FSW,
-};
-
-struct STypeInstr final : public MachineInstr {
-    MachineInstrType instr_type() const override {
-        return MachineInstrType::STYPE;
-    }
-    String instr_print(const std::string& function_name) const override;
-    
-    STypeCode code;
-    Reg rd, rs;
-    int imm;
-};
-
-enum class UTypeCode {
-    LUI, AUIPC,
-};
-
-struct UTypeInstr final : public MachineInstr {
-    MachineInstrType instr_type() const override {
-        return MachineInstrType::UTYPE;
-    }
-    String instr_print(const std::string& function_name) const override;
-    
-    UTypeCode code;
-    Reg rd;
-    int imm;
-};
-
-enum class BTypeCode {
-    BEQ, BNE, BLT, BGE,
-    BLTU, BGEU,
-};
-
-struct BTypeInstr final : public MachineInstr {
-    MachineInstrType instr_type() const override {
-        return MachineInstrType::BTYPE;
-    }
-    String instr_print(const std::string& function_name) const override;
-    
-    BTypeCode code;
-    Reg rs1, rs2;
-    std::string label;
-};
-
-enum class JTypeCode {
-    JAL, JALR,
-};
-
-struct JTypeInstr final : public MachineInstr {
-    MachineInstrType instr_type() const override {
-        return MachineInstrType::JTYPE;
-    }
-    String instr_print(const std::string& function_name) const override;
-    
-    JTypeCode code;
-    Reg rd;
-    std::string label;
-};
 
 } // namespace Backend
