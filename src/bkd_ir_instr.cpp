@@ -4,9 +4,8 @@
 
 namespace Backend {
 
-String Reg::to_string() const
-{
-    return v_reg;
+std::string nameOf(Reg reg) {
+    return std::string(REG_NAME[(int) reg]);
 }
 
 String RTypeInstr::instr_print(const std::string& function_name) const
@@ -49,7 +48,7 @@ String RTypeInstr::instr_print(const std::string& function_name) const
     case RTypeCode::SUB:            name = "sub"; break;
     case RTypeCode::XOR:            name = "xor"; break; 
     }
-    return name + " " + rd.to_string() + ", " + rs1.to_string() + ", " + rs2.to_string();
+    return name + " " + nameOf(rd) + ", " + nameOf(rs1) + ", " + nameOf( rs2);
 }
 
 String ITypeInstr::instr_print(const std::string& function_name) const
@@ -72,7 +71,7 @@ String ITypeInstr::instr_print(const std::string& function_name) const
     case ITypeCode::LBU:        name = "lbu"; break;
     case ITypeCode::FLW:        name = "flw"; break;
     }
-    return name + " " + rd.to_string() + ", " + rs.to_string() + ", " + std::to_string(imm);
+    return name + " " + nameOf(rd) + ", " + nameOf(rs) + ", " + std::to_string(imm);
 }
 
 String STypeInstr::instr_print(const std::string& function_name) const
@@ -84,7 +83,7 @@ String STypeInstr::instr_print(const std::string& function_name) const
     case STypeCode::SB:        name = "sb"; break;
     case STypeCode::FSW:       name = "fsw"; break;
     }
-    return name + " " + rd.to_string() + ", " + rs.to_string() + ", " + std::to_string(imm);
+    return name + " " + nameOf(rd) + ", " + nameOf(rs) + ", " + std::to_string(imm);
 }
 
 String BTypeInstr::instr_print(const std::string& function_name) const
@@ -98,7 +97,7 @@ String BTypeInstr::instr_print(const std::string& function_name) const
     case BTypeCode::BGE:    name = "bge"; break;
     case BTypeCode::BGEU:   name = "bgeu"; break;
     }
-    return name + " " + rs1.to_string() + ", " + rs2.to_string() + ", " + label;
+    return name + " " + nameOf(rs1) + ", " + nameOf(rs2) + ", " + label;
 }
 
 String JTypeInstr::instr_print(const std::string& function_name) const
@@ -108,7 +107,7 @@ String JTypeInstr::instr_print(const std::string& function_name) const
     case JTypeCode::JAL:   name = "jal"; break;
     case JTypeCode::JALR:  name = "jalr"; break;
     }
-    return name + " " + rd.to_string() + ", " + label;
+    return name + " " + nameOf(rd) + ", " + label;
 }
 
 String UTypeInstr::instr_print(const std::string& function_name) const
@@ -118,7 +117,7 @@ String UTypeInstr::instr_print(const std::string& function_name) const
     case UTypeCode::LUI:    name = "lui"; break;
     case UTypeCode::AUIPC:  name = "auipc"; break;
     }
-    return name + " " + rd.to_string() + ", " + std::to_string(imm);
+    return name + " " + nameOf(rd) + ", " + std::to_string(imm);
 }
 
 } // namespace Backend

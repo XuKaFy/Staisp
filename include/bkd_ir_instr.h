@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "def.h"
+#include "bkd_reg.h"
 
 namespace Backend {
 /*
@@ -122,11 +123,6 @@ struct MachineInstr {
 
 typedef Pointer<MachineInstr> pMachineInstr;
 typedef Vector<pMachineInstr> MachineInstrs;
-
-struct Reg {
-    String to_string() const;
-    std::string v_reg;
-};
 
 enum class RTypeCode {
     SLL, SRL, SRA,
