@@ -4,16 +4,9 @@
 
 namespace Backend {
 
-String RegPos::to_string() const
+String Reg::to_string() const
 {
-    if (reg_id == -1) {
-        my_assert(instr, "?");
-        return instr->name();
-    }
-    if (reg_id == -2) {
-        return std::to_string(imm);
-    }
-    return "x" + std::to_string(reg_id);
+    return v_reg;
 }
 
 String RTypeInstr::instr_print(const std::string& function_name) const
@@ -105,7 +98,7 @@ String BTypeInstr::instr_print(const std::string& function_name) const
     case BTypeCode::BGE:    name = "bge"; break;
     case BTypeCode::BGEU:   name = "bgeu"; break;
     }
-    return name + " " + rs1.to_string() + ", " + rs2.to_string() + ", " + std::to_string(imm);
+    return name + " " + rs1.to_string() + ", " + rs2.to_string() + ", " + label;
 }
 
 String JTypeInstr::instr_print(const std::string& function_name) const
@@ -115,7 +108,7 @@ String JTypeInstr::instr_print(const std::string& function_name) const
     case JTypeCode::JAL:   name = "jal"; break;
     case JTypeCode::JALR:  name = "jalr"; break;
     }
-    return name + " " + rd.to_string() + ", " + std::to_string(imm);
+    return name + " " + rd.to_string() + ", " + label;
 }
 
 String UTypeInstr::instr_print(const std::string& function_name) const

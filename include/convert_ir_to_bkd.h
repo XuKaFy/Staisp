@@ -21,9 +21,6 @@ public:
 
     Backend::MachineInstrs generate_prolog();
     Backend::MachineInstrs generate_epilog();
-
-private:
-    Map<String, Backend::pLabelInstr> symbol_table;
 };
 
 } // namespace BackendConvertor

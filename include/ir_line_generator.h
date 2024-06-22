@@ -12,13 +12,11 @@ namespace Ir {
 class LineGenerator {
 public:
     LineGenerator() = default;
-    int line();
-    String label();
 
     void generate(const Instrs &body);
 
 private:
-    int _line{0};
+    int _reg_line{0};
     int _label_line{0};
 };
 

@@ -8,11 +8,11 @@ namespace Backend {
 
 struct Block {
     explicit Block(std::string name)
-        : label(std::make_shared<LabelInstr>(std::move(name))) {}
+        : name(std::move(name)) {}
 
     String print(std::string const& function_name) const;
 
-    pLabelInstr label;
+    std::string name;
     MachineInstrs body;
 };
 
