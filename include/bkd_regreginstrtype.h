@@ -49,4 +49,8 @@ inline constexpr std::string_view REGREGINSTRTYPE_NAME[] = {
     "or",
 };
 
+inline std::string stringify(RegRegInstrType value) {
+    return std::string(REGREGINSTRTYPE_NAME[(size_t) value]);
+}
+
 }

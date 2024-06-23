@@ -7,7 +7,9 @@ String Block::print(std::string const& function_name) const
     String res = function_name + "_" + name + ":\n";
     
     for (auto &&i : body) {
-        res += i->instr_print(function_name);
+        res += "    ";
+        res += i->stringify();
+        res += "\n";
     }
 
     return res;

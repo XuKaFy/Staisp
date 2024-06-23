@@ -27,4 +27,8 @@ inline constexpr std::string_view FREGFREGINSTRTYPE_NAME[] = {
     "fle.s",
 };
 
+inline std::string stringify(FRegFRegInstrType value) {
+    return std::string(FREGFREGINSTRTYPE_NAME[(size_t) value]);
+}
+
 }

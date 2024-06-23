@@ -17,4 +17,8 @@ inline constexpr std::string_view IMMINSTRTYPE_NAME[] = {
     "li",
 };
 
+inline std::string stringify(ImmInstrType value) {
+    return std::string(IMMINSTRTYPE_NAME[(size_t) value]);
+}
+
 }

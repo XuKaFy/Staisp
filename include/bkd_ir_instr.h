@@ -10,10 +10,10 @@
 #include <bkd_regreginstrtype.h>
 #include <bkd_regimminstrtype.h>
 #include <bkd_branchinstrtype.h>
-#include <bkd_jumpinstrtype.h>
 #include <bkd_freginstrtype.h>
 #include <bkd_fregreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
+#include <variant>
 
 namespace Backend {
 /*
@@ -115,13 +115,236 @@ MachineInstr
             jal, jalr
 */
 
-enum class MachineInstrType {
-    //
+inline std::string stringify(int imm) {
+    return std::to_string(imm);
+}
+
+inline std::string stringify(std::string value) {
+    return value;
+}
+
+template<typename Type, typename... Args>
+std::string concat(Type type, Args&&... args) {
+    std::string result;
+    result += stringify(type);
+    result += " ";
+    (((result += stringify(args)) += ", "), ...);
+    result.pop_back();
+    result.pop_back();
+    return result;
+}
+
+struct ImmInstr {
+    ImmInstrType type;
+    Reg rd; int imm;
+
+    std::string stringify() const {
+        return concat(type, rd, imm);
+    }
 };
 
+struct RegInstr {
+    RegInstrType type;
+    Reg rd, rs;
+
+    std::string stringify() const {
+        return concat(type, rd, rs);
+    }
+};
+
+struct RegRegInstr {
+    RegRegInstrType type;
+    Reg rd, rs1, rs2;
+
+    std::string stringify() const {
+        return concat(type, rd, rs1, rs2);
+    }
+};
+
+struct RegImmInstr {
+    RegImmInstrType type;
+    Reg rd, rs; int imm;
+
+    std::string stringify() const {
+        return concat(type, rd, rs, imm);
+    }
+};
+
+struct BranchInstr {
+    BranchInstrType type;
+    Reg rs1, rs2; std::string label;
+
+    std::string stringify() const {
+        return concat(type, rs1, rs2, label);
+    }
+};
+
+struct FRegInstr {
+    FRegInstrType type;
+    FReg rd, rs;
+
+    std::string stringify() const {
+        return concat(type, rd, rs);
+    }
+};
+
+struct FRegRegInstr {
+    FRegRegInstrType type;
+    // note: not in instruction order
+    FReg fr; Reg r;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct FRegFRegInstr {
+    FRegFRegInstrType type;
+    FReg rd, rs1, rs2;
+
+    std::string stringify() const {
+        return concat(type, rd, rs1, rs2);
+    }
+};
+
+struct LoadInstr {
+    bool wide;
+    Reg rd, rs; int imm;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct StoreInstr {
+    bool wide;
+    Reg rs1, rs2; int imm;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct FLoadInstr {
+    FReg rd, rs; int imm;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct FStoreInstr {
+    FReg rs1, rs2; int imm;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct LoadGlobalInstr {
+    bool wide;
+    Reg rd; std::string label;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct StoreGlobalInstr {
+    bool wide;
+    Reg rd; std::string label; Reg rt;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct FLoadGlobalInstr {
+    FReg rd; std::string label; FReg rt;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct FStoreGlobalInstr {
+    FReg rd; std::string label; FReg rt;
+
+    std::string stringify() const {
+        return "TODO";
+    }
+};
+
+struct JInstr {
+    std::string label;
+
+    std::string stringify() const {
+        return concat("j", label);
+    }
+};
+
+struct JRInstr {
+    Reg reg;
+
+    std::string stringify() const {
+        return concat("jr", reg);
+    }
+};
+
+struct CallInstr {
+    std::string label;
+
+    std::string stringify() const {
+        return concat("call", label);
+    }
+};
+
+struct ReturnInstr {
+
+
+    std::string stringify() const {
+        return "ret";
+    }
+};
+
+
 struct MachineInstr {
-    virtual String instr_print(const std::string& function_name) const = 0;
-    virtual MachineInstrType instr_type() const = 0;
+    enum class Type {
+        IMM,
+        REG,
+        REGREG,
+        REGIMM,
+        BRANCH,
+        FREG,
+        FREGREG,
+        FREGFREG,
+        LOAD,
+        STORE,
+        FLOAD,
+        FSTORE,
+        LOAD_GLOBAL,
+        STORE_GLOBAL,
+        FLOAD_GLOBAL,
+        FSTORE_GLOBAL,
+        J, JR,
+        CALL,
+        RETURN,
+        // and more...
+    };
+
+    Type instr_type() const { return (Type) instr.index(); }
+    std::string stringify() const {
+        return std::visit([](auto&& instr) { return instr.stringify(); }, instr);
+    }
+
+    std::variant<
+        ImmInstr, RegInstr, RegRegInstr, RegImmInstr,
+        BranchInstr, FRegInstr, FRegRegInstr, FRegFRegInstr,
+        LoadInstr, StoreInstr, FLoadInstr, FStoreInstr,
+        LoadGlobalInstr, StoreGlobalInstr,
+        FLoadGlobalInstr, FStoreGlobalInstr,
+        JInstr, JRInstr, CallInstr, ReturnInstr
+    > instr;
 };
 
 typedef Pointer<MachineInstr> pMachineInstr;

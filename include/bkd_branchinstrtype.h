@@ -12,6 +12,8 @@ enum class BranchInstrType {
     BNE,
     BLT,
     BGE,
+    BGT,
+    BLE,
 };
 
 inline constexpr std::string_view BRANCHINSTRTYPE_NAME[] = {
@@ -19,6 +21,12 @@ inline constexpr std::string_view BRANCHINSTRTYPE_NAME[] = {
     "bne",
     "blt",
     "bge",
+    "bgt",
+    "ble",
 };
+
+inline std::string stringify(BranchInstrType value) {
+    return std::string(BRANCHINSTRTYPE_NAME[(size_t) value]);
+}
 
 }

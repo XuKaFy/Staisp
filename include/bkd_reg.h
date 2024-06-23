@@ -79,4 +79,8 @@ inline constexpr std::string_view REG_NAME[] = {
     "t6",
 };
 
+inline std::string stringify(Reg value) {
+    return std::string(REG_NAME[(size_t) value]);
+}
+
 }

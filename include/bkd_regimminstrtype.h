@@ -29,4 +29,8 @@ inline constexpr std::string_view REGIMMINSTRTYPE_NAME[] = {
     "sraiw",
 };
 
+inline std::string stringify(RegImmInstrType value) {
+    return std::string(REGIMMINSTRTYPE_NAME[(size_t) value]);
+}
+
 }

@@ -77,4 +77,8 @@ inline constexpr std::string_view FREG_NAME[] = {
     "ft11",
 };
 
+inline std::string stringify(FReg value) {
+    return std::string(FREG_NAME[(size_t) value]);
+}
+
 }

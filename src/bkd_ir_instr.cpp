@@ -4,8 +4,4 @@
 
 namespace Backend {
 
-std::string nameOf(Reg reg) {
-    return std::string(REG_NAME[(int) reg]);
-}
-
 } // namespace Backend
