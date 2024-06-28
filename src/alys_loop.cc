@@ -41,7 +41,6 @@ LoopInfo::LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx) {
                                     Set<Ir::Block *> idom_dom_set) -> void {
         idom_dom_set.insert(bb);
         dom_set[bb] = idom_dom_set;
-        printf("%s dom_set : %d\n", bb->name().c_str(), idom_dom_set.size());
         for (auto succ : dom_ctx.dom_map.at(bb)->out_block)
             build_dom_set(build_dom_set, succ->basic_block, idom_dom_set);
     };
@@ -52,11 +51,11 @@ LoopInfo::LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx) {
         Ir::Block *find = nullptr;
         auto succ_bbs = bb->out_blocks();
         auto &dom_bbs = dom_set.at(bb);
-        for (auto dom : dom_bbs) {
-            if (succ_bbs.count(dom) > 0)
-                // my_assert(!find, "no multiple head");
-                find = dom;
-            loops.push_back(make_natural_loop(dom, bb));
+        for (auto succ : succ_bbs) {
+            if (dom_bbs.count(succ) > 0) {
+                find = succ;
+                loops.push_back(make_natural_loop(succ, bb));
+            }
         }
     }
 
@@ -70,6 +69,7 @@ LoopInfo::is_dom(Ir::Block *a, Ir::Block *b,
 }
 
 void LoopInfo::print_loop() const {
+    printf("%d: Total NaturalLoop cnts\n", loops.size());
     std::string ret;
     for (auto loop : loops) {
         ret += "loop header: ";
