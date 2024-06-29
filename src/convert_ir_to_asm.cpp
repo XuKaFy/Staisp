@@ -1,4 +1,4 @@
-#include "convert_ir_to_bkd.h"
+#include "convert_ir_to_asm.h"
 #include "bkd_global.h"
 #include "bkd_ir_instr.h"
 #include "bkd_module.h"
@@ -7,7 +7,7 @@
 #include <iterator>
 #include <memory>
 
-namespace BackendConvertor {
+namespace IrToAsm {
 
 Backend::pModule Convertor::convert(const Ir::pModule &mod)
 {
@@ -69,18 +69,18 @@ Backend::MachineInstrs Convertor::convert(const Ir::pInstr &instr)
     switch (instr->instr_type()) {
     case Ir::INSTR_BR:
     case Ir::INSTR_BR_COND:
-    case Ir::INSTR_FUNC:
     case Ir::INSTR_CALL:
     case Ir::INSTR_RET:
     case Ir::INSTR_CAST:
     case Ir::INSTR_CMP:
     case Ir::INSTR_STORE:
     case Ir::INSTR_LOAD:
-    case Ir::INSTR_ALLOCA:
     case Ir::INSTR_UNARY:
     case Ir::INSTR_BINARY:
     case Ir::INSTR_ITEM:
         break;
+    case Ir::INSTR_FUNC:
+    case Ir::INSTR_ALLOCA:
     case Ir::INSTR_LABEL:
     case Ir::INSTR_PHI:
     case Ir::INSTR_SYM:

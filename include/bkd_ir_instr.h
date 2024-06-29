@@ -124,7 +124,7 @@ inline std::string stringify(std::string value) {
 }
 
 template<typename Type, typename... Args>
-std::string concat(Type type, Args&&... args) {
+std::string concat(Type&& type, Args&&... args) {
     std::string result;
     result += stringify(type);
     result += " ";

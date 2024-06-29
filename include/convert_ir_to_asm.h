@@ -9,7 +9,7 @@
 #include "ir_instr.h"
 #include "ir_module.h"
 
-namespace BackendConvertor {
+namespace IrToAsm {
 
 class Convertor {
 public:
