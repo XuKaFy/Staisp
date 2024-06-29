@@ -347,7 +347,6 @@ struct MachineInstr {
     > instr;
 };
 
-typedef Pointer<MachineInstr> pMachineInstr;
-typedef Vector<pMachineInstr> MachineInstrs;
+typedef Vector<MachineInstr> MachineInstrs;
 
 } // namespace Backend

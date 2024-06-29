@@ -2,13 +2,13 @@
 
 namespace Backend {
 
-String Block::print(std::string const& function_name) const
+String Block::print() const
 {
-    String res = function_name + "_" + name + ":\n";
+    String res = name + ":\n";
     
     for (auto &&i : body) {
         res += "    ";
-        res += i->stringify();
+        res += i.stringify();
         res += "\n";
     }
 

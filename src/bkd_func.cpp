@@ -10,7 +10,7 @@ String Func::print() const
     res += ":\n";
     
     for (auto &&i : body) {
-        res += i.print(name);
+        res += i.print();
     }
 
     return res;

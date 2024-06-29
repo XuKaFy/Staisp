@@ -10,7 +10,7 @@ struct Block {
     explicit Block(std::string name)
         : name(std::move(name)) {}
 
-    String print(std::string const& function_name) const;
+    String print() const;
 
     std::string name;
     MachineInstrs body;

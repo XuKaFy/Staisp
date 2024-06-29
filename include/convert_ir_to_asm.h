@@ -16,8 +16,8 @@ public:
     Backend::pModule convert(const Ir::pModule &mod);
     Backend::Global convert(const Ir::pGlobal &glob);
     Backend::Func convert(const Ir::pFuncDefined &func);
-    Backend::Block convert(const Ir::pBlock &block);
-    Backend::MachineInstrs convert(const Ir::pInstr &instr);
+    Backend::Block convert(const Ir::pFuncDefined &func, const Ir::pBlock &block);
+    Backend::MachineInstrs convert(const Ir::pFuncDefined &func, const Ir::pInstr &instr);
 
     Backend::MachineInstrs generate_prolog();
     Backend::MachineInstrs generate_epilog();

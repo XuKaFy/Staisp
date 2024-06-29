@@ -4,7 +4,7 @@
 #include "common_node.h"
 #include "convert_ast_to_ir.h"
 #include "opt.h"
-#include "convert_ir_to_bkd.h"
+#include "convert_ir_to_asm.h"
 
 #include <fstream>
 
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
 
         // printf("Optimization end\n");
 
-        BackendConvertor::Convertor bkd_convertor;
+        IrToAsm::Convertor bkd_convertor;
         Backend::pModule bkd_mod = bkd_convertor.convert(mod);
 
         out.open(String(argv[1]) + ".s", std::fstream::out);
