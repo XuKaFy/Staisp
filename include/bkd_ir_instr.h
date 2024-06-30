@@ -20,7 +20,7 @@ namespace Backend {
 -- LLVM IR --
 Instr
     CalculatableInstr
-        CasrInstr
+        CastInstr
             bitcast,
             ptrtoint, inttoptr,
             trunc, sext, zext,

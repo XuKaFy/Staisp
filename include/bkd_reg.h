@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <string>
 #include <string_view>
 
 namespace Backend {
@@ -80,6 +81,9 @@ inline constexpr std::string_view REG_NAME[] = {
 };
 
 inline std::string stringify(Reg value) {
+    if ((size_t) value >= 32) {
+        return "[" + std::to_string((size_t) value) + "]";
+    }
     return std::string(REG_NAME[(size_t) value]);
 }
 
