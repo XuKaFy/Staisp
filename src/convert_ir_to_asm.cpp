@@ -241,9 +241,25 @@ Backend::MachineInstr convert_binary_instr(const Pointer<Ir::BinInstr> &instr)
             Backend::FRegFRegInstrType::FMUL_S,
             Backend::FRegFRegInstrType::FMUL_S);
     case Ir::INSTR_SDIV:
-    case Ir::INSTR_SREM:
     case Ir::INSTR_UDIV:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::DIV,
+            Backend::RegRegInstrType::DIVW,
+            Backend::RegRegInstrType::DIV,
+            Backend::RegRegInstrType::DIVW);
+    case Ir::INSTR_SREM:
     case Ir::INSTR_UREM:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::REM,
+            Backend::RegRegInstrType::REMW,
+            Backend::RegRegInstrType::REM,
+            Backend::RegRegInstrType::REMW);
         break;
     case Ir::INSTR_FDIV:
         return selector(to_basic_type(instr->ty)->ty,
@@ -256,13 +272,53 @@ Backend::MachineInstr convert_binary_instr(const Pointer<Ir::BinInstr> &instr)
         break;
     case Ir::INSTR_XOR:
     case Ir::INSTR_AND:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::AND,
+            Backend::RegRegInstrType::AND,
+            Backend::RegRegInstrType::AND,
+            Backend::RegRegInstrType::AND);
     case Ir::INSTR_OR:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::OR,
+            Backend::RegRegInstrType::OR,
+            Backend::RegRegInstrType::OR,
+            Backend::RegRegInstrType::OR);
     case Ir::INSTR_ASHR:
-    case Ir::INSTR_LSHR:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::SRA,
+            Backend::RegRegInstrType::SRAW,
+            Backend::RegRegInstrType::SRA,
+            Backend::RegRegInstrType::SRAW);
+        case Ir::INSTR_LSHR:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::SRL,
+            Backend::RegRegInstrType::SRLW,
+            Backend::RegRegInstrType::SRL,
+            Backend::RegRegInstrType::SRLW);
     case Ir::INSTR_SHL:
+        return selector(to_basic_type(instr->ty)->ty,
+            string_to_reg(instr->name()),
+            string_to_reg(instr->operand(0)->usee->name()),
+            string_to_reg(instr->operand(1)->usee->name()),
+            Backend::RegRegInstrType::SLL,
+            Backend::RegRegInstrType::SLLW,
+            Backend::RegRegInstrType::SLL,
+            Backend::RegRegInstrType::SLLW);
         break;
     }
-    throw 0;
+    std::abort(); // no test case should reach here
 }
 
 Backend::MachineInstrs Convertor::convert(const Ir::pFuncDefined &func, const Ir::pInstr &instr)
@@ -290,12 +346,9 @@ Backend::MachineInstrs Convertor::convert(const Ir::pFuncDefined &func, const Ir
     case Ir::INSTR_STORE:
     case Ir::INSTR_LOAD:
     case Ir::INSTR_UNARY:
+        break;
     case Ir::INSTR_BINARY:
-        try {
-            res.push_back(convert_binary_instr(std::static_pointer_cast<Ir::BinInstr>(instr)));
-        } catch (int) {
-            break;
-        }
+        res.push_back(convert_binary_instr(std::static_pointer_cast<Ir::BinInstr>(instr)));
         break;
     case Ir::INSTR_ITEM:
         break;

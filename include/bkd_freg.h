@@ -79,7 +79,7 @@ inline constexpr std::string_view FREG_NAME[] = {
 
 inline std::string stringify(FReg value) {
     if ((size_t) value >= 32) {
-        return "[" + std::to_string((size_t) value) + "]";
+        return "%" + std::to_string((size_t) value);
     }
     return std::string(FREG_NAME[(size_t) value]);
 }
