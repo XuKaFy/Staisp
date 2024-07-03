@@ -12,9 +12,6 @@ enum class FRegFRegInstrType {
     FSUB_S,
     FMUL_S,
     FDIV_S,
-    FEQ_S,
-    FLT_S,
-    FLE_S,
 };
 
 inline constexpr std::string_view FREGFREGINSTRTYPE_NAME[] = {
@@ -22,9 +19,6 @@ inline constexpr std::string_view FREGFREGINSTRTYPE_NAME[] = {
     "fsub.s",
     "fmul.s",
     "fdiv.s",
-    "feq.s",
-    "flt.s",
-    "fle.s",
 };
 
 inline std::string stringify(FRegFRegInstrType value) {

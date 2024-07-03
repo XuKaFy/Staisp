@@ -2,12 +2,13 @@
 
 #include <cstddef>
 #include <ir_call_instr.h>
+#include <ir_cast_instr.h>
+#include <ir_cmp_instr.h>
 
 #include "bkd_global.h"
 #include "bkd_ir_instr.h"
 #include "bkd_module.h"
 #include "bkd_reg.h"
-#include "bkd_regreginstrtype.h"
 #include "def.h"
 #include "imm.h"
 #include "ir_instr.h"
@@ -76,7 +77,7 @@ Backend::Block Convertor::convert(const Ir::pFuncDefined &func, const Ir::pBlock
 
 struct ConvertBulk {
     Backend::MachineInstrs bulk;
-    int allocate_register = 0;
+    int allocate_register = -1;
 
     void add(Backend::MachineInstr const& value) {
         bulk.push_back(value);
@@ -105,21 +106,46 @@ struct ConvertBulk {
         my_assert(false, "?");
     }
 
-    Backend::Reg toReg(Ir::Val* val, Backend::Reg tmp) {
+    static constexpr Backend::Reg NO_HINT = (Backend::Reg) -1;
+    static constexpr Backend::FReg NO_HINT_F = (Backend::FReg) -1;
+
+    // TODO   if literal register name (such as %name) is encountered
+    // TODO   an exception is thrown by std::stoi
+    // TODO   it is unable to convert to a register number directly
+    // TODO   certain infrastructures are required
+
+    Backend::Reg toReg(Ir::Val* val, Backend::Reg tmp_hint = NO_HINT) {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
             try {
                 return (Backend::Reg) std::stoi(name.substr(1));
             } catch (std::invalid_argument&) {
-                return (Backend::Reg) --allocate_register;
+                return NO_HINT; // TODO this is not correct, see above
             }
         }
+        if (tmp_hint == NO_HINT) tmp_hint == (Backend::Reg) --allocate_register;
         // if it is a immediate, load it
         add({Backend::ImmInstr {
-            Backend::ImmInstrType::LI, tmp, std::stoi(name)}
+            Backend::ImmInstrType::LI, tmp_hint, std::stoi(name)}
         });
-        return tmp;
+        return tmp_hint;
+    }
+
+    Backend::FReg toFReg(Ir::Val* val, Backend::FReg tmp_hint = NO_HINT_F) {
+        auto name = val->name();
+        // if it is a register, use it
+        if (name[0] == '%') {
+            try {
+                return (Backend::FReg) std::stoi(name.substr(1));
+            } catch (std::invalid_argument&) {
+                return NO_HINT_F; // TODO this is not correct, see above
+            }
+        }
+        if (tmp_hint == NO_HINT_F) tmp_hint == (Backend::FReg) --allocate_register;
+        // if it is a immediate, load it
+        // TODO floating point immediate is not supported yet
+        return tmp_hint;
     }
 
     Backend::RegRegInstrType selectRRType(ImmType ty, Ir::BinInstrType bin) {
@@ -146,9 +172,6 @@ struct ConvertBulk {
                 return selector(ty,
                     Backend::RegRegInstrType::REM,
                     Backend::RegRegInstrType::REMW);
-                break;
-            case Ir::INSTR_XOR:
-                std::abort();
             case Ir::INSTR_AND:
                 return Backend::RegRegInstrType::AND;
             case Ir::INSTR_OR:
@@ -166,34 +189,197 @@ struct ConvertBulk {
                     Backend::RegRegInstrType::SLL,
                     Backend::RegRegInstrType::SLLW);
         }
-        std::abort();
+        my_assert(false, "unreachable");
     }
 
 
-    // note: float is not considered yet
+    Backend::FRegFRegInstrType selectFRFRType(ImmType ty, Ir::BinInstrType bin) {
+        switch (bin) {
+            case Ir::INSTR_FADD:
+                return Backend::FRegFRegInstrType::FADD_S;
+            case Ir::INSTR_FSUB:
+                return Backend::FRegFRegInstrType::FSUB_S;
+            case Ir::INSTR_FMUL:
+                return Backend::FRegFRegInstrType::FMUL_S;
+            case Ir::INSTR_FDIV:
+                return Backend::FRegFRegInstrType::FDIV_S;
+        }
+        my_assert(false, "unreachable");
+    }
 
-
+    void convert_unary_instr(const Pointer<Ir::UnaryInstr> &instr) {
+        auto rd = toFReg(instr.get(), {});
+        auto rs = toFReg(instr->operand(0)->usee, rd);
+        add({ Backend::FRegInstr {
+                Backend::FRegInstrType::FNEG_S, rd, rs,
+        } });
+    }
 
     void convert_binary_instr(const Pointer<Ir::BinInstr> &instr) {
-        auto rd = toReg(instr.get(), {});
-        auto rs1 = toReg(instr->operand(0)->usee, rd);
-        auto rs2 = toReg(instr->operand(1)->usee, rd);
-        add({ Backend::RegRegInstr {
-            selectRRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
-        } });
+        if (is_float(instr->ty)) {
+            auto rd = toFReg(instr.get());
+            auto rs1 = toFReg(instr->operand(0)->usee, rd);
+            auto rs2 = toFReg(instr->operand(1)->usee, rd);
+            add({ Backend::FRegFRegInstr {
+                selectFRFRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
+            } });
+        } else {
+            auto rd = toReg(instr.get());
+            auto rs1 = toReg(instr->operand(0)->usee, rd);
+            auto rs2 = toReg(instr->operand(1)->usee, rd);
+            add({ Backend::RegRegInstr {
+                selectRRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
+            } });
+        }
     }
 
     void convert_return_instr(const Pointer<Ir::RetInstr> &instr) {
         auto ret = std::static_pointer_cast<Ir::RetInstr>(instr);
         if (ret->operand_size() > 0) {
-            auto a0 = Backend::Reg::A0;  // a0 is for return value
-            add({ Backend::RegInstr{
-                Backend::RegInstrType::MV,
-                a0,
-                toReg(ret->operand(0)->usee, a0)
-            } });
+            if (is_float(instr->ty)) {
+                auto fa0 = Backend::FReg::FA0;
+                add({ Backend::FRegInstr{
+                    Backend::FRegInstrType::FMV_S,
+                    fa0,
+                    toFReg(ret->operand(0)->usee, fa0)
+                } });
+            } else {
+                auto a0 = Backend::Reg::A0;
+                add({ Backend::RegInstr{
+                    Backend::RegInstrType::MV,
+                    a0,
+                    toReg(ret->operand(0)->usee, a0)
+                } });
+            }
         }
         add({ Backend::ReturnInstr{} });
+    }
+
+    void convert_cast_instr(const Pointer<Ir::CastInstr> &instr) {
+    }
+
+
+    void convert_cmp_instr(const Pointer<Ir::CmpInstr> &instr) {
+        auto ty = instr->operand(0)->usee->ty;
+        if (is_float(ty)) {
+            auto rd = toReg(instr.get());
+            auto rs1 = toFReg(instr->operand(0)->usee);
+            auto rs2 = toFReg(instr->operand(1)->usee);
+            switch (instr->cmp_type) {
+                case Ir::CMP_OEQ:
+                    add({ Backend::FCmpInstr {
+                        Backend::FCmpInstrType::FEQ_S, rd, rs1, rs2,
+                    } });
+                    break;
+                case Ir::CMP_OGT:
+                    add({ Backend::FCmpInstr {
+                        Backend::FCmpInstrType::FLT_S, rd, rs2, rs1,
+                    } });
+                    break;
+                case Ir::CMP_OGE:
+                    add({ Backend::FCmpInstr {
+                        Backend::FCmpInstrType::FLE_S, rd, rs2, rs1,
+                    } });
+                    break;
+                case Ir::CMP_OLT:
+                    add({ Backend::FCmpInstr {
+                        Backend::FCmpInstrType::FLT_S, rd, rs1, rs2,
+                    } });
+                    break;
+                case Ir::CMP_OLE:
+                    add({ Backend::FCmpInstr {
+                        Backend::FCmpInstrType::FLE_S, rd, rs1, rs2,
+                    } });
+                    break;
+                case Ir::CMP_UNE:
+                    add({ Backend::FCmpInstr {
+                        Backend::FCmpInstrType::FEQ_S, rd, rs1, rs2,
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SEQZ, rd, rd
+                    } });
+                    break;
+            }
+        } else {
+            auto rd = toReg(instr.get());
+            auto rs1 = toReg(instr->operand(0)->usee, rd);
+            auto rs2 = toReg(instr->operand(1)->usee, rd);
+            switch (instr->cmp_type) {
+                case Ir::CMP_EQ:
+                    add({ Backend::RegRegInstr {
+                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SEQZ, rd, rd
+                    } });
+                    break;
+                case Ir::CMP_NE:
+                    add({ Backend::RegRegInstr {
+                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SNEZ, rd, rd
+                    } });
+                    break;
+                case Ir::CMP_ULT:
+                case Ir::CMP_SLT:
+                    add({ Backend::RegRegInstr {
+                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SLTZ, rd, rd
+                    } });
+                    break;
+                case Ir::CMP_UGE:
+                case Ir::CMP_SGE:
+                    add({ Backend::RegRegInstr {
+                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SLTZ, rd, rd
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SEQZ, rd, rd
+                    } });
+                    break;
+                case Ir::CMP_UGT:
+                case Ir::CMP_SGT:
+                    add({ Backend::RegRegInstr {
+                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SGTZ, rd, rd
+                    } });
+                    break;
+                case Ir::CMP_ULE:
+                case Ir::CMP_SLE:
+                    add({ Backend::RegRegInstr {
+                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SGTZ, rd, rd
+                    } });
+                    add({ Backend::RegInstr {
+                        Backend::RegInstrType::SEQZ, rd, rd
+                    } });
+                    break;
+            }
+
+        }
+    }
+
+    void convert_branch_instr(const Ir::pFuncDefined &func, const Pointer<Ir::BrCondInstr> &instr) {
+        auto rs = toReg(instr->operand(0)->usee);
+        auto label1 = func->name() + "_" + instr->operand(1)->usee->name();
+        auto label2 = func->name() + "_" + instr->operand(2)->usee->name();
+        add({ Backend::BranchInstr{Backend::BranchInstrType::BNE, rs, Backend::Reg::ZERO, label1 } });
+        add({ Backend::JInstr{ label2 } });
+    }
+
+    void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
+
+        // arguments are not yet proceeded
+        add({ Backend::CallInstr{instr->operand(0)->usee->name()} });
     }
 
 };
@@ -202,39 +388,42 @@ Backend::MachineInstrs Convertor::convert(const Ir::pFuncDefined &func, const Ir
 {
     ConvertBulk bulk;
     switch (instr->instr_type()) {
-    case Ir::INSTR_RET:
-        bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
-        break;
-    case Ir::INSTR_BR:
-        bulk.add({ Backend::JInstr{ func->name() + "_" + instr->operand(0)->usee->name() } });
-        break;
-    case Ir::INSTR_BR_COND:
-        // condition is not yet proceeded
-        bulk.add({ Backend::BranchInstr{Backend::BranchInstrType::BEQ, {}, {}, "TODO" } });
-        break;
-    case Ir::INSTR_CALL:
-        // arguments are not yet proceeded
-        bulk.add({ Backend::CallInstr{instr->operand(0)->usee->name()} });
-        break;
-    case Ir::INSTR_CAST:
-    case Ir::INSTR_CMP:
-    case Ir::INSTR_STORE:
-    case Ir::INSTR_LOAD:
-    case Ir::INSTR_UNARY:
-        break;
-    case Ir::INSTR_BINARY:
-        bulk.convert_binary_instr(std::static_pointer_cast<Ir::BinInstr>(instr));
-        break;
-    case Ir::INSTR_ITEM:
-        break;
-    case Ir::INSTR_FUNC:
-    case Ir::INSTR_ALLOCA:
-    case Ir::INSTR_LABEL:
-    case Ir::INSTR_PHI:
-    case Ir::INSTR_SYM:
-    case Ir::INSTR_UNREACHABLE:
-        // just ignore all these ir
-        break;
+        case Ir::INSTR_RET:
+            bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
+            break;
+        case Ir::INSTR_BR:
+            bulk.add({ Backend::JInstr{ func->name() + "_" + instr->operand(0)->usee->name() } });
+            break;
+        case Ir::INSTR_BR_COND:
+            bulk.convert_branch_instr(func, std::static_pointer_cast<Ir::BrCondInstr>(instr));
+            break;
+        case Ir::INSTR_CALL:
+            bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr));
+            break;
+        case Ir::INSTR_UNARY:
+            bulk.convert_unary_instr(std::static_pointer_cast<Ir::UnaryInstr>(instr));
+            break;
+        case Ir::INSTR_BINARY:
+            bulk.convert_binary_instr(std::static_pointer_cast<Ir::BinInstr>(instr));
+            break;
+        case Ir::INSTR_CAST:
+            bulk.convert_cast_instr(std::static_pointer_cast<Ir::CastInstr>(instr));
+            break;
+        case Ir::INSTR_CMP:
+            bulk.convert_cmp_instr(std::static_pointer_cast<Ir::CmpInstr>(instr));
+            break;
+        case Ir::INSTR_STORE:
+        case Ir::INSTR_LOAD:
+        case Ir::INSTR_ITEM:
+            break;
+        case Ir::INSTR_FUNC:
+        case Ir::INSTR_ALLOCA:
+        case Ir::INSTR_LABEL:
+        case Ir::INSTR_PHI:
+        case Ir::INSTR_SYM:
+        case Ir::INSTR_UNREACHABLE:
+            // just ignore all these ir
+            break;
     }
     return bulk.bulk;
 }

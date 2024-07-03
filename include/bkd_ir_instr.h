@@ -13,6 +13,7 @@
 #include <bkd_freginstrtype.h>
 #include <bkd_fregreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
+#include <bkd_fcmpinstrtype.h>
 #include <variant>
 
 namespace Backend {
@@ -207,6 +208,16 @@ struct FRegFRegInstr {
     }
 };
 
+struct FCmpInstr {
+    FCmpInstrType type;
+    Reg rd; FReg rs1, rs2;
+
+
+    std::string stringify() const {
+        return concat(type, rd, rs1, rs2);
+    }
+};
+
 struct LoadInstr {
     bool wide;
     Reg rd, rs; int imm;
@@ -300,8 +311,6 @@ struct CallInstr {
 };
 
 struct ReturnInstr {
-
-
     std::string stringify() const {
         return "ret";
     }
@@ -318,6 +327,7 @@ struct MachineInstr {
         FREG,
         FREGREG,
         FREGFREG,
+        FCMP,
         LOAD,
         STORE,
         FLOAD,
@@ -339,7 +349,7 @@ struct MachineInstr {
 
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr,
-        BranchInstr, FRegInstr, FRegRegInstr, FRegFRegInstr,
+        BranchInstr, FRegInstr, FRegRegInstr, FRegFRegInstr, FCmpInstr,
         LoadInstr, StoreInstr, FLoadInstr, FStoreInstr,
         LoadGlobalInstr, StoreGlobalInstr,
         FLoadGlobalInstr, FStoreGlobalInstr,
