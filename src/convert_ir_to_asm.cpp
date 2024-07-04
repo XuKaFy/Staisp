@@ -77,7 +77,7 @@ Backend::Block Convertor::convert(const Ir::pFuncDefined &func, const Ir::pBlock
 
 struct ConvertBulk {
     Backend::MachineInstrs bulk;
-    int allocate_register = -1;
+    int allocate_register = 32;
 
     void add(Backend::MachineInstr const& value) {
         bulk.push_back(value);
@@ -106,25 +106,16 @@ struct ConvertBulk {
         my_assert(false, "?");
     }
 
-    static constexpr Backend::Reg NO_HINT = (Backend::Reg) -1;
-    static constexpr Backend::FReg NO_HINT_F = (Backend::FReg) -1;
-
-    // TODO   if literal register name (such as %name) is encountered
-    // TODO   an exception is thrown by std::stoi
-    // TODO   it is unable to convert to a register number directly
-    // TODO   certain infrastructures are required
+    static constexpr Backend::Reg NO_HINT = (Backend::Reg) 32;
+    static constexpr Backend::FReg NO_HINT_F = (Backend::FReg) 32;
 
     Backend::Reg toReg(Ir::Val* val, Backend::Reg tmp_hint = NO_HINT) {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
-            try {
-                return (Backend::Reg) std::stoi(name.substr(1));
-            } catch (std::invalid_argument&) {
-                return NO_HINT; // TODO this is not correct, see above
-            }
+            return (Backend::Reg) -std::stoi(name.substr(1));
         }
-        if (tmp_hint == NO_HINT) tmp_hint == (Backend::Reg) --allocate_register;
+        if (tmp_hint == NO_HINT) tmp_hint = (Backend::Reg) ++allocate_register;
         // if it is a immediate, load it
         add({Backend::ImmInstr {
             Backend::ImmInstrType::LI, tmp_hint, std::stoi(name)}
@@ -136,13 +127,9 @@ struct ConvertBulk {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
-            try {
-                return (Backend::FReg) std::stoi(name.substr(1));
-            } catch (std::invalid_argument&) {
-                return NO_HINT_F; // TODO this is not correct, see above
-            }
+            return (Backend::FReg) -std::stoi(name.substr(1));
         }
-        if (tmp_hint == NO_HINT_F) tmp_hint == (Backend::FReg) --allocate_register;
+        if (tmp_hint == NO_HINT_F) tmp_hint = (Backend::FReg) ++allocate_register;
         // if it is a immediate, load it
         // TODO floating point immediate is not supported yet
         return tmp_hint;
@@ -256,6 +243,7 @@ struct ConvertBulk {
     }
 
     void convert_cast_instr(const Pointer<Ir::CastInstr> &instr) {
+
     }
 
 

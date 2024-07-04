@@ -7,7 +7,7 @@
 #include "convert_ast_to_ir.h"
 #include "ir_phi_instr.h"
 #include "ir_instr.h"
-#include "ir_line_generator.h"
+#include "ir_reg_generator.h"
 
 #include "ir_constant.h"
 
@@ -204,16 +204,8 @@ void Block::replace_out(Block *before, Block *out) {
 }
 
 void BlockedProgram::initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool) {
-    LineGenerator g;
-    g.generate(instrs);
-
     this->params_ = std::move(args);
     this->cpool = std::move(cpool);
-
-    /* for(auto &&i : instrs) {
-        printf(":: %s\n", i->instr_print());
-    }
-    puts("--end");*/
 
     for (const auto &i : instrs) {
         switch (i->ty->type_type()) {
@@ -243,9 +235,10 @@ pVal BlockedProgram::add_imm(Value value)
 }
 
 void BlockedProgram::re_generate() const {
-    LineGenerator g;
-    for (const auto &i : blocks) {
-        g.generate(i->body);
+    RegGenerator g;
+    g.generate(params());
+    for (const auto &block : blocks) {
+        g.generate(block->body);
     }
 }
 

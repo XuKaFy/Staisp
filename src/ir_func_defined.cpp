@@ -60,8 +60,8 @@ String FuncDefined::print_func() const {
             whole_function += ", ";
         }
         whole_function += func_ty->arg_type[i]->type_name();
-        whole_function += " %";
-        whole_function += arg_name[i];
+        whole_function += " ";
+        whole_function += p.params()[i]->name();
     }
 
     whole_function += ")";
