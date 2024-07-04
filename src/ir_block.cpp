@@ -161,10 +161,10 @@ void Block::connect_in_and_out() {
 String Block::print_block() const {
     String whole_block;
     for (const auto &i : body) {
-        // printf("    %s\n", i->instr_print().c_str());
         whole_block += i->instr_print();
-        whole_block += "\n";
+        whole_block += "\n    ";
     }
+    whole_block.pop_back();
     return whole_block;
 }
 
@@ -204,6 +204,10 @@ void Block::replace_out(Block *before, Block *out) {
 }
 
 void BlockedProgram::initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool) {
+    RegGenerator g;
+    g.generate(args);
+    g.generate(instrs);
+
     this->params_ = std::move(args);
     this->cpool = std::move(cpool);
 

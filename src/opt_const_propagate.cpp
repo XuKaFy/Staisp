@@ -46,7 +46,6 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
                 }
             }
             if (constant) {
-                printf("PHI once to constant");
                 v.val[r->name()] = v.val[r->phi_val(0)->name()].v;
             }
             break;
