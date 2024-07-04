@@ -417,8 +417,10 @@ struct ConvertBulk {
         auto rs = toReg(instr->operand(0)->usee);
         auto label1 = func->name() + "_" + instr->operand(1)->usee->name();
         auto label2 = func->name() + "_" + instr->operand(2)->usee->name();
-        add({ Backend::BranchInstr{Backend::BranchInstrType::BNE, rs, Backend::Reg::ZERO, label1 } });
-        add({ Backend::JInstr{ label2 } });
+        // else branch: beqz rs label2, tend to be remote
+        add({ Backend::BranchInstr{Backend::BranchInstrType::BEQ, rs, Backend::Reg::ZERO, label2 } });
+        // then branch: tend to follow current basic block
+        add({ Backend::JInstr{ label1 } });
     }
 
     void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
