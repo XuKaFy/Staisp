@@ -130,8 +130,25 @@ struct ConvertBulk {
             return (Backend::FReg) -std::stoi(name.substr(1));
         }
         if (tmp_hint == NO_HINT_F) tmp_hint = (Backend::FReg) ++allocate_register;
+        auto tmp = (Backend::Reg) ++allocate_register;
         // if it is a immediate, load it
-        // TODO floating point immediate is not supported yet
+        // lLVM store float constant into hexadecimal integral representation of corresponding double value
+        union {
+            unsigned long long ull;
+            double d;
+        };
+        ull = std::stoull(name, nullptr, 16);
+        union {
+            float f;
+            int x;
+        };
+        f = d;
+        add({Backend::ImmInstr {
+            Backend::ImmInstrType::LI, tmp, x}
+        });
+        add({ Backend::FRegRegInstr {
+            Backend::FRegRegInstrType::FMV_W_X, .fr = tmp_hint, .r = tmp
+        } });
         return tmp_hint;
     }
 

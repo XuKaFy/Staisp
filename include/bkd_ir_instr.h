@@ -195,7 +195,14 @@ struct FRegRegInstr {
     FReg fr; Reg r;
 
     std::string stringify() const {
-        return "TODO";
+        switch (type) {
+            case FRegRegInstrType::FCVT_W_S: // convert to   integer
+            case FRegRegInstrType::FMV_X_W:  // move    to   integer
+                return concat(type, r, fr);
+            case FRegRegInstrType::FCVT_S_W: // convert from integer
+            case FRegRegInstrType::FMV_W_X:  // move    from integer
+                return concat(type, fr, r);
+        }
     }
 };
 
