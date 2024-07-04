@@ -260,6 +260,46 @@ struct ConvertBulk {
     }
 
     void convert_cast_instr(const Pointer<Ir::CastInstr> &instr) {
+        switch (instr->method()) {
+            case Ir::CAST_PTRTOINT:
+            case Ir::CAST_INTTOPTR:
+            case Ir::CAST_TRUNC:
+            case Ir::CAST_FPEXT:
+            case Ir::CAST_FPTRUNC:
+                my_assert(false, "unreachable");
+            case Ir::CAST_BITCAST:
+            case Ir::CAST_SEXT:
+            case Ir::CAST_ZEXT: {
+                auto rs = toReg(instr->operand(0)->usee);
+                auto rd = toReg(instr.get());
+                add({ Backend::RegInstr{
+                    Backend::RegInstrType::MV,
+                    rd,
+                    rs
+                } });
+                break;
+            }
+            case Ir::CAST_SITOFP:
+            case Ir::CAST_UITOFP: {
+                auto rs = toReg(instr->operand(0)->usee);
+                auto rd = toFReg(instr.get());
+                add({ Backend::FRegRegInstr{
+                    Backend::FRegRegInstrType::FCVT_S_W,
+                    rd, rs
+                } });
+                break;
+            }
+            case Ir::CAST_FPTOSI:
+            case Ir::CAST_FPTOUI: {
+                auto rs = toFReg(instr->operand(0)->usee);
+                auto rd = toReg(instr.get());
+                add({ Backend::FRegRegInstr{
+                    Backend::FRegRegInstrType::FCVT_W_S,
+                    rs, rd
+                } });
+                break;
+            }
+        }
 
     }
 
