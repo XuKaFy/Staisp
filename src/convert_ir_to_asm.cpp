@@ -4,6 +4,7 @@
 #include <ir_call_instr.h>
 #include <ir_cast_instr.h>
 #include <ir_cmp_instr.h>
+#include <ir_ptr_instr.h>
 
 #include "bkd_global.h"
 #include "bkd_ir_instr.h"
@@ -427,6 +428,36 @@ struct ConvertBulk {
 
         // arguments are not yet proceeded
         add({ Backend::CallInstr{instr->operand(0)->usee->name()} });
+        auto rt = instr->func_ty->ret_type;
+        if (is_float(rt)) {
+            auto rd = toFReg(instr.get());
+            auto fa0 = Backend::FReg::FA0;
+            add({ Backend::FRegInstr{
+                Backend::FRegInstrType::FMV_S,
+                rd,
+                fa0
+            } });
+        } else if (is_integer(rt)) {
+            auto rd = toReg(instr.get());
+            auto a0 = Backend::Reg::A0;
+            add({ Backend::RegInstr{
+                Backend::RegInstrType::MV,
+                rd,
+                a0
+            } });
+        }
+    }
+
+    void convert_store_instr(const Pointer<Ir::StoreInstr> &instr) {
+
+    }
+
+    void convert_load_instr(const Pointer<Ir::LoadInstr> &instr) {
+
+    }
+
+    void convert_gep_instr(const Pointer<Ir::ItemInstr> &instr) {
+
     }
 
 };
@@ -460,8 +491,13 @@ Backend::MachineInstrs Convertor::convert(const Ir::pFuncDefined &func, const Ir
             bulk.convert_cmp_instr(std::static_pointer_cast<Ir::CmpInstr>(instr));
             break;
         case Ir::INSTR_STORE:
+            bulk.convert_store_instr(std::static_pointer_cast<Ir::StoreInstr>(instr));
+            break;
         case Ir::INSTR_LOAD:
+            bulk.convert_load_instr(std::static_pointer_cast<Ir::LoadInstr>(instr));
+            break;
         case Ir::INSTR_ITEM:
+            bulk.convert_gep_instr(std::static_pointer_cast<Ir::ItemInstr>(instr));
             break;
         case Ir::INSTR_FUNC:
         case Ir::INSTR_ALLOCA:
