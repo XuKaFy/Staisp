@@ -430,7 +430,7 @@ struct ConvertBulk {
         auto label1 = func->name() + "_" + instr->operand(1)->usee->name();
         auto label2 = func->name() + "_" + instr->operand(2)->usee->name();
         // else branch: beqz rs label2, tend to be remote
-        add({ Backend::BranchInstr{Backend::BranchInstrType::BEQ, rs, Backend::Reg::ZERO, label2 } });
+        add({ Backend::RegLabelInstr{Backend::RegLabelInstrType::BEQZ, rs,  label2 } });
         // then branch: tend to follow current basic block
         add({ Backend::JInstr{ label1 } });
     }

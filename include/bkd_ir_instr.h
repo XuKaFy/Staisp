@@ -14,6 +14,9 @@
 #include <bkd_fregreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
 #include <bkd_fcmpinstrtype.h>
+#include <bkd_regimmreginstrtype.h>
+#include <bkd_fregimmreginstrtype.h>
+#include <bkd_reglabelinstrtype.h>
 #include <variant>
 
 namespace Backend {
@@ -219,77 +222,51 @@ struct FCmpInstr {
     FCmpInstrType type;
     Reg rd; FReg rs1, rs2;
 
-
     std::string stringify() const {
         return concat(type, rd, rs1, rs2);
     }
 };
 
-struct LoadInstr {
-    bool wide;
-    Reg rd, rs; int imm;
+struct RegImmRegInstr {
+    RegImmRegInstrType type;
+    Reg rd; int imm; Reg rs;
 
     std::string stringify() const {
-        return "TODO";
+        std::string buf = Backend::stringify(type);
+        buf += " ";
+        buf += Backend::stringify(rd);
+        buf += ", ";
+        buf += Backend::stringify(imm);
+        buf += "(";
+        buf += Backend::stringify(rs);
+        buf += ")";
+        return buf;
     }
 };
 
-struct StoreInstr {
-    bool wide;
-    Reg rs1, rs2; int imm;
+struct FRegImmRegInstr {
+    FRegImmRegInstrType type;
+    FReg rd; int imm; Reg rs;
 
     std::string stringify() const {
-        return "TODO";
+        std::string buf = Backend::stringify(type);
+        buf += " ";
+        buf += Backend::stringify(rd);
+        buf += ", ";
+        buf += Backend::stringify(imm);
+        buf += "(";
+        buf += Backend::stringify(rs);
+        buf += ")";
+        return buf;
     }
 };
 
-struct FLoadInstr {
-    FReg rd, rs; int imm;
-
-    std::string stringify() const {
-        return "TODO";
-    }
-};
-
-struct FStoreInstr {
-    FReg rs1, rs2; int imm;
-
-    std::string stringify() const {
-        return "TODO";
-    }
-};
-
-struct LoadGlobalInstr {
-    bool wide;
+struct RegLabelInstr {
+    RegLabelInstrType type;
     Reg rd; std::string label;
 
     std::string stringify() const {
-        return "TODO";
-    }
-};
-
-struct StoreGlobalInstr {
-    bool wide;
-    Reg rd; std::string label; Reg rt;
-
-    std::string stringify() const {
-        return "TODO";
-    }
-};
-
-struct FLoadGlobalInstr {
-    FReg rd; std::string label; FReg rt;
-
-    std::string stringify() const {
-        return "TODO";
-    }
-};
-
-struct FStoreGlobalInstr {
-    FReg rd; std::string label; FReg rt;
-
-    std::string stringify() const {
-        return "TODO";
+        return concat(type, rd, label);
     }
 };
 
@@ -298,14 +275,6 @@ struct JInstr {
 
     std::string stringify() const {
         return concat("j", label);
-    }
-};
-
-struct JRInstr {
-    Reg reg;
-
-    std::string stringify() const {
-        return concat("jr", reg);
     }
 };
 
@@ -335,18 +304,12 @@ struct MachineInstr {
         FREGREG,
         FREGFREG,
         FCMP,
-        LOAD,
-        STORE,
-        FLOAD,
-        FSTORE,
-        LOAD_GLOBAL,
-        STORE_GLOBAL,
-        FLOAD_GLOBAL,
-        FSTORE_GLOBAL,
-        J, JR,
+        REGIMMREG,
+        FREGIMMREG,
+        REGLABEL,
+        J,
         CALL,
         RETURN,
-        // and more...
     };
 
     Type instr_type() const { return (Type) instr.index(); }
@@ -357,10 +320,8 @@ struct MachineInstr {
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr,
         BranchInstr, FRegInstr, FRegRegInstr, FRegFRegInstr, FCmpInstr,
-        LoadInstr, StoreInstr, FLoadInstr, FStoreInstr,
-        LoadGlobalInstr, StoreGlobalInstr,
-        FLoadGlobalInstr, FStoreGlobalInstr,
-        JInstr, JRInstr, CallInstr, ReturnInstr
+        RegImmRegInstr, FRegImmRegInstr, RegLabelInstr,
+        JInstr, CallInstr, ReturnInstr
     > instr;
 };
 
