@@ -20,6 +20,8 @@ struct Convertor {
 
 struct FunctionConvertor {
     int allocate_register = 32;
+    int excess_arguments = 0;
+    int local_variables = 0;
     Ir::pFuncDefined func;
     Backend::Func bkd_func;
     explicit FunctionConvertor(Ir::pFuncDefined func): func(std::move(func)), bkd_func(this->func->name()) {}

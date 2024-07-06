@@ -160,11 +160,12 @@ void Block::connect_in_and_out() {
 
 String Block::print_block() const {
     String whole_block;
+    assert(!body.empty());
     for (const auto &i : body) {
         whole_block += i->instr_print();
         whole_block += "\n    ";
     }
-    whole_block.pop_back();
+    whole_block.resize(whole_block.size() - 4);
     return whole_block;
 }
 

@@ -58,11 +58,13 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
 
 Backend::Func FunctionConvertor::convert()
 {
-    bkd_func.body.push_back(generate_prolog());
+    bkd_func.body.resize(func->p.size() + 2);
+    int index = 0;
     for (auto && block : func->p) {
-        bkd_func.body.push_back(convert(block));
+        bkd_func.body[++index] = convert(block);
     }
-    bkd_func.body.push_back(generate_epilog());
+    bkd_func.body.front() = generate_prolog();
+    bkd_func.body.back() = generate_epilog();
     return bkd_func;
 }
 
@@ -119,7 +121,8 @@ struct ConvertBulk {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
-            return (Backend::Reg) -std::stoi(name.substr(1));
+            // %0 => -1
+            return (Backend::Reg) ~std::stoi(name.substr(1));
         }
         if (tmp_hint == NO_HINT) tmp_hint = (Backend::Reg) ++allocate_register;
         // if it is a immediate, load it
@@ -133,7 +136,8 @@ struct ConvertBulk {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
-            return (Backend::FReg) -std::stoi(name.substr(1));
+            // %0 => -1
+            return (Backend::FReg) ~std::stoi(name.substr(1));
         }
         if (tmp_hint == NO_HINT_F) tmp_hint = (Backend::FReg) ++allocate_register;
         auto tmp = (Backend::Reg) ++allocate_register;
@@ -435,7 +439,7 @@ struct ConvertBulk {
         add({ Backend::JInstr{ label1 } });
     }
 
-    void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
+    int convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
         Backend::Reg arg = Backend::Reg::A0;
         Backend::FReg farg = Backend::FReg::FA0;
         int sp = 0;
@@ -452,8 +456,10 @@ struct ConvertBulk {
                     } });
                     farg = (Backend::FReg)((int)farg + 1);
                 } else {
-                    // store
-                    sp += 4;
+                    add({ Backend::FRegImmRegInstr {
+                        Backend::FRegImmRegInstrType::FSW, rs,  sp, Backend::Reg::SP,
+                    } });
+                    sp += 8;
                 }
             } else {
                 auto rd = arg;
@@ -466,8 +472,10 @@ struct ConvertBulk {
                     } });
                     arg = (Backend::Reg)((int)arg + 1);
                 } else {
-                    // store
-                    sp += 4;
+                    add({ Backend::RegImmRegInstr {
+                        Backend::RegImmRegInstrType::SD, rs,  sp, Backend::Reg::SP,
+                    } });
+                    sp += 8;
                 }
             }
         }
@@ -490,6 +498,7 @@ struct ConvertBulk {
                 a0
             } });
         }
+        return sp;
     }
 
     void convert_store_instr(const Pointer<Ir::StoreInstr> &instr) {
@@ -520,7 +529,7 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
             bulk.convert_branch_instr(std::static_pointer_cast<Ir::BrCondInstr>(instr));
             break;
         case Ir::INSTR_CALL:
-            bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr));
+            excess_arguments = std::max(excess_arguments, bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr)));
             break;
         case Ir::INSTR_UNARY:
             bulk.convert_unary_instr(std::static_pointer_cast<Ir::UnaryInstr>(instr));
@@ -543,8 +552,15 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
         case Ir::INSTR_ITEM:
             bulk.convert_gep_instr(std::static_pointer_cast<Ir::ItemInstr>(instr));
             break;
+        case Ir::INSTR_ALLOCA: {
+            auto type = to_pointed_type(instr->ty);
+            auto size = type->length();
+            if (size == 1) size = 4; // for bool
+            assert(size % 4 == 0);
+            local_variables += size;
+            break;
+        }
         case Ir::INSTR_FUNC:
-        case Ir::INSTR_ALLOCA:
         case Ir::INSTR_LABEL:
         case Ir::INSTR_PHI:
         case Ir::INSTR_SYM:
@@ -557,12 +573,85 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
 
 Backend::Block FunctionConvertor::generate_prolog() {
     Backend::Block bkd_block(func->name() + "_prolog");
+    auto add = [&bkd_block](Backend::MachineInstr const& value) {
+        bkd_block.body.push_back(value);
+    };
+    {
+        int sp = local_variables + excess_arguments;
+        add({ Backend::RegImmInstr {
+            Backend::RegImmInstrType::ADDI, Backend::Reg::SP, Backend::Reg::SP, -sp
+        } });
+        add({ Backend::RegImmRegInstr {
+            Backend::RegImmRegInstrType::SD, Backend::Reg::RA,  sp - 8, Backend::Reg::SP,
+        } });
+        add({ Backend::RegImmRegInstr {
+            Backend::RegImmRegInstrType::SD, Backend::Reg::S0,  sp - 16, Backend::Reg::SP,
+        } });
+        add({ Backend::RegImmInstr {
+            Backend::RegImmInstrType::ADDI, Backend::Reg::S0, Backend::Reg::SP, sp
+        } });
+    }
+    Backend::Reg arg = Backend::Reg::A0;
+    Backend::FReg farg = Backend::FReg::FA0;
+    int sp = 0;
+    int reg = 0;
+    auto ft = func->function_type();
+    for (auto&& at : ft->arg_type) {
+        if (is_float(at)) {
+            auto rd = (Backend::FReg) ~reg++;
+            auto rs = farg;
+            if (rs <= Backend::FReg::FA7) {
+                add({  Backend::FRegInstr{
+                    Backend::FRegInstrType::FMV_S,
+                    rd,
+                    rs
+                } });
+                farg = (Backend::FReg)((int)farg + 1);
+            } else {
+                add({ Backend::FRegImmRegInstr {
+                    Backend::FRegImmRegInstrType::FLW, rd,  sp, Backend::Reg::SP,
+                } });
+                sp += 8;
+            }
+        } else {
+            auto rd = (Backend::Reg) ~reg++;
+            auto rs = arg;
+            if (rs <= Backend::Reg::A7) {
+                add({  Backend::RegInstr{
+                    Backend::RegInstrType::MV,
+                    rd,
+                    rs
+                } });
+                arg = (Backend::Reg)((int)arg + 1);
+            } else {
+                add({ Backend::RegImmRegInstr {
+                    Backend::RegImmRegInstrType::LD, rd,  sp, Backend::Reg::SP,
+                } });
+                sp += 8;
+            }
+        }
+    }
     return bkd_block;
 }
 
 Backend::Block FunctionConvertor::generate_epilog() {
     Backend::Block bkd_block(func->name() + "_epilog");
-    bkd_block.body.push_back({ Backend::ReturnInstr{} });
+    auto add = [&bkd_block](Backend::MachineInstr const& value) {
+        bkd_block.body.push_back(value);
+    };
+    {
+        int sp = local_variables + excess_arguments;
+        add({ Backend::RegImmRegInstr {
+            Backend::RegImmRegInstrType::LD, Backend::Reg::RA,  8, Backend::Reg::SP,
+        } });
+        add({ Backend::RegImmRegInstr {
+            Backend::RegImmRegInstrType::LD, Backend::Reg::S0,  0, Backend::Reg::SP,
+        } });
+        add({ Backend::RegImmInstr {
+            Backend::RegImmInstrType::ADDI, Backend::Reg::SP, Backend::Reg::SP, sp
+        } });
+        add({ Backend::ReturnInstr{} });
+    }
     return bkd_block;
 }
 
