@@ -22,16 +22,21 @@
 
 namespace IrToAsm {
 
+[[noreturn]] void unreachable() {
+    my_assert(false, "unreachable");
+}
+
 Backend::pModule Convertor::convert(const Ir::pModule &mod)
 {
     auto bkd_mod = std::make_shared<Backend::Module>();
 
-    for (auto &&i : mod->globs) {
-        bkd_mod->globs.push_back(convert(i));
+    for (auto && global : mod->globs) {
+        bkd_mod->globs.push_back(convert(global));
     }
     
-    for (auto &&i : mod->funsDefined) {
-        bkd_mod->funcs.push_back(convert(i));
+    for (auto && func : mod->funsDefined) {
+        FunctionConvertor convertor(func);
+        bkd_mod->funcs.push_back(convertor.convert());
     }
     
     return bkd_mod;
@@ -47,30 +52,26 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
     case VALUE_ARRAY:
         return Backend::Global(glob->name().substr(1), con.array_value());
     }
-    my_assert(false, "?");
-    return Backend::Global("", 0);
+    unreachable();
 }
 
-Backend::Func Convertor::convert(const Ir::pFuncDefined &func)
+Backend::Func FunctionConvertor::convert()
 {
-    Backend::Func bkd_func(func->name());
-
-    for (auto &&i : func->p) {
-        bkd_func.body.push_back(convert(func, i));
+    for (auto && block : func->p) {
+        bkd_func.body.push_back(convert(block));
     }
 
     return bkd_func;
 }
 
-Backend::Block Convertor::convert(const Ir::pFuncDefined &func, const Ir::pBlock &block)
+Backend::Block FunctionConvertor::convert(const Ir::pBlock &block)
 {
     Backend::Block bkd_block(func->name() + "_" + block->label()->name());
 
-    for (auto &&i : *block) {
-        auto res = convert(func, i);
+    for (auto && instr : *block) {
+        auto res = convert(instr);
         bkd_block.body.insert(bkd_block.body.end(),
             std::move_iterator(res.begin()), std::move_iterator(res.end()));
-        res.clear();
     }
 
     return bkd_block;
@@ -78,7 +79,8 @@ Backend::Block Convertor::convert(const Ir::pFuncDefined &func, const Ir::pBlock
 
 struct ConvertBulk {
     Backend::MachineInstrs bulk;
-    int allocate_register = 32;
+    int& allocate_register;
+    explicit ConvertBulk(int& allocate_register): allocate_register(allocate_register) {}
 
     void add(Backend::MachineInstr const& value) {
         bulk.push_back(value);
@@ -102,9 +104,8 @@ struct ConvertBulk {
             case IMM_U64:
                 return i64_use;
             default:
-                break;
+                unreachable();
         }
-        my_assert(false, "?");
     }
 
     static constexpr Backend::Reg NO_HINT = (Backend::Reg) 32;
@@ -193,8 +194,9 @@ struct ConvertBulk {
                 return selector(ty,
                     Backend::RegRegInstrType::SLL,
                     Backend::RegRegInstrType::SLLW);
+            default:
+                unreachable();
         }
-        my_assert(false, "unreachable");
     }
 
 
@@ -208,8 +210,9 @@ struct ConvertBulk {
                 return Backend::FRegFRegInstrType::FMUL_S;
             case Ir::INSTR_FDIV:
                 return Backend::FRegFRegInstrType::FDIV_S;
+            default:
+                unreachable();
         }
-        my_assert(false, "unreachable");
     }
 
     void convert_unary_instr(const Pointer<Ir::UnaryInstr> &instr) {
@@ -267,7 +270,7 @@ struct ConvertBulk {
             case Ir::CAST_TRUNC:
             case Ir::CAST_FPEXT:
             case Ir::CAST_FPTRUNC:
-                my_assert(false, "unreachable");
+                unreachable();
             case Ir::CAST_BITCAST:
             case Ir::CAST_SEXT:
             case Ir::CAST_ZEXT: {
@@ -345,6 +348,8 @@ struct ConvertBulk {
                         Backend::RegInstrType::SEQZ, rd, rd
                     } });
                     break;
+                default:
+                    unreachable();
             }
         } else {
             auto rd = toReg(instr.get());
@@ -409,6 +414,8 @@ struct ConvertBulk {
                         Backend::RegInstrType::SEQZ, rd, rd
                     } });
                     break;
+                default:
+                    unreachable();
             }
 
         }
@@ -495,9 +502,9 @@ struct ConvertBulk {
 
 };
 
-Backend::MachineInstrs Convertor::convert(const Ir::pFuncDefined &func, const Ir::pInstr &instr)
+Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
 {
-    ConvertBulk bulk;
+    ConvertBulk bulk(allocate_register);
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
             bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));

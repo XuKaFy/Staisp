@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include "bkd_func.h"
 #include "bkd_global.h"
 #include "bkd_ir_instr.h"
@@ -11,13 +13,20 @@
 
 namespace IrToAsm {
 
-class Convertor {
-public:
+struct Convertor {
     Backend::pModule convert(const Ir::pModule &mod);
     Backend::Global convert(const Ir::pGlobal &glob);
-    Backend::Func convert(const Ir::pFuncDefined &func);
-    Backend::Block convert(const Ir::pFuncDefined &func, const Ir::pBlock &block);
-    Backend::MachineInstrs convert(const Ir::pFuncDefined &func, const Ir::pInstr &instr);
+};
+
+struct FunctionConvertor {
+    int allocate_register = 32;
+    Ir::pFuncDefined func;
+    Backend::Func bkd_func;
+    explicit FunctionConvertor(Ir::pFuncDefined func): func(std::move(func)), bkd_func(this->func->name()) {}
+
+    Backend::Func convert();
+    Backend::Block convert(const Ir::pBlock &block);
+    Backend::MachineInstrs convert(const Ir::pInstr &instr);
 
     Backend::MachineInstrs generate_prolog();
     Backend::MachineInstrs generate_epilog();
