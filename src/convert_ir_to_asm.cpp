@@ -85,8 +85,9 @@ struct ConvertBulk {
     Backend::MachineInstrs bulk;
     Ir::pFuncDefined func;
     int& allocate_register;
-    explicit ConvertBulk(Ir::pFuncDefined func, int& allocate_register)
-        : func(std::move(func)), allocate_register(allocate_register) {}
+    int& local_ordinal;
+    explicit ConvertBulk(Ir::pFuncDefined func, int& allocate_register, int& local_ordinal)
+        : func(std::move(func)), allocate_register(allocate_register), local_ordinal(local_ordinal) {}
 
     void add(Backend::MachineInstr const& value) {
         bulk.push_back(value);
@@ -117,6 +118,14 @@ struct ConvertBulk {
     static constexpr Backend::Reg NO_HINT = (Backend::Reg) 32;
     static constexpr Backend::FReg NO_HINT_F = (Backend::FReg) 32;
 
+    Backend::Reg allocate_reg() {
+        return (Backend::Reg) ++allocate_register;
+    }
+
+    Backend::FReg allocate_freg() {
+        return (Backend::FReg) ++allocate_register;
+    }
+
     Backend::Reg toReg(Ir::Val* val, Backend::Reg tmp_hint = NO_HINT) {
         auto name = val->name();
         // if it is a register, use it
@@ -124,11 +133,11 @@ struct ConvertBulk {
             // %0 => -1
             return (Backend::Reg) ~std::stoi(name.substr(1));
         }
-        if (tmp_hint == NO_HINT) tmp_hint = (Backend::Reg) ++allocate_register;
+        if (tmp_hint == NO_HINT) tmp_hint = allocate_reg();
         // if it is a immediate, load it
         add({Backend::ImmInstr {
-            Backend::ImmInstrType::LI, tmp_hint, std::stoi(name)}
-        });
+            Backend::ImmInstrType::LI, tmp_hint, std::stoi(name)
+        } });
         return tmp_hint;
     }
 
@@ -139,7 +148,7 @@ struct ConvertBulk {
             // %0 => -1
             return (Backend::FReg) ~std::stoi(name.substr(1));
         }
-        if (tmp_hint == NO_HINT_F) tmp_hint = (Backend::FReg) ++allocate_register;
+        if (tmp_hint == NO_HINT_F) tmp_hint = allocate_freg();
         auto tmp = (Backend::Reg) ++allocate_register;
         // if it is a immediate, load it
         // lLVM store float constant into hexadecimal integral representation of corresponding double value
@@ -154,8 +163,8 @@ struct ConvertBulk {
         };
         f = d;
         add({Backend::ImmInstr {
-            Backend::ImmInstrType::LI, tmp, x}
-        });
+            Backend::ImmInstrType::LI, tmp, x
+        } });
         add({ Backend::FRegRegInstr {
             Backend::FRegRegInstrType::FMV_W_X, .fr = tmp_hint, .r = tmp
         } });
@@ -206,7 +215,6 @@ struct ConvertBulk {
                 unreachable();
         }
     }
-
 
     Backend::FRegFRegInstrType selectFRFRType(ImmType ty, Ir::BinInstrType bin) {
         switch (bin) {
@@ -285,9 +293,7 @@ struct ConvertBulk {
                 auto rs = toReg(instr->operand(0)->usee);
                 auto rd = toReg(instr.get());
                 add({ Backend::RegInstr{
-                    Backend::RegInstrType::MV,
-                    rd,
-                    rs
+                    Backend::RegInstrType::MV, rd, rs
                 } });
                 break;
             }
@@ -296,8 +302,7 @@ struct ConvertBulk {
                 auto rs = toReg(instr->operand(0)->usee);
                 auto rd = toFReg(instr.get());
                 add({ Backend::FRegRegInstr{
-                    Backend::FRegRegInstrType::FCVT_S_W,
-                    rd, rs
+                    Backend::FRegRegInstrType::FCVT_S_W, rd, rs
                 } });
                 break;
             }
@@ -312,9 +317,7 @@ struct ConvertBulk {
                 break;
             }
         }
-
     }
-
 
     void convert_cmp_instr(const Pointer<Ir::CmpInstr> &instr) {
         auto ty = instr->operand(0)->usee->ty;
@@ -450,9 +453,7 @@ struct ConvertBulk {
                 auto rs = toFReg(param);
                 if (rd <= Backend::FReg::FA7) {
                     add({  Backend::FRegInstr{
-                        Backend::FRegInstrType::FMV_S,
-                        rd,
-                        rs
+                        Backend::FRegInstrType::FMV_S, rd, rs
                     } });
                     farg = (Backend::FReg)((int)farg + 1);
                 } else {
@@ -466,9 +467,7 @@ struct ConvertBulk {
                 auto rs = toReg(param);
                 if (rd <= Backend::Reg::A7) {
                     add({  Backend::RegInstr{
-                        Backend::RegInstrType::MV,
-                        rd,
-                        rs
+                        Backend::RegInstrType::MV, rd, rs
                     } });
                     arg = (Backend::Reg)((int)arg + 1);
                 } else {
@@ -485,39 +484,108 @@ struct ConvertBulk {
             auto rd = toFReg(instr.get());
             auto fa0 = Backend::FReg::FA0;
             add({ Backend::FRegInstr{
-                Backend::FRegInstrType::FMV_S,
-                rd,
-                fa0
+                Backend::FRegInstrType::FMV_S, rd, fa0
             } });
         } else if (is_integer(rt)) {
             auto rd = toReg(instr.get());
             auto a0 = Backend::Reg::A0;
             add({ Backend::RegInstr{
-                Backend::RegInstrType::MV,
-                rd,
-                a0
+                Backend::RegInstrType::MV, rd, a0
             } });
         }
         return sp;
     }
 
-    void convert_store_instr(const Pointer<Ir::StoreInstr> &instr) {
+    Backend::Reg load_address(Ir::Val* val) {
+        auto name = val->name();
+        if (name[0] == '@') {
+            // global
+            auto rd = allocate_reg();
+            add({ Backend::RegLabelInstr{
+                Backend::RegLabelInstrType::LA, rd, name.substr(1)
+            } });
+            return rd;
+        }
+        return toReg(val);
+    }
 
+    void convert_store_instr(const Pointer<Ir::StoreInstr> &instr) {
+        auto address = load_address(instr->operand(0)->usee);
+        if (is_float(instr->ty)) {
+            auto rs = toFReg(instr->operand(1)->usee);
+            add({ Backend::FRegImmRegInstr{
+                Backend::FRegImmRegInstrType::FSW, rs, 0, address
+            } });
+        } else {
+            auto rs = toReg(instr->operand(1)->usee);
+            add({ Backend::RegImmRegInstr{
+                Backend::RegImmRegInstrType::SW, rs, 0, address
+            } });
+        }
     }
 
     void convert_load_instr(const Pointer<Ir::LoadInstr> &instr) {
-
+        auto address = load_address(instr->operand(0)->usee);
+        if (is_float(instr->ty)) {
+            auto rd = toFReg(instr.get());
+            add({ Backend::FRegImmRegInstr{
+                Backend::FRegImmRegInstrType::FLW, rd, 0, address
+            } });
+        } else {
+            auto rd = toReg(instr.get());
+            add({ Backend::RegImmRegInstr{
+                Backend::RegImmRegInstrType::LW, rd, 0, address
+            } });
+        }
     }
 
     void convert_gep_instr(const Pointer<Ir::ItemInstr> &instr) {
+        auto base = instr->operand(0)->usee;
+        auto type = base->ty;
+        type = to_pointed_type(type);
+        if (!instr->get_from_local) {
+            type = make_array_type(type, 0);
+        }
+        auto rs = load_address(base);
+        auto rd = toReg(instr.get());
+        for (int dim = 1; dim < instr->operand_size(); ++dim) {
+            type = to_elem_type(type);
+            int step = type->length();
+            auto index = instr->operand(dim++)->usee;
+            add({Backend::ImmInstr {
+                Backend::ImmInstrType::LI, rd, step
+            } });
+            add({ Backend::RegRegInstr {
+                Backend::RegRegInstrType::MUL, rd, rd, toReg(index)
+            } });
+            add({ Backend::RegRegInstr {
+                Backend::RegRegInstrType::ADD, rs, rs, rd
+            } });
+        }
+        add({  Backend::RegInstr{
+            Backend::RegInstrType::MV, rd, rs
+        } });
+    }
 
+    int convert_alloca_instr(const Pointer<Ir::AllocInstr> &instr) {
+        auto type = to_pointed_type(instr->ty);
+        auto size = type->length();
+        if (size == 1) size = 4; // for bool
+        assert(size % 4 == 0);
+
+        auto rd = toReg(instr.get());
+        auto ordinal = ~(int) rd;
+        add({  Backend::RegImmInstr{
+            Backend::RegImmInstrType::ADDI, rd, Backend::Reg::S0, -(20 + 4 * ordinal)
+        } });
+        return size;
     }
 
 };
 
 Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
 {
-    ConvertBulk bulk(func, allocate_register);
+    ConvertBulk bulk(func, allocate_register, local_ordinal);
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
             bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
@@ -552,14 +620,9 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
         case Ir::INSTR_ITEM:
             bulk.convert_gep_instr(std::static_pointer_cast<Ir::ItemInstr>(instr));
             break;
-        case Ir::INSTR_ALLOCA: {
-            auto type = to_pointed_type(instr->ty);
-            auto size = type->length();
-            if (size == 1) size = 4; // for bool
-            assert(size % 4 == 0);
-            local_variables += size;
+        case Ir::INSTR_ALLOCA:
+            local_variables += bulk.convert_alloca_instr(std::static_pointer_cast<Ir::AllocInstr>(instr));
             break;
-        }
         case Ir::INSTR_FUNC:
         case Ir::INSTR_LABEL:
         case Ir::INSTR_PHI:
@@ -577,7 +640,7 @@ Backend::Block FunctionConvertor::generate_prolog() {
         bkd_block.body.push_back(value);
     };
     {
-        int sp = local_variables + excess_arguments;
+        int sp = calculate_sp();
         add({ Backend::RegImmInstr {
             Backend::RegImmInstrType::ADDI, Backend::Reg::SP, Backend::Reg::SP, -sp
         } });
@@ -602,9 +665,7 @@ Backend::Block FunctionConvertor::generate_prolog() {
             auto rs = farg;
             if (rs <= Backend::FReg::FA7) {
                 add({  Backend::FRegInstr{
-                    Backend::FRegInstrType::FMV_S,
-                    rd,
-                    rs
+                    Backend::FRegInstrType::FMV_S, rd, rs
                 } });
                 farg = (Backend::FReg)((int)farg + 1);
             } else {
@@ -618,9 +679,7 @@ Backend::Block FunctionConvertor::generate_prolog() {
             auto rs = arg;
             if (rs <= Backend::Reg::A7) {
                 add({  Backend::RegInstr{
-                    Backend::RegInstrType::MV,
-                    rd,
-                    rs
+                    Backend::RegInstrType::MV, rd, rs
                 } });
                 arg = (Backend::Reg)((int)arg + 1);
             } else {
@@ -640,7 +699,7 @@ Backend::Block FunctionConvertor::generate_epilog() {
         bkd_block.body.push_back(value);
     };
     {
-        int sp = local_variables + excess_arguments;
+        int sp = calculate_sp();
         add({ Backend::RegImmRegInstr {
             Backend::RegImmRegInstrType::LD, Backend::Reg::RA,  8, Backend::Reg::SP,
         } });
