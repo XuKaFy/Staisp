@@ -425,8 +425,41 @@ struct ConvertBulk {
     }
 
     void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
-
-        // arguments are not yet proceeded
+        Backend::Reg arg = Backend::Reg::A0;
+        Backend::FReg farg = Backend::FReg::FA0;
+        int sp = 0;
+        for (size_t i = 1; i < instr->operand_size(); ++i) {
+            auto param = instr->operand(i)->usee;
+            if (is_float(param->ty)) {
+                auto rd = farg;
+                auto rs = toFReg(param);
+                if (rd <= Backend::FReg::FA7) {
+                    add({  Backend::FRegInstr{
+                        Backend::FRegInstrType::FMV_S,
+                        rd,
+                        rs
+                    } });
+                    farg = (Backend::FReg)((int)farg + 1);
+                } else {
+                    // store
+                    sp += 4;
+                }
+            } else {
+                auto rd = arg;
+                auto rs = toReg(param);
+                if (rd <= Backend::Reg::A7) {
+                    add({  Backend::RegInstr{
+                        Backend::RegInstrType::MV,
+                        rd,
+                        rs
+                    } });
+                    arg = (Backend::Reg)((int)arg + 1);
+                } else {
+                    // store
+                    sp += 4;
+                }
+            }
+        }
         add({ Backend::CallInstr{instr->operand(0)->usee->name()} });
         auto rt = instr->func_ty->ret_type;
         if (is_float(rt)) {
