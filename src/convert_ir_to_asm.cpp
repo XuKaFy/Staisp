@@ -19,6 +19,7 @@
 #include <iterator>
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace IrToAsm {
 
@@ -57,10 +58,11 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
 
 Backend::Func FunctionConvertor::convert()
 {
+    bkd_func.body.push_back(generate_prolog());
     for (auto && block : func->p) {
         bkd_func.body.push_back(convert(block));
     }
-
+    bkd_func.body.push_back(generate_epilog());
     return bkd_func;
 }
 
@@ -79,8 +81,10 @@ Backend::Block FunctionConvertor::convert(const Ir::pBlock &block)
 
 struct ConvertBulk {
     Backend::MachineInstrs bulk;
+    Ir::pFuncDefined func;
     int& allocate_register;
-    explicit ConvertBulk(int& allocate_register): allocate_register(allocate_register) {}
+    explicit ConvertBulk(Ir::pFuncDefined func, int& allocate_register)
+        : func(std::move(func)), allocate_register(allocate_register) {}
 
     void add(Backend::MachineInstr const& value) {
         bulk.push_back(value);
@@ -260,7 +264,7 @@ struct ConvertBulk {
                 } });
             }
         }
-        add({ Backend::ReturnInstr{} });
+        add({ Backend::JInstr { func->name() + "_epilog" } });
     }
 
     void convert_cast_instr(const Pointer<Ir::CastInstr> &instr) {
@@ -421,7 +425,7 @@ struct ConvertBulk {
         }
     }
 
-    void convert_branch_instr(const Ir::pFuncDefined &func, const Pointer<Ir::BrCondInstr> &instr) {
+    void convert_branch_instr(const Pointer<Ir::BrCondInstr> &instr) {
         auto rs = toReg(instr->operand(0)->usee);
         auto label1 = func->name() + "_" + instr->operand(1)->usee->name();
         auto label2 = func->name() + "_" + instr->operand(2)->usee->name();
@@ -504,7 +508,7 @@ struct ConvertBulk {
 
 Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
 {
-    ConvertBulk bulk(allocate_register);
+    ConvertBulk bulk(func, allocate_register);
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
             bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
@@ -513,7 +517,7 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
             bulk.add({ Backend::JInstr{ func->name() + "_" + instr->operand(0)->usee->name() } });
             break;
         case Ir::INSTR_BR_COND:
-            bulk.convert_branch_instr(func, std::static_pointer_cast<Ir::BrCondInstr>(instr));
+            bulk.convert_branch_instr(std::static_pointer_cast<Ir::BrCondInstr>(instr));
             break;
         case Ir::INSTR_CALL:
             bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr));
@@ -549,6 +553,17 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
             break;
     }
     return bulk.bulk;
+}
+
+Backend::Block FunctionConvertor::generate_prolog() {
+    Backend::Block bkd_block(func->name() + "_prolog");
+    return bkd_block;
+}
+
+Backend::Block FunctionConvertor::generate_epilog() {
+    Backend::Block bkd_block(func->name() + "_epilog");
+    bkd_block.body.push_back({ Backend::ReturnInstr{} });
+    return bkd_block;
 }
 
 } // namespace BackendConvertor

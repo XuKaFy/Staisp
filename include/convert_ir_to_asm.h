@@ -28,8 +28,8 @@ struct FunctionConvertor {
     Backend::Block convert(const Ir::pBlock &block);
     Backend::MachineInstrs convert(const Ir::pInstr &instr);
 
-    Backend::MachineInstrs generate_prolog();
-    Backend::MachineInstrs generate_epilog();
+    Backend::Block generate_prolog();
+    Backend::Block generate_epilog();
 };
 
 } // namespace BackendConvertor
