@@ -1,6 +1,8 @@
 // THIS FILE IS MACHINE GENERATED, DO NOT EDIT BY HAND
-#include "test_framework.h"
 #include <gtest/gtest.h>
+#include <string>
+
+void run_sysy(std::string path);
 
 GTEST_TEST(test_sysy_final_performance, 01_mm1) {
     run_sysy("sysy_tests/final_performance/01_mm1");

@@ -3,9 +3,11 @@ include_directories(${CMAKE_CURRENT_LIST_DIR}/../third_party/googletest/googlete
 include_directories(${CMAKE_CURRENT_LIST_DIR}/../include)
 include_directories(${CMAKE_CURRENT_LIST_DIR})
 
-aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src TEST_SRC)
+add_executable(FrontendTest test_frontend.cpp test_sysy.cpp)
+target_link_libraries(FrontendTest gtest gtest_main staisp)
+gtest_discover_tests(FrontendTest)
 
-add_executable(StaispTest ${TEST_SRC})
-target_link_libraries(StaispTest gtest gtest_main staisp)
 
-gtest_discover_tests(StaispTest)
+add_executable(BackendTest test_frontend.cpp test_sysy.cpp)
+target_link_libraries(BackendTest gtest gtest_main staisp)
+gtest_discover_tests(BackendTest)

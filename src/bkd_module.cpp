@@ -6,6 +6,10 @@ String Module::print_module() const
 {
     String res;
 
+    res += ".text\n";
+    res += ".global main\n";
+    res += "\n";
+
     for (auto &&i : globs) {
         res += i.print();
     }

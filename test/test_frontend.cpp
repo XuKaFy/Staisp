@@ -1,13 +1,11 @@
-#pragma once
-
 #include "def.h"
 
-#include "gtest/gtest.h"
-
-#include <chrono>
+#include <gtest/gtest.h>
 #include <cstdlib>
 #include <string>
 #include <filesystem>
+
+#include "stopwatch.hpp"
 
 namespace fs = std::filesystem;
 
@@ -52,23 +50,6 @@ std::string normalizeLineEndings(const std::string &str) {
 }
 
 const bool interpret = false;
-
-class Stopwatch {
-private:
-    std::chrono::time_point<std::chrono::steady_clock> start_time;
-
-public:
-
-    void reset() {
-        start_time = std::chrono::steady_clock::now();
-    }
-
-    double stop() {
-        auto end_time = std::chrono::steady_clock::now();
-        std::chrono::duration<double> elapsed_time = end_time - start_time;
-        return elapsed_time.count();
-    }
-};
 
 
 void judge(const String &id, const String& ll, const String &in, const String &out) {
@@ -127,7 +108,7 @@ String get_id(String path) {
     return path;
 }
 
-void run_sysy(String path) {
+void run_sysy(std::string path) {
 
     // pwd: ./build/test
     path = "../../" + path;
