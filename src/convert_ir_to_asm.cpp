@@ -166,7 +166,7 @@ struct ConvertBulk {
             Backend::ImmInstrType::LI, tmp, x
         } });
         add({ Backend::FRegRegInstr {
-            Backend::FRegRegInstrType::FMV_W_X, .fr = tmp_hint, .r = tmp
+            Backend::FRegRegInstrType::FMV_S_X, tmp_hint, tmp
         } });
         return tmp_hint;
     }
@@ -310,9 +310,9 @@ struct ConvertBulk {
             case Ir::CAST_FPTOUI: {
                 auto rs = toFReg(instr->operand(0)->usee);
                 auto rd = toReg(instr.get());
-                add({ Backend::FRegRegInstr{
-                    Backend::FRegRegInstrType::FCVT_W_S,
-                    rs, rd
+                add({ Backend::RegFRegInstr{
+                    Backend::RegFRegInstrType::FCVT_W_S,
+                    rd, rs
                 } });
                 break;
             }
@@ -548,7 +548,7 @@ struct ConvertBulk {
         }
         auto rs = load_address(base);
         auto rd = toReg(instr.get());
-        for (int dim = 1; dim < instr->operand_size(); ++dim) {
+        for (size_t dim = 1; dim < instr->operand_size(); ++dim) {
             type = to_elem_type(type);
             int step = type->length();
             auto index = instr->operand(dim++)->usee;
@@ -566,6 +566,7 @@ struct ConvertBulk {
             Backend::RegInstrType::MV, rd, rs
         } });
     }
+
     void convert_alloca_instr(const Pointer<Ir::AllocInstr> &instr) {
         auto type = to_pointed_type(instr->ty);
         int size = type->length();

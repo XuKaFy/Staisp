@@ -8,17 +8,13 @@
 namespace Backend {
 
 enum class FRegRegInstrType {
+    FMV_S_X,
     FCVT_S_W,
-    FCVT_W_S,
-    FMV_X_W,
-    FMV_W_X,
 };
 
 inline constexpr std::string_view FREGREGINSTRTYPE_NAME[] = {
+    "fmv.s.x",
     "fcvt.s.w",
-    "fcvt.w.s",
-    "fmv.x.w",
-    "fmv.w.x",
 };
 
 inline std::string stringify(FRegRegInstrType value) {

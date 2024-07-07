@@ -12,6 +12,7 @@
 #include <bkd_branchinstrtype.h>
 #include <bkd_freginstrtype.h>
 #include <bkd_fregreginstrtype.h>
+#include <bkd_regfreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
 #include <bkd_fcmpinstrtype.h>
 #include <bkd_regimmreginstrtype.h>
@@ -194,18 +195,19 @@ struct FRegInstr {
 
 struct FRegRegInstr {
     FRegRegInstrType type;
-    // note: not in instruction order
-    FReg fr; Reg r;
+    FReg rd; Reg rs;
 
     std::string stringify() const {
-        switch (type) {
-            case FRegRegInstrType::FCVT_W_S: // convert to   integer
-            case FRegRegInstrType::FMV_X_W:  // move    to   integer
-                return concat(type, r, fr);
-            case FRegRegInstrType::FCVT_S_W: // convert from integer
-            case FRegRegInstrType::FMV_W_X:  // move    from integer
-                return concat(type, fr, r);
-        }
+        return concat(type, rd, rs);
+    }
+};
+
+struct RegFRegInstr {
+    RegFRegInstrType type;
+    Reg rd; FReg rs;
+
+    std::string stringify() const {
+        return concat(type, rd, rs);
     }
 };
 
@@ -302,6 +304,7 @@ struct MachineInstr {
         BRANCH,
         FREG,
         FREGREG,
+        REGFREG,
         FREGFREG,
         FCMP,
         REGIMMREG,
@@ -319,7 +322,7 @@ struct MachineInstr {
 
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr,
-        BranchInstr, FRegInstr, FRegRegInstr, FRegFRegInstr, FCmpInstr,
+        BranchInstr, FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
         RegImmRegInstr, FRegImmRegInstr, RegLabelInstr,
         JInstr, CallInstr, ReturnInstr
     > instr;
