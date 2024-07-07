@@ -1,6 +1,6 @@
 #pragma once
 
-#include "bkd_ir_instr.h"
+#include "bkd_instr.h"
 #include "def.h"
 #include "value.h"
 

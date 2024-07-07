@@ -1,7 +1,7 @@
 #pragma once
 
 #include "def.h"
-#include "bkd_ir_instr.h"
+#include "bkd_instr.h"
 #include <memory>
 
 namespace Backend {

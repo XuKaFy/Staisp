@@ -77,8 +77,12 @@ inline constexpr std::string_view FREG_NAME[] = {
     "ft11",
 };
 
+inline bool is_virtual(FReg value) {
+    return (int) value < 0 || (int) value >= 32;
+}
+
 inline std::string stringify(FReg value) {
-    if ((int) value < 0 || (int) value >= 32) {
+    if (is_virtual(value)) {
         return "%" + std::to_string(~(int) value);
     }
     return std::string(FREG_NAME[(size_t) value]);

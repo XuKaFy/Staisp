@@ -79,8 +79,12 @@ inline constexpr std::string_view REG_NAME[] = {
     "t6",
 };
 
+inline bool is_virtual(Reg value) {
+    return (int) value < 0 || (int) value >= 32;
+}
+
 inline std::string stringify(Reg value) {
-    if ((int) value < 0 || (int) value >= 32) {
+    if (is_virtual(value)) {
         return "%" + std::to_string(~(int) value);
     }
     return std::string(REG_NAME[(size_t) value]);

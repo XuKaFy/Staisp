@@ -7,7 +7,7 @@
 #include <ir_ptr_instr.h>
 
 #include "bkd_global.h"
-#include "bkd_ir_instr.h"
+#include "bkd_instr.h"
 #include "bkd_module.h"
 #include "bkd_reg.h"
 #include "def.h"

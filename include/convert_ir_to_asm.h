@@ -4,7 +4,7 @@
 
 #include "bkd_func.h"
 #include "bkd_global.h"
-#include "bkd_ir_instr.h"
+#include "bkd_instr.h"
 #include "bkd_module.h"
 #include "ir_func_defined.h"
 #include "ir_global.h"
