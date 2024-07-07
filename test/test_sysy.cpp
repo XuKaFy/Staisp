@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include <string>
 
-void run_sysy(std::string path);
+void run_sysy(const std::string &filename);
 
 GTEST_TEST(test_sysy_final_performance, 01_mm1) {
     run_sysy("sysy_tests/final_performance/01_mm1");

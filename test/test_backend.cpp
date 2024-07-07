@@ -1,5 +1,12 @@
+#include <gtest/gtest.h>
 #include <string>
 
-void run_sysy(std::string path) {
+#include "test_lib.hpp"
+
+void run_sysy(const std::string &filename) {
+    auto id = get_id(filename);
+    auto path = get_path(filename);
+
     // STUB
+    ASSERT_FALSE(filename.empty());
 }

@@ -1,58 +1,15 @@
-#include "def.h"
-
 #include <gtest/gtest.h>
 #include <cstdlib>
 #include <string>
 #include <filesystem>
 
-#include "stopwatch.hpp"
+#include "test_lib.hpp"
 
 namespace fs = std::filesystem;
 
-String read(const String &file) {
-    FILE* input_file = fopen(file.c_str(), "rb");
-    fseek(input_file, 0, SEEK_END);
-    size_t size = ftell(input_file);
-    fseek(input_file, 0, SEEK_SET);
-    std::string fileBuffer(size, '\0');
-    fread(fileBuffer.data(), 1, size, input_file);
-    fclose(input_file);
-    return fileBuffer;
-}
-
-std::string normalizeLineEndings(const std::string &str) {
-    std::string result;
-    result.reserve(str.size());
-
-    for (size_t i = 0; i < str.size(); ++i) {
-        if (str[i] == '\r') {
-            if (i + 1 < str.size() && str[i + 1] == '\n') {
-                ++i; // Skip '\n'
-            }
-            while (!result.empty() && (isspace(result.back()) != 0)) {
-                result.pop_back();
-            }
-            result += '\n';
-        } else {
-            if (str[i] == '\n') {
-                while (!result.empty() && (isspace(result.back()) != 0)) {
-                    result.pop_back();
-                }
-            }
-            result += str[i];
-        }
-    }
-    while (!result.empty() &&
-           (result.back() == '\n' || (isspace(result.back()) != 0))) {
-        result.pop_back();
-    }
-    return result;
-}
-
 const bool interpret = false;
 
-
-void judge(const String &id, const String& ll, const String &in, const String &out) {
+void judge(const std::string &id, const std::string& ll, const std::string &in, const std::string &out) {
     ASSERT_FALSE(
         system(("clang -S -emit-llvm ../../lib/sylib.c -o " + id + ".sylib.ll")
                    .c_str()));
@@ -77,8 +34,8 @@ void judge(const String &id, const String& ll, const String &in, const String &o
         code = system(("./" + id + io).c_str());
     }
     code = WEXITSTATUS(code);
-    String actual = read(id + ".out");
-    String expected = read(out);
+    std::string actual = read(id + ".out");
+    std::string expected = read(out);
     if (!actual.empty() && actual.back() != '\n') {
         actual += "\n";
     }
@@ -99,33 +56,19 @@ void judge(const String &id, const String& ll, const String &in, const String &o
     remove((id).c_str());
 }
 
-String get_id(String path) {
-    for (char &ch : path) {
-        if (ch == '/') {
-            ch = '_';
-        }
-    }
-    return path;
-}
-
-void run_sysy(std::string path) {
-
-    // pwd: ./build/test
-    path = "../../" + path;
-    auto id = get_id(path.substr(6));
-
+// ulimit -s 16384
+void run_sysy(const std::string &filename) {
+    auto id = get_id(filename);
+    auto path = get_path(filename);
     Stopwatch stopwatch;
 
-    stopwatch.reset();
+    double t1 = stopwatch.timeit([&] {
+        ASSERT_FALSE(system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
+    });
 
-    ASSERT_FALSE(
-        system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
-
-    double t1 = stopwatch.stop();
-
-    stopwatch.reset();
-    judge(id, path + ".sy.ll", path + ".in", path + ".out");
-    double t2 = stopwatch.stop();
+    double t2 = stopwatch.timeit([&] {
+        judge(id, path + ".sy.ll", path + ".in", path + ".out");
+    });
 
     // if you hope to watch detailed time info, use following command:
     // ctest -V | grep sysy_tests

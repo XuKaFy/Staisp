@@ -8,6 +8,6 @@ target_link_libraries(FrontendTest gtest gtest_main staisp)
 gtest_discover_tests(FrontendTest)
 
 
-add_executable(BackendTest test_frontend.cpp test_sysy.cpp)
+add_executable(BackendTest test_backend.cpp test_sysy.cpp)
 target_link_libraries(BackendTest gtest gtest_main staisp)
 gtest_discover_tests(BackendTest)
