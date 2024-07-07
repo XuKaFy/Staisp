@@ -45,13 +45,14 @@ Backend::pModule Convertor::convert(const Ir::pModule &mod)
 
 Backend::Global Convertor::convert(const Ir::pGlobal &glob)
 {
-    Value& con = glob->con.v;
+    const auto& con = glob->con.v;
+    auto name = glob->name().substr(1);
     switch (con.type()) {
     case VALUE_IMM:
-        // all imm should be regard as int32
-        return Backend::Global(glob->name().substr(1), con.imm_value().val.ival % 2147483648);
+        // all imm should be regarded as int32
+        return {name, static_cast<int>(con.imm_value().val.ival % 2147483648)};
     case VALUE_ARRAY:
-        return Backend::Global(glob->name().substr(1), con.array_value());
+        return {name, con.array_value()};
     }
     unreachable();
 }

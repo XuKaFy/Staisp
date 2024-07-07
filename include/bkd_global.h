@@ -20,7 +20,7 @@ struct GlobalPart {
 
 struct Global {
     Global(String name, int val);
-    Global(String name, ArrayValue val);
+    Global(String name, const ArrayValue &array);
 
     String print() const;
 
