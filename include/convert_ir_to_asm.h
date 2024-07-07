@@ -21,12 +21,11 @@ struct Convertor {
 struct FunctionConvertor {
     int allocate_register = 32;
     int excess_arguments = 0;
-    int local_variables = 0;
+    int local_variables = 16; // for ra and fp
     Ir::pFuncDefined func;
     Backend::Func bkd_func;
-    int local_ordinal;
     explicit FunctionConvertor(Ir::pFuncDefined func)
-        : func(std::move(func)), bkd_func(this->func->name()), local_ordinal(this->func->arg_name.size()) {}
+        : func(std::move(func)), bkd_func(this->func->name()) {}
 
     Backend::Func convert();
     Backend::Block convert(const Ir::pBlock &block);

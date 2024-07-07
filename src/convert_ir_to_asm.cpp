@@ -85,9 +85,9 @@ struct ConvertBulk {
     Backend::MachineInstrs bulk;
     Ir::pFuncDefined func;
     int& allocate_register;
-    int& local_ordinal;
-    explicit ConvertBulk(Ir::pFuncDefined func, int& allocate_register, int& local_ordinal)
-        : func(std::move(func)), allocate_register(allocate_register), local_ordinal(local_ordinal) {}
+    int& local_variables;
+    explicit ConvertBulk(Ir::pFuncDefined func, int& allocate_register, int& local_variables)
+        : func(std::move(func)), allocate_register(allocate_register), local_variables(local_variables) {}
 
     void add(Backend::MachineInstr const& value) {
         bulk.push_back(value);
@@ -566,26 +566,23 @@ struct ConvertBulk {
             Backend::RegInstrType::MV, rd, rs
         } });
     }
-
-    int convert_alloca_instr(const Pointer<Ir::AllocInstr> &instr) {
+    void convert_alloca_instr(const Pointer<Ir::AllocInstr> &instr) {
         auto type = to_pointed_type(instr->ty);
-        auto size = type->length();
+        int size = type->length();
         if (size == 1) size = 4; // for bool
         assert(size % 4 == 0);
-
+        local_variables += size;
         auto rd = toReg(instr.get());
-        auto ordinal = ~(int) rd;
         add({  Backend::RegImmInstr{
-            Backend::RegImmInstrType::ADDI, rd, Backend::Reg::S0, -(20 + 4 * ordinal)
+            Backend::RegImmInstrType::ADDI, rd, Backend::Reg::S0, -local_variables
         } });
-        return size;
     }
 
 };
 
 Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
 {
-    ConvertBulk bulk(func, allocate_register, local_ordinal);
+    ConvertBulk bulk(func, allocate_register, local_variables);
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
             bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
@@ -621,7 +618,7 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
             bulk.convert_gep_instr(std::static_pointer_cast<Ir::ItemInstr>(instr));
             break;
         case Ir::INSTR_ALLOCA:
-            local_variables += bulk.convert_alloca_instr(std::static_pointer_cast<Ir::AllocInstr>(instr));
+            bulk.convert_alloca_instr(std::static_pointer_cast<Ir::AllocInstr>(instr));
             break;
         case Ir::INSTR_FUNC:
         case Ir::INSTR_LABEL:
