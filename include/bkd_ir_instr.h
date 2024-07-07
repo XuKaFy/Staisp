@@ -21,104 +21,6 @@
 #include <variant>
 
 namespace Backend {
-/*
--- LLVM IR --
-Instr
-    CalculatableInstr
-        CastInstr
-            bitcast,
-            ptrtoint, inttoptr,
-            trunc, sext, zext,
-            fptrunc, fpext,
-            sitofp, fptosi,
-            uitofp, fptoui,
-        BinInstr
-            add, sub, mul,
-            sdiv, udiv, srem, urem,
-            fadd, fsub, fmul, fdiv, frem,
-            and, or, xor,
-            shl, ashr, lshr 
-        CmpInstr
-            EQ, NE
-            UGT, UGE, ULT, ULE
-            SGT, SGE, SLT, SLE
-            OEQ, UNE
-            OGT, OGE, OLT, OLE
-        UnaryInstr
-            fneg
-    BrCondInstr
-    BrInstr
-    LabelInstr
-    AllocInstr
-    RetInstr
-    PhiInstr
-    StoreInstr
-    ItemInstr
-    CallInstr
-    *UnreachableInstr*
-
--- Machine IR -- RISCV64GC
-
-RISCV 64GC:
-IMAFDZicsr_Zifencei
-I: Integer
-M: Mul & Div
-A: Atomics
-F: float
-D: double
-Zicsr: Control and Status Register Access
-Zifencei: Instruction-Fetch Fence
-C: 16-bit Compressed Instruction
-
-RV64:
-    x0=0, x1-x31, PC -> 64bit
-    f0-f31 -> width matches the widest precision (64-bit)
-
-MachineInstr
-    RTypeInstr
-        I:
-            sll(RV64I, sllw), srl(RV64I, srlw), sra(RV64I, sraw)
-            add(RV64I, addw), sub(RV64I, subw)
-            slt, sltu
-            xor, or, and
-        M:
-            mul(RV64I, mulw), mulh
-            div(RV64I, divw), divu, rem(RV64I, remw), remu(RV64I, remuw)
-        F&D:
-            fmv.w.x(RV64I, fmv.d.x) [from int], fmv.x.w(RV64I, fmv.x.d) [to int]
-            fcvt.{s|d}.w(RV64I, fcvt.{s|d}.wu), fcvt.{s|d}.l(RV64I, fcvt.{s|d}.lu)
-            fcvt.w.{s|d}(RV64I, fcvt.wu.{s|d}), fcvt.l.{s|d}(RV64I, fcvt.lu.{s|d})
-            fadd.{s|d}, fsub.{s|d}, fmul.{s|d}, fdiv.{s|d}
-            fmadd.{s|d}, fmsub.{s|d}, fnmadd.{s|d}, fnmsub.{s|d}
-            fmin.{s|d}, fmax.{s|d}
-            feq.{s|d}, flt.{s|d}, fle.{s|d}
-    ITypeInstr
-        I:
-            slli, srli, srai
-            addi(RV64I, addiw)
-            slti, sltiu
-            xori, ori, andi
-            lw(RV64I, lwu), lh, lb, lhu, lbu
-            (RV64I, ld)
-        F&D:
-            flw(64, fld)
-    STypeInstr
-        I:
-            sw, sh, sb
-            (RV64I, sd)
-        F&D:
-            fsw(64, fsd)
-    BTypeInstr
-        I:
-            beq, bne, blt, bge
-            bltu, bgeu
-    UTypeInstr
-        I:
-            lui
-    JTypeInstr
-        I:
-            jal, jalr
-*/
 
 inline std::string stringify(int imm) {
     return std::to_string(imm);
@@ -129,7 +31,7 @@ inline std::string stringify(std::string value) {
 }
 
 template<typename Type, typename... Args>
-std::string concat(Type&& type, Args&&... args) {
+std::string format(Type&& type, Args&&... args) {
     std::string result;
     result += stringify(type);
     result += " ";
@@ -144,7 +46,7 @@ struct ImmInstr {
     Reg rd; int imm;
 
     std::string stringify() const {
-        return concat(type, rd, imm);
+        return format(type, rd, imm);
     }
 };
 
@@ -153,7 +55,7 @@ struct RegInstr {
     Reg rd, rs;
 
     std::string stringify() const {
-        return concat(type, rd, rs);
+        return format(type, rd, rs);
     }
 };
 
@@ -162,7 +64,7 @@ struct RegRegInstr {
     Reg rd, rs1, rs2;
 
     std::string stringify() const {
-        return concat(type, rd, rs1, rs2);
+        return format(type, rd, rs1, rs2);
     }
 };
 
@@ -171,7 +73,7 @@ struct RegImmInstr {
     Reg rd, rs; int imm;
 
     std::string stringify() const {
-        return concat(type, rd, rs, imm);
+        return format(type, rd, rs, imm);
     }
 };
 
@@ -180,7 +82,7 @@ struct BranchInstr {
     Reg rs1, rs2; std::string label;
 
     std::string stringify() const {
-        return concat(type, rs1, rs2, label);
+        return format(type, rs1, rs2, label);
     }
 };
 
@@ -189,7 +91,7 @@ struct FRegInstr {
     FReg rd, rs;
 
     std::string stringify() const {
-        return concat(type, rd, rs);
+        return format(type, rd, rs);
     }
 };
 
@@ -198,7 +100,7 @@ struct FRegRegInstr {
     FReg rd; Reg rs;
 
     std::string stringify() const {
-        return concat(type, rd, rs);
+        return format(type, rd, rs);
     }
 };
 
@@ -207,7 +109,7 @@ struct RegFRegInstr {
     Reg rd; FReg rs;
 
     std::string stringify() const {
-        return concat(type, rd, rs);
+        return format(type, rd, rs);
     }
 };
 
@@ -216,7 +118,7 @@ struct FRegFRegInstr {
     FReg rd, rs1, rs2;
 
     std::string stringify() const {
-        return concat(type, rd, rs1, rs2);
+        return format(type, rd, rs1, rs2);
     }
 };
 
@@ -225,7 +127,7 @@ struct FCmpInstr {
     Reg rd; FReg rs1, rs2;
 
     std::string stringify() const {
-        return concat(type, rd, rs1, rs2);
+        return format(type, rd, rs1, rs2);
     }
 };
 
@@ -268,7 +170,7 @@ struct RegLabelInstr {
     Reg rd; std::string label;
 
     std::string stringify() const {
-        return concat(type, rd, label);
+        return format(type, rd, label);
     }
 };
 
@@ -276,7 +178,7 @@ struct JInstr {
     std::string label;
 
     std::string stringify() const {
-        return concat("j", label);
+        return format("j", label);
     }
 };
 
@@ -284,7 +186,7 @@ struct CallInstr {
     std::string label;
 
     std::string stringify() const {
-        return concat("call", label);
+        return format("call", label);
     }
 };
 
@@ -321,8 +223,8 @@ struct MachineInstr {
     }
 
     std::variant<
-        ImmInstr, RegInstr, RegRegInstr, RegImmInstr,
-        BranchInstr, FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
+        ImmInstr, RegInstr, RegRegInstr, RegImmInstr, BranchInstr,
+        FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
         RegImmRegInstr, FRegImmRegInstr, RegLabelInstr,
         JInstr, CallInstr, ReturnInstr
     > instr;
