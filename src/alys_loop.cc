@@ -35,17 +35,7 @@ void NaturalLoop::complete_loop() {
 
 LoopInfo::LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx) {
     my_assert(dom_ctx.unreachable_blocks.empty(), "no unreachable blocks");
-    Map<Ir::Block *, Set<Ir::Block *>> dom_set;
-    auto build_dom_set = [&dom_set,
-                          &dom_ctx](const auto &build_dom_set, Ir::Block *bb,
-                                    Set<Ir::Block *> idom_dom_set) -> void {
-        idom_dom_set.insert(bb);
-        dom_set[bb] = idom_dom_set;
-        for (auto succ : dom_ctx.dom_map.at(bb)->out_block)
-            build_dom_set(build_dom_set, succ->basic_block, idom_dom_set);
-    };
-
-    build_dom_set(build_dom_set, dom_ctx.order().front(), Set<Ir::Block *>{});
+    Map<Ir::Block *, Set<Ir::Block *>> dom_set = build_dom_set(dom_ctx);
 
     for (auto const &bb : dom_ctx.order()) {
         Ir::Block *find = nullptr;
@@ -62,9 +52,8 @@ LoopInfo::LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx) {
     print_loop();
 }
 
-inline bool
-LoopInfo::is_dom(Ir::Block *a, Ir::Block *b,
-                 const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
+inline bool is_dom(Ir::Block *a, Ir::Block *b,
+                   const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
     return dom_set.at(a).count(b) > 0;
 }
 
@@ -84,5 +73,23 @@ void LoopInfo::print_loop() const {
     }
 
     std::cerr << ret;
+}
+
+auto build_dom_set(const DomTree &dom_ctx)
+    -> Map<Ir::Block *, Set<Ir::Block *>> {
+    Map<Ir::Block *, Set<Ir::Block *>> dom_set;
+
+    auto cur_bb = dom_ctx.order().front();
+
+    std::function<void(Ir::Block *, Set<Ir::Block *>)> dfs_builder =
+        [&dom_set, &dfs_builder, &dom_ctx](Ir::Block *cur_bb,
+                                           Set<Ir::Block *> idom_doms) -> void {
+        idom_doms.insert(cur_bb);
+        dom_set[cur_bb] = idom_doms;
+        for (auto dom_succ : dom_ctx.dom_map.at(cur_bb)->out_block)
+            dfs_builder(dom_succ->basic_block, idom_doms);
+    };
+    dfs_builder(cur_bb, Set<Ir::Block *>{});
+    return dom_set;
 }
 } // namespace Alys

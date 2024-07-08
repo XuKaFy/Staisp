@@ -2,6 +2,7 @@
 
 #pragma once
 #include "alys_dom.h"
+#include "def.h"
 #include "ir_block.h"
 namespace Alys {
 
@@ -26,12 +27,14 @@ struct LoopInfo {
 
     LoopInfo() = delete;
     LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx);
-    // a is dominated by b
-    static inline bool
-    is_dom(Ir::Block *a, Ir::Block *b,
-           const Map<Ir::Block *, Set<Ir::Block *>> &dom_set);
-    // dom context for dominator relation
-    auto build_dom_set(Ir::Block *bb, Set<Ir::Block *> idom_dom_set) -> void;
     void print_loop() const;
 };
+
+// a is dominated by b
+bool is_dom(Ir::Block *a, Ir::Block *b,
+            const Map<Ir::Block *, Set<Ir::Block *>> &dom_set);
+// dom context for dominator relation
+auto build_dom_set(const DomTree &dom_ctx)
+    -> Map<Ir::Block *, Set<Ir::Block *>>;
+
 } // namespace Alys
