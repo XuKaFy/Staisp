@@ -3,11 +3,8 @@
 #include "alys_loop.h"
 #include "def.h"
 #include "ir_cmp_instr.h"
-#include "ir_constant.h"
 #include "ir_control_instr.h"
 #include "ir_instr.h"
-#include <cstddef>
-#include <utility>
 
 namespace Optimize {
 
@@ -123,7 +120,9 @@ void Canonicalizer_pass::ap() {
     for (auto cur_bb : cur_func) {
         auto back_instr = cur_bb->back();
         if (back_instr->instr_type() != Ir::INSTR_BR_COND) {
-            my_assert(back_instr->instr_type() == Ir::INSTR_BR, "br instr");
+            my_assert(back_instr->instr_type() == Ir::INSTR_BR ||
+                          back_instr->instr_type() == Ir::INSTR_RET,
+                      "br instr");
             continue;
         }
 
@@ -143,7 +142,7 @@ void Canonicalizer_pass::ap() {
             auto op2 = loop_comparator->operand(1)->usee;
             // TODO: rewrite op swap
             loop_comparator->release_operand(0);
-            loop_comparator->release_operand(1);
+            loop_comparator->release_operand(0);
             loop_comparator->add_operand(op2);
             loop_comparator->add_operand(op1);
             alter_cmp(loop_comparator->cmp_type);

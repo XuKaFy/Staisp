@@ -31,8 +31,10 @@ struct LoopInfo {
 };
 
 // a is dominated by b
-bool is_dom(Ir::Block *a, Ir::Block *b,
-            const Map<Ir::Block *, Set<Ir::Block *>> &dom_set);
+inline bool is_dom(Ir::Block *a, Ir::Block *b,
+                   const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
+    return dom_set.at(a).count(b) > 0;
+}
 // dom context for dominator relation
 auto build_dom_set(const DomTree &dom_ctx)
     -> Map<Ir::Block *, Set<Ir::Block *>>;

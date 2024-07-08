@@ -52,11 +52,6 @@ LoopInfo::LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx) {
     print_loop();
 }
 
-inline bool is_dom(Ir::Block *a, Ir::Block *b,
-                   const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
-    return dom_set.at(a).count(b) > 0;
-}
-
 void LoopInfo::print_loop() const {
     printf("%d: Total NaturalLoop cnts\n", loops.size());
     std::string ret;
