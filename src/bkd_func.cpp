@@ -8,10 +8,12 @@ String Func::print() const
 
     res += name;
     res += ":\n";
-    
-    for (auto &&i : body) {
-        res += i.print();
+
+    res += generate_prolog().print();
+    for (auto &&block : body) {
+        res += block.print();
     }
+    res += generate_epilog().print();
 
     return res;
 }

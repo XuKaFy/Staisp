@@ -59,13 +59,11 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
 
 Backend::Func FunctionConvertor::convert()
 {
-    bkd_func.body.resize(func->p.size() + 2);
-    int index = 0;
     for (auto && block : func->p) {
-        bkd_func.body[++index] = convert(block);
+        bkd_func.body.push_back(convert(block));
     }
-    bkd_func.body.front() = generate_prolog();
-    bkd_func.body.back() = generate_epilog();
+    bkd_func.excess_arguments = excess_arguments;
+    bkd_func.local_variables = local_variables;
     return bkd_func;
 }
 
@@ -631,86 +629,6 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
             break;
     }
     return bulk.bulk;
-}
-
-Backend::Block FunctionConvertor::generate_prolog() {
-    Backend::Block bkd_block(func->name() + "_prolog");
-    auto add = [&bkd_block](Backend::MachineInstr const& value) {
-        bkd_block.body.push_back(value);
-    };
-    {
-        int sp = calculate_sp();
-        add({ Backend::RegImmInstr {
-            Backend::RegImmInstrType::ADDI, Backend::Reg::SP, Backend::Reg::SP, -sp
-        } });
-        add({ Backend::RegImmRegInstr {
-            Backend::RegImmRegInstrType::SD, Backend::Reg::RA,  sp - 8, Backend::Reg::SP,
-        } });
-        add({ Backend::RegImmRegInstr {
-            Backend::RegImmRegInstrType::SD, Backend::Reg::S0,  sp - 16, Backend::Reg::SP,
-        } });
-        add({ Backend::RegImmInstr {
-            Backend::RegImmInstrType::ADDI, Backend::Reg::S0, Backend::Reg::SP, sp
-        } });
-    }
-    Backend::Reg arg = Backend::Reg::A0;
-    Backend::FReg farg = Backend::FReg::FA0;
-    int sp = 0;
-    int reg = 0;
-    auto ft = func->function_type();
-    for (auto&& at : ft->arg_type) {
-        if (is_float(at)) {
-            auto rd = (Backend::FReg) ~reg++;
-            auto rs = farg;
-            if (rs <= Backend::FReg::FA7) {
-                add({  Backend::FRegInstr{
-                    Backend::FRegInstrType::FMV_S, rd, rs
-                } });
-                farg = (Backend::FReg)((int)farg + 1);
-            } else {
-                add({ Backend::FRegImmRegInstr {
-                    Backend::FRegImmRegInstrType::FLW, rd,  sp, Backend::Reg::SP,
-                } });
-                sp += 8;
-            }
-        } else {
-            auto rd = (Backend::Reg) ~reg++;
-            auto rs = arg;
-            if (rs <= Backend::Reg::A7) {
-                add({  Backend::RegInstr{
-                    Backend::RegInstrType::MV, rd, rs
-                } });
-                arg = (Backend::Reg)((int)arg + 1);
-            } else {
-                add({ Backend::RegImmRegInstr {
-                    Backend::RegImmRegInstrType::LD, rd,  sp, Backend::Reg::SP,
-                } });
-                sp += 8;
-            }
-        }
-    }
-    return bkd_block;
-}
-
-Backend::Block FunctionConvertor::generate_epilog() {
-    Backend::Block bkd_block(func->name() + "_epilog");
-    auto add = [&bkd_block](Backend::MachineInstr const& value) {
-        bkd_block.body.push_back(value);
-    };
-    {
-        int sp = calculate_sp();
-        add({ Backend::RegImmRegInstr {
-            Backend::RegImmRegInstrType::LD, Backend::Reg::RA,  8, Backend::Reg::SP,
-        } });
-        add({ Backend::RegImmRegInstr {
-            Backend::RegImmRegInstrType::LD, Backend::Reg::S0,  0, Backend::Reg::SP,
-        } });
-        add({ Backend::RegImmInstr {
-            Backend::RegImmInstrType::ADDI, Backend::Reg::SP, Backend::Reg::SP, sp
-        } });
-        add({ Backend::ReturnInstr{} });
-    }
-    return bkd_block;
 }
 
 } // namespace BackendConvertor

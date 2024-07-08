@@ -25,20 +25,12 @@ struct FunctionConvertor {
     Ir::pFuncDefined func;
     Backend::Func bkd_func;
     explicit FunctionConvertor(Ir::pFuncDefined func)
-        : func(std::move(func)), bkd_func(this->func->name()) {}
+        : func(std::move(func)), bkd_func(this->func->name(), this->func->function_type()) {}
 
     Backend::Func convert();
     Backend::Block convert(const Ir::pBlock &block);
     Backend::MachineInstrs convert(const Ir::pInstr &instr);
 
-    Backend::Block generate_prolog();
-    Backend::Block generate_epilog();
-
-    int calculate_sp() const {
-        int sp = local_variables + excess_arguments;
-        if (sp % 8 != 0) sp += 8 - sp % 8;
-        return sp;
-    }
 };
 
 } // namespace BackendConvertor
