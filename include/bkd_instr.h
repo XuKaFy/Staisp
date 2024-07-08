@@ -271,7 +271,7 @@ struct ReturnInstr {
     }
 
     std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {Reg::RA}; }
+    std::vector<Reg> use() const { return {}; }
     std::vector<FReg> fdef() const { return {}; }
     std::vector<FReg> fuse() const { return {}; }
 };

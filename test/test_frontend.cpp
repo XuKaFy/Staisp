@@ -57,7 +57,7 @@ void judge(const std::string &id, const std::string& ll, const std::string &in, 
 }
 
 // ulimit -s 16384
-void run_sysy(const std::string &filename) {
+void test_sysy_frontend(const std::string &filename) {
     auto id = get_id(filename);
     auto path = get_path(filename);
     Stopwatch stopwatch;
