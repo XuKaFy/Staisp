@@ -88,4 +88,75 @@ Block Func::generate_epilog() const {
 }
 
 
+bool BlockValue::operator==(const BlockValue &b) const {
+    return uses == b.uses && fuses == b.fuses;
+}
+
+bool BlockValue::operator!=(const BlockValue &b) const {
+    return !operator==(b);
+}
+
+void BlockValue::cup(const BlockValue &v) {
+    for (const auto &i : v.uses) {
+        uses.insert(i);
+    }
+    for (const auto &i : v.fuses) {
+        fuses.insert(i);
+    }
+}
+
+void BlockValue::clear() {
+    uses.clear();
+    fuses.clear();
+}
+
+void TransferFunction::operator()(const Block *p, BlockValue &v) {
+
+}
+
+int TransferFunction::operator()(const Block *p, const BlockValue &IN, const BlockValue &OUT) {
+
+}
+
+int from_bottom_analysis(Func &p) {
+    Map<const Block *, BlockValue> INs;
+    Map<const Block *, BlockValue> OUTs;
+    std::deque<const Block *> pending_blocks;
+    TransferFunction transfer;
+    int ans = 0;
+    for (const auto &i : p.body) {
+        INs[&i] = BlockValue();
+        OUTs[&i] = BlockValue();
+        pending_blocks.push_back(&i);
+    }
+    while (!pending_blocks.empty()) {
+        const Block *b = *pending_blocks.begin();
+        pending_blocks.pop_front();
+
+        BlockValue old_IN = INs[b];
+        BlockValue &IN = INs[b];
+        BlockValue &OUT = OUTs[b];
+
+        OUT.clear();
+        auto out_block = b->out_blocks();
+        if (!out_block.empty()) {
+            OUT = INs[*out_block.begin()];
+            for (auto block : out_block) {
+                OUT.cup(INs[block]);
+            }
+        }
+
+        IN = OUT;
+        transfer(b, IN); // transfer function
+
+        if (old_IN != IN) {
+            auto in_block = b->in_blocks();
+            pending_blocks.insert(pending_blocks.end(), in_block.begin(), in_block.end());
+        }
+    }
+    for (const auto &i : p.body) {
+        ans += transfer(&i, INs[&i], OUTs[&i]);
+    }
+    return ans;
+}
 }

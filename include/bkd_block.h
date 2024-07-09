@@ -1,10 +1,7 @@
 #pragma once
 
-#include <bkd_module.h>
-
 #include "def.h"
 #include "bkd_instr.h"
-#include <memory>
 
 namespace Backend {
 
@@ -58,50 +55,5 @@ struct Block {
         return {};
     }
 };
-
-// copied from DFA, for liveness analysis
-template <typename BlockValue, typename TransferFunction>
-int from_bottom_analysis(Func &p) {
-    Map<Block *, BlockValue> INs;
-    Map<Block *, BlockValue> OUTs;
-    std::deque<Block *> pending_blocks;
-    TransferFunction transfer;
-    int ans = 0;
-    for (const auto &i : p.body) {
-        INs[&i] = BlockValue();
-        OUTs[&i] = BlockValue();
-        pending_blocks.push_back(&i);
-    }
-    while (!pending_blocks.empty()) {
-        Block *b = *pending_blocks.begin();
-        pending_blocks.pop_front();
-
-        BlockValue old_IN = INs[b];
-        BlockValue &IN = INs[b];
-        BlockValue &OUT = OUTs[b];
-
-        OUT.clear();
-        auto out_block = b->out_blocks();
-        if (!out_block.empty()) {
-            OUT = INs[*out_block.begin()];
-            for (auto block : out_block) {
-                OUT.cup(INs[block]);
-            }
-        }
-
-        IN = OUT;
-        transfer(b, IN); // transfer function
-
-        if (old_IN != IN) {
-            auto in_block = b->in_blocks();
-            pending_blocks.insert(pending_blocks.end(), in_block.begin(), in_block.end());
-        }
-    }
-    for (const auto &i : p.body) {
-        ans += transfer(i, INs[&i], OUTs[&i]);
-    }
-    return ans;
-}
-
 
 } // namespace Backend

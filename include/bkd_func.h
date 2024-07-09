@@ -39,4 +39,24 @@ struct Func {
 
 };
 
+struct BlockValue {
+    bool operator==(const BlockValue &b) const;
+    bool operator!=(const BlockValue &b) const;
+
+    void cup(const BlockValue &v);
+
+    void clear();
+
+    Set<Reg> uses;
+    Set<FReg> fuses;
+};
+
+struct TransferFunction {
+    void operator()(const Block *p, BlockValue &v);
+    int operator()(const Block *p, const BlockValue &IN, const BlockValue &OUT);
+};
+
+// copied from DFA, for liveness analysis
+int from_bottom_analysis(Func &p);
+
 } // namespace Backend
