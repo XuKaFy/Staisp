@@ -5,7 +5,6 @@
 namespace Backend {
 
 void Func::allocate_register() {
-
 }
 
 
