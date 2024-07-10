@@ -19,7 +19,7 @@ struct Func {
 
     Vector<Block> body;
 
-
+    int live_register_analysis();
     void allocate_register();
     bool peephole();
 

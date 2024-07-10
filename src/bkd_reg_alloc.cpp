@@ -111,20 +111,37 @@ void BlockValue::clear() {
 }
 
 void TransferFunction::operator()(const Block *p, BlockValue &v) {
+    // in = use + (in - def)
+    auto use = p->use();
+    auto fuse = p->fuse();
+    auto def = p->def();
+    auto fdef = p->fdef();
 
+    for (auto i : def) {
+        v.uses.erase(i);
+    }
+    for (auto i : fdef) {
+        v.fuses.erase(i);
+    }
+    for (auto i : use) {
+        v.uses.insert(i);
+    }
+    for (auto i : fuse) {
+        v.fuses.insert(i);
+    }
 }
 
 int TransferFunction::operator()(const Block *p, const BlockValue &IN, const BlockValue &OUT) {
 
 }
 
-int from_bottom_analysis(Func &p) {
+int Func::live_register_analysis() {
     Map<const Block *, BlockValue> INs;
     Map<const Block *, BlockValue> OUTs;
     std::deque<const Block *> pending_blocks;
     TransferFunction transfer;
     int ans = 0;
-    for (const auto &i : p.body) {
+    for (const auto &i : body) {
         INs[&i] = BlockValue();
         OUTs[&i] = BlockValue();
         pending_blocks.push_back(&i);
@@ -154,7 +171,7 @@ int from_bottom_analysis(Func &p) {
             pending_blocks.insert(pending_blocks.end(), in_block.begin(), in_block.end());
         }
     }
-    for (const auto &i : p.body) {
+    for (const auto &i : body) {
         ans += transfer(&i, INs[&i], OUTs[&i]);
     }
     return ans;
