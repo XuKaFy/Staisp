@@ -11,26 +11,11 @@
 #include "ir_instr.h"
 #include "ir_module.h"
 
-namespace IrToAsm {
+namespace Backend {
 
 struct Convertor {
-    Backend::pModule convert(const Ir::pModule &mod);
-    Backend::Global convert(const Ir::pGlobal &glob);
-};
-
-struct FunctionConvertor {
-    int allocate_register = 32;
-    int excess_arguments = 0;
-    int local_variables = 16; // for ra and fp
-    Ir::pFuncDefined func;
-    Backend::Func bkd_func;
-    explicit FunctionConvertor(Ir::pFuncDefined func)
-        : func(std::move(func)), bkd_func(this->func->name(), this->func->function_type()) {}
-
-    Backend::Func convert();
-    Backend::Block convert(const Ir::pBlock &block);
-    Backend::MachineInstrs convert(const Ir::pInstr &instr);
-
+    Module convert(const Ir::pModule &mod);
+    Global convert(const Ir::pGlobal &glob);
 };
 
 } // namespace BackendConvertor

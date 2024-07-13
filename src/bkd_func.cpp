@@ -2,7 +2,7 @@
 
 namespace Backend {
 
-String Func::print() const
+String Func::generate_asm() const
 {
     String res;
 
@@ -10,7 +10,7 @@ String Func::print() const
     res += ":\n";
 
     res += generate_prolog().print();
-    for (auto &&block : body) {
+    for (auto &&block : blocks) {
         res += block.print();
     }
     res += generate_epilog().print();

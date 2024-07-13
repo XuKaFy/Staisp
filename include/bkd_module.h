@@ -12,6 +12,4 @@ struct Module {
     Vector<Global> globs;
 };
 
-typedef Pointer<Module> pModule;
-
 } // namespace Backend

@@ -10,6 +10,7 @@
 #include "bkd_instr.h"
 #include "bkd_module.h"
 #include "bkd_reg.h"
+#include "bkd_func.h"
 #include "def.h"
 #include "imm.h"
 #include "ir_instr.h"
@@ -21,29 +22,28 @@
 #include <string>
 #include <utility>
 
-namespace IrToAsm {
+namespace Backend {
 
 [[noreturn]] void unreachable() {
     my_assert(false, "unreachable");
 }
 
-Backend::pModule Convertor::convert(const Ir::pModule &mod)
+Module Convertor::convert(const Ir::pModule &mod)
 {
-    auto bkd_mod = std::make_shared<Backend::Module>();
+    Module module;
 
     for (auto && global : mod->globs) {
-        bkd_mod->globs.push_back(convert(global));
+        module.globs.push_back(convert(global));
     }
-    
+
     for (auto && func : mod->funsDefined) {
-        FunctionConvertor convertor(func);
-        bkd_mod->funcs.push_back(convertor.convert());
+        module.funcs.emplace_back(func);
     }
-    
-    return bkd_mod;
+
+    return module;
 }
 
-Backend::Global Convertor::convert(const Ir::pGlobal &glob)
+Global Convertor::convert(const Ir::pGlobal &glob)
 {
     const auto& con = glob->con.v;
     auto name = glob->name().substr(1);
@@ -57,22 +57,19 @@ Backend::Global Convertor::convert(const Ir::pGlobal &glob)
     unreachable();
 }
 
-Backend::Func FunctionConvertor::convert()
+void Func::translate()
 {
-    for (auto && block : func->p) {
-        bkd_func.body.push_back(convert(block));
+    for (auto && block : ir_func->p) {
+        blocks.push_back(translate(block));
     }
-    bkd_func.excess_arguments = excess_arguments;
-    bkd_func.local_variables = local_variables;
-    return bkd_func;
 }
 
-Backend::Block FunctionConvertor::convert(const Ir::pBlock &block)
+Block Func::translate(const Ir::pBlock &block)
 {
-    Backend::Block bkd_block(func->name() + "_" + block->label()->name());
+    Block bkd_block(ir_func->name() + "_" + block->label()->name());
 
     for (auto && instr : *block) {
-        auto res = convert(instr);
+        auto res = translate(instr);
         bkd_block.body.insert(bkd_block.body.end(),
             std::move_iterator(res.begin()), std::move_iterator(res.end()));
     }
@@ -81,14 +78,12 @@ Backend::Block FunctionConvertor::convert(const Ir::pBlock &block)
 }
 
 struct ConvertBulk {
-    Backend::MachineInstrs bulk;
-    Ir::pFuncDefined func;
-    int& allocate_register;
-    int& local_variables;
-    explicit ConvertBulk(Ir::pFuncDefined func, int& allocate_register, int& local_variables)
-        : func(std::move(func)), allocate_register(allocate_register), local_variables(local_variables) {}
+    MachineInstrs bulk;
+    Func& func;
+    explicit ConvertBulk(Func& func)
+        : func(func) {}
 
-    void add(Backend::MachineInstr const& value) {
+    void add(MachineInstr const& value) {
         bulk.push_back(value);
     }
 
@@ -114,41 +109,41 @@ struct ConvertBulk {
         }
     }
 
-    static constexpr Backend::Reg NO_HINT = (Backend::Reg) 32;
-    static constexpr Backend::FReg NO_HINT_F = (Backend::FReg) 32;
+    static constexpr Reg NO_HINT = (Reg) 32;
+    static constexpr FReg NO_HINT_F = (FReg) 32;
 
-    Backend::Reg allocate_reg() {
-        return (Backend::Reg) ++allocate_register;
+    Reg allocate_reg() {
+        return (Reg) func.next_reg();
     }
 
-    Backend::FReg allocate_freg() {
-        return (Backend::FReg) ++allocate_register;
+    FReg allocate_freg() {
+        return (FReg) func.next_reg();
     }
 
-    Backend::Reg toReg(Ir::Val* val, Backend::Reg tmp_hint = NO_HINT) {
+    Reg toReg(Ir::Val* val, Reg tmp_hint = NO_HINT) {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
             // %0 => -1
-            return (Backend::Reg) ~std::stoi(name.substr(1));
+            return (Reg) ~std::stoi(name.substr(1));
         }
         if (tmp_hint == NO_HINT) tmp_hint = allocate_reg();
         // if it is a immediate, load it
-        add({Backend::ImmInstr {
-            Backend::ImmInstrType::LI, tmp_hint, std::stoi(name)
+        add({ImmInstr {
+            ImmInstrType::LI, tmp_hint, std::stoi(name)
         } });
         return tmp_hint;
     }
 
-    Backend::FReg toFReg(Ir::Val* val, Backend::FReg tmp_hint = NO_HINT_F) {
+    FReg toFReg(Ir::Val* val, FReg tmp_hint = NO_HINT_F) {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
             // %0 => -1
-            return (Backend::FReg) ~std::stoi(name.substr(1));
+            return (FReg) ~std::stoi(name.substr(1));
         }
         if (tmp_hint == NO_HINT_F) tmp_hint = allocate_freg();
-        auto tmp = (Backend::Reg) ++allocate_register;
+        auto tmp = allocate_reg();
         // if it is a immediate, load it
         // lLVM store float constant into hexadecimal integral representation of corresponding double value
         union {
@@ -161,70 +156,70 @@ struct ConvertBulk {
             int x;
         };
         f = d;
-        add({Backend::ImmInstr {
-            Backend::ImmInstrType::LI, tmp, x
+        add({ImmInstr {
+            ImmInstrType::LI, tmp, x
         } });
-        add({ Backend::FRegRegInstr {
-            Backend::FRegRegInstrType::FMV_S_X, tmp_hint, tmp
+        add({ FRegRegInstr {
+            FRegRegInstrType::FMV_S_X, tmp_hint, tmp
         } });
         return tmp_hint;
     }
 
-    Backend::RegRegInstrType selectRRType(ImmType ty, Ir::BinInstrType bin) {
+    RegRegInstrType selectRRType(ImmType ty, Ir::BinInstrType bin) {
         switch (bin) {
             case Ir::INSTR_ADD:
                 return selector(ty,
-                    Backend::RegRegInstrType::ADD,
-                    Backend::RegRegInstrType::ADDW);
+                    RegRegInstrType::ADD,
+                    RegRegInstrType::ADDW);
             case Ir::INSTR_SUB:
                 return selector(ty,
-                    Backend::RegRegInstrType::SUB,
-                    Backend::RegRegInstrType::SUBW);
+                    RegRegInstrType::SUB,
+                    RegRegInstrType::SUBW);
             case Ir::INSTR_MUL:
                 return selector(ty,
-                    Backend::RegRegInstrType::MUL,
-                    Backend::RegRegInstrType::MULW);
+                    RegRegInstrType::MUL,
+                    RegRegInstrType::MULW);
             case Ir::INSTR_SDIV:
             case Ir::INSTR_UDIV:
                 return selector(ty,
-                    Backend::RegRegInstrType::DIV,
-                    Backend::RegRegInstrType::DIVW);
+                    RegRegInstrType::DIV,
+                    RegRegInstrType::DIVW);
             case Ir::INSTR_SREM:
             case Ir::INSTR_UREM:
                 return selector(ty,
-                    Backend::RegRegInstrType::REM,
-                    Backend::RegRegInstrType::REMW);
+                    RegRegInstrType::REM,
+                    RegRegInstrType::REMW);
             case Ir::INSTR_AND:
-                return Backend::RegRegInstrType::AND;
+                return RegRegInstrType::AND;
             case Ir::INSTR_OR:
-                return Backend::RegRegInstrType::OR;
+                return RegRegInstrType::OR;
             case Ir::INSTR_ASHR:
                 return selector(ty,
-                    Backend::RegRegInstrType::SRA,
-                    Backend::RegRegInstrType::SRAW);
+                    RegRegInstrType::SRA,
+                    RegRegInstrType::SRAW);
                 case Ir::INSTR_LSHR:
                 return selector(ty,
-                    Backend::RegRegInstrType::SRL,
-                    Backend::RegRegInstrType::SRLW);
+                    RegRegInstrType::SRL,
+                    RegRegInstrType::SRLW);
             case Ir::INSTR_SHL:
                 return selector(ty,
-                    Backend::RegRegInstrType::SLL,
-                    Backend::RegRegInstrType::SLLW);
+                    RegRegInstrType::SLL,
+                    RegRegInstrType::SLLW);
             default:
                 unreachable();
         }
     }
 
-    Backend::FRegFRegInstrType selectFRFRType(ImmType ty, Ir::BinInstrType bin) {
+    FRegFRegInstrType selectFRFRType(ImmType ty, Ir::BinInstrType bin) {
         switch (bin) {
             case Ir::INSTR_FADD:
-                return Backend::FRegFRegInstrType::FADD_S;
+                return FRegFRegInstrType::FADD_S;
             case Ir::INSTR_FSUB:
-                return Backend::FRegFRegInstrType::FSUB_S;
+                return FRegFRegInstrType::FSUB_S;
             case Ir::INSTR_FMUL:
-                return Backend::FRegFRegInstrType::FMUL_S;
+                return FRegFRegInstrType::FMUL_S;
             case Ir::INSTR_FDIV:
-                return Backend::FRegFRegInstrType::FDIV_S;
+                return FRegFRegInstrType::FDIV_S;
             default:
                 unreachable();
         }
@@ -233,8 +228,8 @@ struct ConvertBulk {
     void convert_unary_instr(const Pointer<Ir::UnaryInstr> &instr) {
         auto rd = toFReg(instr.get(), {});
         auto rs = toFReg(instr->operand(0)->usee, rd);
-        add({ Backend::FRegInstr {
-                Backend::FRegInstrType::FNEG_S, rd, rs,
+        add({ FRegInstr {
+                FRegInstrType::FNEG_S, rd, rs,
         } });
     }
 
@@ -243,14 +238,14 @@ struct ConvertBulk {
             auto rd = toFReg(instr.get());
             auto rs1 = toFReg(instr->operand(0)->usee, rd);
             auto rs2 = toFReg(instr->operand(1)->usee, rd);
-            add({ Backend::FRegFRegInstr {
+            add({ FRegFRegInstr {
                 selectFRFRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
             } });
         } else {
             auto rd = toReg(instr.get());
             auto rs1 = toReg(instr->operand(0)->usee, rd);
             auto rs2 = toReg(instr->operand(1)->usee, rd);
-            add({ Backend::RegRegInstr {
+            add({ RegRegInstr {
                 selectRRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
             } });
         }
@@ -260,22 +255,22 @@ struct ConvertBulk {
         auto ret = std::static_pointer_cast<Ir::RetInstr>(instr);
         if (ret->operand_size() > 0) {
             if (is_float(instr->ty)) {
-                auto fa0 = Backend::FReg::FA0;
-                add({ Backend::FRegInstr{
-                    Backend::FRegInstrType::FMV_S,
+                auto fa0 = FReg::FA0;
+                add({ FRegInstr{
+                    FRegInstrType::FMV_S,
                     fa0,
                     toFReg(ret->operand(0)->usee, fa0)
                 } });
             } else {
-                auto a0 = Backend::Reg::A0;
-                add({ Backend::RegInstr{
-                    Backend::RegInstrType::MV,
+                auto a0 = Reg::A0;
+                add({ RegInstr{
+                    RegInstrType::MV,
                     a0,
                     toReg(ret->operand(0)->usee, a0)
                 } });
             }
         }
-        add({ Backend::JInstr { func->name() + "_epilog" } });
+        add({ JInstr { func.name + "_epilog" } });
     }
 
     void convert_cast_instr(const Pointer<Ir::CastInstr> &instr) {
@@ -291,8 +286,8 @@ struct ConvertBulk {
             case Ir::CAST_ZEXT: {
                 auto rs = toReg(instr->operand(0)->usee);
                 auto rd = toReg(instr.get());
-                add({ Backend::RegInstr{
-                    Backend::RegInstrType::MV, rd, rs
+                add({ RegInstr{
+                    RegInstrType::MV, rd, rs
                 } });
                 break;
             }
@@ -300,8 +295,8 @@ struct ConvertBulk {
             case Ir::CAST_UITOFP: {
                 auto rs = toReg(instr->operand(0)->usee);
                 auto rd = toFReg(instr.get());
-                add({ Backend::FRegRegInstr{
-                    Backend::FRegRegInstrType::FCVT_S_W, rd, rs
+                add({ FRegRegInstr{
+                    FRegRegInstrType::FCVT_S_W, rd, rs
                 } });
                 break;
             }
@@ -309,8 +304,8 @@ struct ConvertBulk {
             case Ir::CAST_FPTOUI: {
                 auto rs = toFReg(instr->operand(0)->usee);
                 auto rd = toReg(instr.get());
-                add({ Backend::RegFRegInstr{
-                    Backend::RegFRegInstrType::FCVT_W_S,
+                add({ RegFRegInstr{
+                    RegFRegInstrType::FCVT_W_S,
                     rd, rs
                 } });
                 break;
@@ -326,36 +321,36 @@ struct ConvertBulk {
             auto rs2 = toFReg(instr->operand(1)->usee);
             switch (instr->cmp_type) {
                 case Ir::CMP_OEQ:
-                    add({ Backend::FCmpInstr {
-                        Backend::FCmpInstrType::FEQ_S, rd, rs1, rs2,
+                    add({ FCmpInstr {
+                        FCmpInstrType::FEQ_S, rd, rs1, rs2,
                     } });
                     break;
                 case Ir::CMP_OGT:
-                    add({ Backend::FCmpInstr {
-                        Backend::FCmpInstrType::FLT_S, rd, rs2, rs1,
+                    add({ FCmpInstr {
+                        FCmpInstrType::FLT_S, rd, rs2, rs1,
                     } });
                     break;
                 case Ir::CMP_OGE:
-                    add({ Backend::FCmpInstr {
-                        Backend::FCmpInstrType::FLE_S, rd, rs2, rs1,
+                    add({ FCmpInstr {
+                        FCmpInstrType::FLE_S, rd, rs2, rs1,
                     } });
                     break;
                 case Ir::CMP_OLT:
-                    add({ Backend::FCmpInstr {
-                        Backend::FCmpInstrType::FLT_S, rd, rs1, rs2,
+                    add({ FCmpInstr {
+                        FCmpInstrType::FLT_S, rd, rs1, rs2,
                     } });
                     break;
                 case Ir::CMP_OLE:
-                    add({ Backend::FCmpInstr {
-                        Backend::FCmpInstrType::FLE_S, rd, rs1, rs2,
+                    add({ FCmpInstr {
+                        FCmpInstrType::FLE_S, rd, rs1, rs2,
                     } });
                     break;
                 case Ir::CMP_UNE:
-                    add({ Backend::FCmpInstr {
-                        Backend::FCmpInstrType::FEQ_S, rd, rs1, rs2,
+                    add({ FCmpInstr {
+                        FCmpInstrType::FEQ_S, rd, rs1, rs2,
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SEQZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SEQZ, rd, rd
                     } });
                     break;
                 default:
@@ -367,61 +362,61 @@ struct ConvertBulk {
             auto rs2 = toReg(instr->operand(1)->usee, rd);
             switch (instr->cmp_type) {
                 case Ir::CMP_EQ:
-                    add({ Backend::RegRegInstr {
-                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    add({ RegRegInstr {
+                        RegRegInstrType::SUB, rd, rs1, rs2
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SEQZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SEQZ, rd, rd
                     } });
                     break;
                 case Ir::CMP_NE:
-                    add({ Backend::RegRegInstr {
-                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    add({ RegRegInstr {
+                        RegRegInstrType::SUB, rd, rs1, rs2
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SNEZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SNEZ, rd, rd
                     } });
                     break;
                 case Ir::CMP_ULT:
                 case Ir::CMP_SLT:
-                    add({ Backend::RegRegInstr {
-                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    add({ RegRegInstr {
+                        RegRegInstrType::SUB, rd, rs1, rs2
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SLTZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SLTZ, rd, rd
                     } });
                     break;
                 case Ir::CMP_UGE:
                 case Ir::CMP_SGE:
-                    add({ Backend::RegRegInstr {
-                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    add({ RegRegInstr {
+                        RegRegInstrType::SUB, rd, rs1, rs2
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SLTZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SLTZ, rd, rd
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SEQZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SEQZ, rd, rd
                     } });
                     break;
                 case Ir::CMP_UGT:
                 case Ir::CMP_SGT:
-                    add({ Backend::RegRegInstr {
-                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    add({ RegRegInstr {
+                        RegRegInstrType::SUB, rd, rs1, rs2
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SGTZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SGTZ, rd, rd
                     } });
                     break;
                 case Ir::CMP_ULE:
                 case Ir::CMP_SLE:
-                    add({ Backend::RegRegInstr {
-                        Backend::RegRegInstrType::SUB, rd, rs1, rs2
+                    add({ RegRegInstr {
+                        RegRegInstrType::SUB, rd, rs1, rs2
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SGTZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SGTZ, rd, rd
                     } });
-                    add({ Backend::RegInstr {
-                        Backend::RegInstrType::SEQZ, rd, rd
+                    add({ RegInstr {
+                        RegInstrType::SEQZ, rd, rd
                     } });
                     break;
                 default:
@@ -433,75 +428,75 @@ struct ConvertBulk {
 
     void convert_branch_instr(const Pointer<Ir::BrCondInstr> &instr) {
         auto rs = toReg(instr->operand(0)->usee);
-        auto label1 = func->name() + "_" + instr->operand(1)->usee->name();
-        auto label2 = func->name() + "_" + instr->operand(2)->usee->name();
+        auto label1 = func.name + "_" + instr->operand(1)->usee->name();
+        auto label2 = func.name + "_" + instr->operand(2)->usee->name();
         // else branch: beqz rs label2, tend to be remote
-        add({ Backend::RegLabelInstr{Backend::RegLabelInstrType::BEQZ, rs,  label2 } });
+        add({ RegLabelInstr{RegLabelInstrType::BEQZ, rs,  label2 } });
         // then branch: tend to follow current basic block
-        add({ Backend::JInstr{ label1 } });
+        add({ JInstr{ label1 } });
     }
 
     int convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
-        Backend::Reg arg = Backend::Reg::A0;
-        Backend::FReg farg = Backend::FReg::FA0;
+        Reg arg = Reg::A0;
+        FReg farg = FReg::FA0;
         int sp = 0;
         for (size_t i = 1; i < instr->operand_size(); ++i) {
             auto param = instr->operand(i)->usee;
             if (is_float(param->ty)) {
                 auto rd = farg;
                 auto rs = toFReg(param);
-                if (rd <= Backend::FReg::FA7) {
-                    add({  Backend::FRegInstr{
-                        Backend::FRegInstrType::FMV_S, rd, rs
+                if (rd <= FReg::FA7) {
+                    add({  FRegInstr{
+                        FRegInstrType::FMV_S, rd, rs
                     } });
-                    farg = (Backend::FReg)((int)farg + 1);
+                    farg = (FReg)((int)farg + 1);
                 } else {
-                    add({ Backend::FRegImmRegInstr {
-                        Backend::FRegImmRegInstrType::FSW, rs,  sp, Backend::Reg::SP,
+                    add({ FRegImmRegInstr {
+                        FRegImmRegInstrType::FSW, rs,  sp, Reg::SP,
                     } });
                     sp += 8;
                 }
             } else {
                 auto rd = arg;
                 auto rs = toReg(param);
-                if (rd <= Backend::Reg::A7) {
-                    add({  Backend::RegInstr{
-                        Backend::RegInstrType::MV, rd, rs
+                if (rd <= Reg::A7) {
+                    add({  RegInstr{
+                        RegInstrType::MV, rd, rs
                     } });
-                    arg = (Backend::Reg)((int)arg + 1);
+                    arg = (Reg)((int)arg + 1);
                 } else {
-                    add({ Backend::RegImmRegInstr {
-                        Backend::RegImmRegInstrType::SD, rs,  sp, Backend::Reg::SP,
+                    add({ RegImmRegInstr {
+                        RegImmRegInstrType::SD, rs,  sp, Reg::SP,
                     } });
                     sp += 8;
                 }
             }
         }
-        add({ Backend::CallInstr{instr->operand(0)->usee->name()} });
+        add({ CallInstr{instr->operand(0)->usee->name()} });
         auto rt = instr->func_ty->ret_type;
         if (is_float(rt)) {
             auto rd = toFReg(instr.get());
-            auto fa0 = Backend::FReg::FA0;
-            add({ Backend::FRegInstr{
-                Backend::FRegInstrType::FMV_S, rd, fa0
+            auto fa0 = FReg::FA0;
+            add({ FRegInstr{
+                FRegInstrType::FMV_S, rd, fa0
             } });
         } else if (is_integer(rt)) {
             auto rd = toReg(instr.get());
-            auto a0 = Backend::Reg::A0;
-            add({ Backend::RegInstr{
-                Backend::RegInstrType::MV, rd, a0
+            auto a0 = Reg::A0;
+            add({ RegInstr{
+                RegInstrType::MV, rd, a0
             } });
         }
         return sp;
     }
 
-    Backend::Reg load_address(Ir::Val* val) {
+    Reg load_address(Ir::Val* val) {
         auto name = val->name();
         if (name[0] == '@') {
             // global
             auto rd = allocate_reg();
-            add({ Backend::RegLabelInstr{
-                Backend::RegLabelInstrType::LA, rd, name.substr(1)
+            add({ RegLabelInstr{
+                RegLabelInstrType::LA, rd, name.substr(1)
             } });
             return rd;
         }
@@ -512,13 +507,13 @@ struct ConvertBulk {
         auto address = load_address(instr->operand(0)->usee);
         if (is_float(instr->ty)) {
             auto rs = toFReg(instr->operand(1)->usee);
-            add({ Backend::FRegImmRegInstr{
-                Backend::FRegImmRegInstrType::FSW, rs, 0, address
+            add({ FRegImmRegInstr{
+                FRegImmRegInstrType::FSW, rs, 0, address
             } });
         } else {
             auto rs = toReg(instr->operand(1)->usee);
-            add({ Backend::RegImmRegInstr{
-                Backend::RegImmRegInstrType::SW, rs, 0, address
+            add({ RegImmRegInstr{
+                RegImmRegInstrType::SW, rs, 0, address
             } });
         }
     }
@@ -527,13 +522,13 @@ struct ConvertBulk {
         auto address = load_address(instr->operand(0)->usee);
         if (is_float(instr->ty)) {
             auto rd = toFReg(instr.get());
-            add({ Backend::FRegImmRegInstr{
-                Backend::FRegImmRegInstrType::FLW, rd, 0, address
+            add({ FRegImmRegInstr{
+                FRegImmRegInstrType::FLW, rd, 0, address
             } });
         } else {
             auto rd = toReg(instr.get());
-            add({ Backend::RegImmRegInstr{
-                Backend::RegImmRegInstrType::LW, rd, 0, address
+            add({ RegImmRegInstr{
+                RegImmRegInstrType::LW, rd, 0, address
             } });
         }
     }
@@ -551,18 +546,18 @@ struct ConvertBulk {
             type = to_elem_type(type);
             int step = type->length();
             auto index = instr->operand(dim++)->usee;
-            add({Backend::ImmInstr {
-                Backend::ImmInstrType::LI, rd, step
+            add({ImmInstr {
+                ImmInstrType::LI, rd, step
             } });
-            add({ Backend::RegRegInstr {
-                Backend::RegRegInstrType::MUL, rd, rd, toReg(index)
+            add({ RegRegInstr {
+                RegRegInstrType::MUL, rd, rd, toReg(index)
             } });
-            add({ Backend::RegRegInstr {
-                Backend::RegRegInstrType::ADD, rs, rs, rd
+            add({ RegRegInstr {
+                RegRegInstrType::ADD, rs, rs, rd
             } });
         }
-        add({  Backend::RegInstr{
-            Backend::RegInstrType::MV, rd, rs
+        add({  RegInstr{
+            RegInstrType::MV, rd, rs
         } });
     }
 
@@ -571,24 +566,24 @@ struct ConvertBulk {
         int size = type->length();
         if (size == 1) size = 4; // for bool
         assert(size % 4 == 0);
-        local_variables += size;
+        func.local_variables += size;
         auto rd = toReg(instr.get());
-        add({  Backend::RegImmInstr{
-            Backend::RegImmInstrType::ADDI, rd, Backend::Reg::S0, -local_variables
+        add({  RegImmInstr{
+            RegImmInstrType::ADDI, rd, Reg::S0, -func.local_variables
         } });
     }
 
 };
 
-Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
+MachineInstrs Func::translate(const Ir::pInstr &instr)
 {
-    ConvertBulk bulk(func, allocate_register, local_variables);
+    ConvertBulk bulk(*this);
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
             bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
             break;
         case Ir::INSTR_BR:
-            bulk.add({ Backend::JInstr{ func->name() + "_" + instr->operand(0)->usee->name() } });
+            bulk.add({ JInstr{ name + "_" + instr->operand(0)->usee->name() } });
             break;
         case Ir::INSTR_BR_COND:
             bulk.convert_branch_instr(std::static_pointer_cast<Ir::BrCondInstr>(instr));
@@ -630,6 +625,87 @@ Backend::MachineInstrs FunctionConvertor::convert(const Ir::pInstr &instr)
     }
     return bulk.bulk;
 }
+
+
+Block Func::generate_prolog() const {
+    Block bkd_block(name + "_prolog");
+    auto add = [&bkd_block](MachineInstr const& value) {
+        bkd_block.body.push_back(value);
+    };
+    {
+        int sp = calculate_sp();
+        add({ RegImmInstr {
+            RegImmInstrType::ADDI, Reg::SP, Reg::SP, -sp
+        } });
+        add({ RegImmRegInstr {
+            RegImmRegInstrType::SD, Reg::RA,  sp - 8, Reg::SP,
+        } });
+        add({ RegImmRegInstr {
+            RegImmRegInstrType::SD, Reg::S0,  sp - 16, Reg::SP,
+        } });
+        add({ RegImmInstr {
+            RegImmInstrType::ADDI, Reg::S0, Reg::SP, sp
+        } });
+    }
+    Reg arg = Reg::A0;
+    FReg farg = FReg::FA0;
+    int sp = 0;
+    int reg = 0;
+    for (auto&& at : type->arg_type) {
+        if (is_float(at)) {
+            auto rd = (FReg) ~reg++;
+            auto rs = farg;
+            if (rs <= FReg::FA7) {
+                add({  FRegInstr{
+                    FRegInstrType::FMV_S, rd, rs
+                } });
+                farg = (FReg)((int)farg + 1);
+            } else {
+                add({ FRegImmRegInstr {
+                    FRegImmRegInstrType::FLW, rd,  sp, Reg::SP,
+                } });
+                sp += 8;
+            }
+        } else {
+            auto rd = (Reg) ~reg++;
+            auto rs = arg;
+            if (rs <= Reg::A7) {
+                add({  RegInstr{
+                    RegInstrType::MV, rd, rs
+                } });
+                arg = (Reg)((int)arg + 1);
+            } else {
+                add({ RegImmRegInstr {
+                    RegImmRegInstrType::LD, rd,  sp, Reg::SP,
+                } });
+                sp += 8;
+            }
+        }
+    }
+    return bkd_block;
+}
+
+Block Func::generate_epilog() const {
+    Block bkd_block(name + "_epilog");
+    auto add = [&bkd_block](MachineInstr const& value) {
+        bkd_block.body.push_back(value);
+    };
+    {
+        int sp = calculate_sp();
+        add({ RegImmRegInstr {
+            RegImmRegInstrType::LD, Reg::RA,  8, Reg::SP,
+        } });
+        add({ RegImmRegInstr {
+            RegImmRegInstrType::LD, Reg::S0,  0, Reg::SP,
+        } });
+        add({ RegImmInstr {
+            RegImmInstrType::ADDI, Reg::SP, Reg::SP, sp
+        } });
+        add({ ReturnInstr{} });
+    }
+    return bkd_block;
+}
+
 
 } // namespace BackendConvertor
 

@@ -15,7 +15,7 @@ String Module::print_module() const
     }
 
     for (auto &&i : funcs) {
-        res += i.print();
+        res += i.generate_asm();
     }
 
     return res;
