@@ -15,6 +15,21 @@ struct StackObject {
     // and more...
 };
 
+/*
+layout of stack frame
+
+ra
+spilled registers
+local variables
+caller saved registers
+callee saved registers
+spilled arguments
+
+*/
+struct StackFrame {
+    std::vector<StackObject> objects;
+};
+
 struct Func {
     Ir::pFuncDefined ir_func;
     std::string name;

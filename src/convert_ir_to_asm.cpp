@@ -693,10 +693,10 @@ Block Func::generate_epilog() const {
     {
         int sp = calculate_sp();
         add({ RegImmRegInstr {
-            RegImmRegInstrType::LD, Reg::RA,  8, Reg::SP,
+            RegImmRegInstrType::LD, Reg::RA,  sp - 8, Reg::SP,
         } });
         add({ RegImmRegInstr {
-            RegImmRegInstrType::LD, Reg::S0,  0, Reg::SP,
+            RegImmRegInstrType::LD, Reg::S0,  sp - 16, Reg::SP,
         } });
         add({ RegImmInstr {
             RegImmInstrType::ADDI, Reg::SP, Reg::SP, sp
