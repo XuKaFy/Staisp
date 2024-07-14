@@ -50,8 +50,8 @@ struct Func {
     bool peephole();
     void allocate_register();
     void save_register();
-    void generate_prolog() const;
-    void generate_epilog() const;
+    void generate_prolog();
+    void generate_epilog();
     String generate_asm() const;
 
     void passes() {

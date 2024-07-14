@@ -627,7 +627,7 @@ MachineInstrs Func::translate(const Ir::pInstr &instr)
 }
 
 
-void Func::generate_prolog() const {
+void Func::generate_prolog() {
     auto add = [this](MachineInstr const& value) {
         blocks.front().body.push_back(value);
     };
@@ -683,7 +683,7 @@ void Func::generate_prolog() const {
     }
 }
 
-void Func::generate_epilog() const {
+void Func::generate_epilog() {
     auto add = [this](MachineInstr const& value) {
         blocks.back().body.push_back(value);
     };
