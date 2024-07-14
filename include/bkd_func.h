@@ -50,11 +50,20 @@ struct Func {
     bool peephole();
     void allocate_register();
     void save_register();
-    Block generate_prolog() const;
-    Block generate_epilog() const;
+    void generate_prolog() const;
+    void generate_epilog() const;
     String generate_asm() const;
 
-// helper:
+    void passes() {
+        translate();
+        while (peephole()) {}
+        allocate_register();
+        save_register();
+        generate_prolog();
+        generate_epilog();
+    }
+
+    // helper:
     int next_reg_{32};
     int next_reg() {
         return next_reg_++;

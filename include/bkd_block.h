@@ -6,7 +6,7 @@
 namespace Backend {
 
 struct Block {
-    explicit Block(std::string name = ":placeholder:")
+    explicit Block(std::string name)
         : name(std::move(name)) {}
 
     String print() const;

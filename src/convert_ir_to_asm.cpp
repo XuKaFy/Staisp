@@ -38,6 +38,7 @@ Module Convertor::convert(const Ir::pModule &mod)
 
     for (auto && func : mod->funsDefined) {
         module.funcs.emplace_back(func);
+        module.funcs.back().passes();
     }
 
     return module;
@@ -59,9 +60,11 @@ Global Convertor::convert(const Ir::pGlobal &glob)
 
 void Func::translate()
 {
+    blocks.emplace_back(name + "_prolog");
     for (auto && block : ir_func->p) {
         blocks.push_back(translate(block));
     }
+    blocks.emplace_back(name + "_epilog");
 }
 
 Block Func::translate(const Ir::pBlock &block)
@@ -109,9 +112,6 @@ struct ConvertBulk {
         }
     }
 
-    static constexpr Reg NO_HINT = (Reg) 32;
-    static constexpr FReg NO_HINT_F = (FReg) 32;
-
     Reg allocate_reg() {
         return (Reg) func.next_reg();
     }
@@ -120,29 +120,29 @@ struct ConvertBulk {
         return (FReg) func.next_reg();
     }
 
-    Reg toReg(Ir::Val* val, Reg tmp_hint = NO_HINT) {
+    Reg toReg(Ir::Val* val) {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
             // %0 => -1
             return (Reg) ~std::stoi(name.substr(1));
         }
-        if (tmp_hint == NO_HINT) tmp_hint = allocate_reg();
+        auto tmp = allocate_reg();
         // if it is a immediate, load it
         add({ImmInstr {
-            ImmInstrType::LI, tmp_hint, std::stoi(name)
+            ImmInstrType::LI, tmp, std::stoi(name)
         } });
-        return tmp_hint;
+        return tmp;
     }
 
-    FReg toFReg(Ir::Val* val, FReg tmp_hint = NO_HINT_F) {
+    FReg toFReg(Ir::Val* val) {
         auto name = val->name();
         // if it is a register, use it
         if (name[0] == '%') {
             // %0 => -1
             return (FReg) ~std::stoi(name.substr(1));
         }
-        if (tmp_hint == NO_HINT_F) tmp_hint = allocate_freg();
+        auto ftmp = allocate_freg();
         auto tmp = allocate_reg();
         // if it is a immediate, load it
         // lLVM store float constant into hexadecimal integral representation of corresponding double value
@@ -160,9 +160,9 @@ struct ConvertBulk {
             ImmInstrType::LI, tmp, x
         } });
         add({ FRegRegInstr {
-            FRegRegInstrType::FMV_S_X, tmp_hint, tmp
+            FRegRegInstrType::FMV_S_X, ftmp, tmp
         } });
-        return tmp_hint;
+        return ftmp;
     }
 
     RegRegInstrType selectRRType(ImmType ty, Ir::BinInstrType bin) {
@@ -226,8 +226,8 @@ struct ConvertBulk {
     }
 
     void convert_unary_instr(const Pointer<Ir::UnaryInstr> &instr) {
-        auto rd = toFReg(instr.get(), {});
-        auto rs = toFReg(instr->operand(0)->usee, rd);
+        auto rd = toFReg(instr.get());
+        auto rs = toFReg(instr->operand(0)->usee);
         add({ FRegInstr {
                 FRegInstrType::FNEG_S, rd, rs,
         } });
@@ -236,15 +236,15 @@ struct ConvertBulk {
     void convert_binary_instr(const Pointer<Ir::BinInstr> &instr) {
         if (is_float(instr->ty)) {
             auto rd = toFReg(instr.get());
-            auto rs1 = toFReg(instr->operand(0)->usee, rd);
-            auto rs2 = toFReg(instr->operand(1)->usee, rd);
+            auto rs1 = toFReg(instr->operand(0)->usee);
+            auto rs2 = toFReg(instr->operand(1)->usee);
             add({ FRegFRegInstr {
                 selectFRFRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
             } });
         } else {
             auto rd = toReg(instr.get());
-            auto rs1 = toReg(instr->operand(0)->usee, rd);
-            auto rs2 = toReg(instr->operand(1)->usee, rd);
+            auto rs1 = toReg(instr->operand(0)->usee);
+            auto rs2 = toReg(instr->operand(1)->usee);
             add({ RegRegInstr {
                 selectRRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
             } });
@@ -259,14 +259,14 @@ struct ConvertBulk {
                 add({ FRegInstr{
                     FRegInstrType::FMV_S,
                     fa0,
-                    toFReg(ret->operand(0)->usee, fa0)
+                    toFReg(ret->operand(0)->usee)
                 } });
             } else {
                 auto a0 = Reg::A0;
                 add({ RegInstr{
                     RegInstrType::MV,
                     a0,
-                    toReg(ret->operand(0)->usee, a0)
+                    toReg(ret->operand(0)->usee)
                 } });
             }
         }
@@ -358,8 +358,8 @@ struct ConvertBulk {
             }
         } else {
             auto rd = toReg(instr.get());
-            auto rs1 = toReg(instr->operand(0)->usee, rd);
-            auto rs2 = toReg(instr->operand(1)->usee, rd);
+            auto rs1 = toReg(instr->operand(0)->usee);
+            auto rs2 = toReg(instr->operand(1)->usee);
             switch (instr->cmp_type) {
                 case Ir::CMP_EQ:
                     add({ RegRegInstr {
@@ -627,10 +627,9 @@ MachineInstrs Func::translate(const Ir::pInstr &instr)
 }
 
 
-Block Func::generate_prolog() const {
-    Block bkd_block(name + "_prolog");
-    auto add = [&bkd_block](MachineInstr const& value) {
-        bkd_block.body.push_back(value);
+void Func::generate_prolog() const {
+    auto add = [this](MachineInstr const& value) {
+        blocks.front().body.push_back(value);
     };
     {
         int sp = calculate_sp();
@@ -682,13 +681,11 @@ Block Func::generate_prolog() const {
             }
         }
     }
-    return bkd_block;
 }
 
-Block Func::generate_epilog() const {
-    Block bkd_block(name + "_epilog");
-    auto add = [&bkd_block](MachineInstr const& value) {
-        bkd_block.body.push_back(value);
+void Func::generate_epilog() const {
+    auto add = [this](MachineInstr const& value) {
+        blocks.back().body.push_back(value);
     };
     {
         int sp = calculate_sp();
@@ -703,7 +700,6 @@ Block Func::generate_epilog() const {
         } });
         add({ ReturnInstr{} });
     }
-    return bkd_block;
 }
 
 
