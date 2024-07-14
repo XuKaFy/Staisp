@@ -39,8 +39,8 @@ struct Func {
 
     explicit Func(Ir::pFuncDefined ir_func)
         : ir_func(std::move(ir_func)) {
-        name = ir_func->name();
-        type = ir_func->function_type();
+        name = this->ir_func->name();
+        type = this->ir_func->function_type();
     }
 
 // passes:
