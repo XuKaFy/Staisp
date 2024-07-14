@@ -626,6 +626,10 @@ MachineInstrs Func::translate(const Ir::pInstr &instr)
     return bulk.bulk;
 }
 
+bool Func::peephole() {
+    return false;
+}
+
 
 void Func::generate_prolog() {
     auto add = [this](MachineInstr const& value) {

@@ -7,6 +7,9 @@ namespace Backend {
 void Func::allocate_register() {
 }
 
+void Func::save_register() {
+}
+
 bool BlockValue::operator==(const BlockValue &b) const {
     return uses == b.uses && fuses == b.fuses;
 }
@@ -51,7 +54,7 @@ void TransferFunction::operator()(const Block *p, BlockValue &v) {
 }
 
 int TransferFunction::operator()(const Block *p, const BlockValue &IN, const BlockValue &OUT) {
-
+    return 0;
 }
 
 int Func::live_register_analysis() {
