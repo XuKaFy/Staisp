@@ -27,7 +27,44 @@ spilled arguments
 
 */
 struct StackFrame {
-    std::vector<StackObject> objects;
+    StackObject ra{0, 8};
+    size_t offset = 8;
+    std::vector<StackObject> locals; // all except ra and args
+    size_t push(size_t size) {
+        size_t index = locals.size();
+        locals.push_back({offset, size});
+        offset += size;
+        return index;
+    }
+
+    std::vector<StackObject> args;
+    void at_least_args(size_t n) {
+        if (n <= 8) return;
+        n -= 8; // first eight arguments are in registers
+        for (size_t i = args.size(); i < n; ++i) {
+            // rest of arguments then are in stack
+            args.push_back({i * 8, 8});
+        }
+    }
+    // don't call this too early
+    // and don't forget to call this
+    void adjust_args() {
+        for (auto& arg : args) {
+            arg.offset += offset;
+        }
+    }
+
+    size_t size() {
+        size_t alignment;
+        size_t sz = 8;
+        for (auto&& local : locals) sz += local.size;
+        alignment = 8;
+        if (sz % alignment != 0) sz += alignment - sz % alignment;
+        alignment = 16;
+        for (auto&& arg : args) sz += arg.size;
+        if (sz % alignment != 0) sz += alignment - sz % alignment;
+        return sz;
+    }
 };
 
 struct Func {
@@ -36,6 +73,7 @@ struct Func {
     pFunctionType type;
 
     std::vector<Block> blocks;
+    StackFrame frame;
 
     explicit Func(Ir::pFuncDefined ir_func)
         : ir_func(std::move(ir_func)) {
@@ -63,33 +101,20 @@ struct Func {
         generate_epilog();
     }
 
-    // helper:
-    int next_reg_{32};
+
+    std::unordered_map<int, int> llvmRegToAsmReg;
+    int next_reg_{0};
+    int convert_reg(int x) {
+        if (auto it = llvmRegToAsmReg.find(x); it != llvmRegToAsmReg.end()) {
+            return it->second;
+        }
+        return llvmRegToAsmReg[x] = next_reg();
+    }
     int next_reg() {
         return next_reg_++;
     }
 
-    int excess_arguments = 0;
-    int local_variables = 16; // for ra and fp
-    int calculate_sp() const {
-        int sp = local_variables + excess_arguments;
-        if (sp % 8 != 0) sp += 8 - sp % 8;
-        return sp;
-    }
-//
-// todo: replace code above with below
-//
-    std::vector<StackObject> stack_objects;
-    size_t stack_offset = 0;
-    size_t alloc_stack(size_t size) {
-        size_t id = stack_objects.size();
-        stack_objects.push_back({stack_offset, size});
-        stack_offset += size;
-        return id;
-    }
-
     int live_register_analysis();
-
 };
 
 struct BlockValue {

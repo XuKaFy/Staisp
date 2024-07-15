@@ -197,8 +197,19 @@ struct RegImmRegInstr {
         return buf;
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {rs}; }
+    bool is_load() const {
+        return type == RegImmRegInstrType::LW || type == RegImmRegInstrType::LD;
+    }
+    std::vector<Reg> def() const {
+        if (is_load()) return {rd};
+        return {};
+    }
+
+    std::vector<Reg> use() const {
+        if (is_load()) return {rs};
+        return {rd, rs};
+    }
+
     std::vector<FReg> fdef() const { return {}; }
     std::vector<FReg> fuse() const { return {}; }
 };
@@ -221,8 +232,15 @@ struct FRegImmRegInstr {
 
     std::vector<Reg> def() const { return {}; }
     std::vector<Reg> use() const { return {rs}; }
-    std::vector<FReg> fdef() const { return {rd}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<FReg> fdef() const {
+        if (type == FRegImmRegInstrType::FLW) return {rd};
+        return {};
+    }
+
+    std::vector<FReg> fuse() const {
+        if (type != FRegImmRegInstrType::FLW) return {rd};
+        return {};
+    }
 };
 
 struct RegLabelInstr {
@@ -233,8 +251,16 @@ struct RegLabelInstr {
         return format(type, rd, label);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {}; }
+    std::vector<Reg> def() const {
+        if (type == RegLabelInstrType::LA) return {rd};
+        return {};
+    }
+
+    std::vector<Reg> use() const {
+        if (type != RegLabelInstrType::LA) return {rd};
+        return {};
+    }
+
     std::vector<FReg> fdef() const { return {}; }
     std::vector<FReg> fuse() const { return {}; }
 };
@@ -276,6 +302,21 @@ struct ReturnInstr {
     std::vector<FReg> fuse() const { return {}; }
 };
 
+struct LoadStackAddressInstr {
+    Reg rd;
+    size_t index;
+    bool arg{false};
+
+    std::string stringify() const {
+        return "LSA " + Backend::stringify(rd) + " from " + (arg ? "$" : "#") + std::to_string(index);
+    }
+
+    std::vector<Reg> def() const { return {rd}; }
+    std::vector<Reg> use() const { return {}; }
+    std::vector<FReg> fdef() const { return {}; }
+    std::vector<FReg> fuse() const { return {}; }
+};
+
 
 struct MachineInstr {
     enum class Type {
@@ -295,6 +336,8 @@ struct MachineInstr {
         J,
         CALL,
         RETURN,
+
+        LOAD_STACK_ADDRESS
     };
 
     Type instr_type() const { return (Type) instr.index(); }
@@ -318,7 +361,8 @@ struct MachineInstr {
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr, BranchInstr,
         FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
         RegImmRegInstr, FRegImmRegInstr, RegLabelInstr,
-        JInstr, CallInstr, ReturnInstr
+        JInstr, CallInstr, ReturnInstr,
+        LoadStackAddressInstr
     > instr;
 };
 

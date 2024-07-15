@@ -113,11 +113,11 @@ struct ConvertBulk {
     }
 
     Reg allocate_reg() {
-        return (Reg) func.next_reg();
+        return (Reg) ~func.next_reg();
     }
 
     FReg allocate_freg() {
-        return (FReg) func.next_reg();
+        return (FReg) ~func.next_reg();
     }
 
     Reg toReg(Ir::Val* val) {
@@ -125,7 +125,7 @@ struct ConvertBulk {
         // if it is a register, use it
         if (name[0] == '%') {
             // %0 => -1
-            return (Reg) ~std::stoi(name.substr(1));
+            return (Reg) ~func.convert_reg(std::stoi(name.substr(1)));
         }
         auto tmp = allocate_reg();
         // if it is a immediate, load it
@@ -140,7 +140,7 @@ struct ConvertBulk {
         // if it is a register, use it
         if (name[0] == '%') {
             // %0 => -1
-            return (FReg) ~std::stoi(name.substr(1));
+            return (FReg) ~func.convert_reg(std::stoi(name.substr(1)));
         }
         auto ftmp = allocate_freg();
         auto tmp = allocate_reg();
@@ -436,10 +436,15 @@ struct ConvertBulk {
         add({ JInstr{ label1 } });
     }
 
-    int convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
+    void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
-        int sp = 0;
+        func.frame.at_least_args(instr->operand_size() - 1);
+        auto next_arg = [this, i = (size_t)0] () mutable {
+            auto rd = allocate_reg();
+            add({ LoadStackAddressInstr {rd, i++, true} });
+            return rd;
+        };
         for (size_t i = 1; i < instr->operand_size(); ++i) {
             auto param = instr->operand(i)->usee;
             if (is_float(param->ty)) {
@@ -452,9 +457,8 @@ struct ConvertBulk {
                     farg = (FReg)((int)farg + 1);
                 } else {
                     add({ FRegImmRegInstr {
-                        FRegImmRegInstrType::FSW, rs,  sp, Reg::SP,
+                        FRegImmRegInstrType::FSW, rs,  0, next_arg(),
                     } });
-                    sp += 8;
                 }
             } else {
                 auto rd = arg;
@@ -466,9 +470,8 @@ struct ConvertBulk {
                     arg = (Reg)((int)arg + 1);
                 } else {
                     add({ RegImmRegInstr {
-                        RegImmRegInstrType::SD, rs,  sp, Reg::SP,
+                        RegImmRegInstrType::SD, rs,  0, next_arg(),
                     } });
-                    sp += 8;
                 }
             }
         }
@@ -487,7 +490,6 @@ struct ConvertBulk {
                 RegInstrType::MV, rd, a0
             } });
         }
-        return sp;
     }
 
     Reg load_address(Ir::Val* val) {
@@ -566,10 +568,10 @@ struct ConvertBulk {
         int size = type->length();
         if (size == 1) size = 4; // for bool
         assert(size % 4 == 0);
-        func.local_variables += size;
+        auto index = func.frame.push(size);
         auto rd = toReg(instr.get());
-        add({  RegImmInstr{
-            RegImmInstrType::ADDI, rd, Reg::S0, -func.local_variables
+        add({  LoadStackAddressInstr{
+            rd, index
         } });
     }
 
@@ -589,7 +591,7 @@ MachineInstrs Func::translate(const Ir::pInstr &instr)
             bulk.convert_branch_instr(std::static_pointer_cast<Ir::BrCondInstr>(instr));
             break;
         case Ir::INSTR_CALL:
-            excess_arguments = std::max(excess_arguments, bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr)));
+            bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr));
             break;
         case Ir::INSTR_UNARY:
             bulk.convert_unary_instr(std::static_pointer_cast<Ir::UnaryInstr>(instr));
@@ -636,23 +638,21 @@ void Func::generate_prolog() {
         blocks.front().body.push_back(value);
     };
     {
-        int sp = calculate_sp();
+        int sp = (int)frame.size();
         add({ RegImmInstr {
             RegImmInstrType::ADDI, Reg::SP, Reg::SP, -sp
         } });
         add({ RegImmRegInstr {
             RegImmRegInstrType::SD, Reg::RA,  sp - 8, Reg::SP,
         } });
-        add({ RegImmRegInstr {
-            RegImmRegInstrType::SD, Reg::S0,  sp - 16, Reg::SP,
-        } });
-        add({ RegImmInstr {
-            RegImmInstrType::ADDI, Reg::S0, Reg::SP, sp
-        } });
     }
     Reg arg = Reg::A0;
     FReg farg = FReg::FA0;
-    int sp = 0;
+    auto next_arg = [this, add, i = (size_t)0] () mutable {
+        auto rd = (Reg) ~next_reg();
+        add({ LoadStackAddressInstr {rd, i++, true} });
+        return rd;
+    };
     int reg = 0;
     for (auto&& at : type->arg_type) {
         if (is_float(at)) {
@@ -665,9 +665,8 @@ void Func::generate_prolog() {
                 farg = (FReg)((int)farg + 1);
             } else {
                 add({ FRegImmRegInstr {
-                    FRegImmRegInstrType::FLW, rd,  sp, Reg::SP,
+                    FRegImmRegInstrType::FLW, rd,  0, next_arg(),
                 } });
-                sp += 8;
             }
         } else {
             auto rd = (Reg) ~reg++;
@@ -679,9 +678,8 @@ void Func::generate_prolog() {
                 arg = (Reg)((int)arg + 1);
             } else {
                 add({ RegImmRegInstr {
-                    RegImmRegInstrType::LD, rd,  sp, Reg::SP,
+                    RegImmRegInstrType::LD, rd,  0, next_arg(),
                 } });
-                sp += 8;
             }
         }
     }
@@ -692,12 +690,9 @@ void Func::generate_epilog() {
         blocks.back().body.push_back(value);
     };
     {
-        int sp = calculate_sp();
+        int sp = (int)frame.size();
         add({ RegImmRegInstr {
             RegImmRegInstrType::LD, Reg::RA,  sp - 8, Reg::SP,
-        } });
-        add({ RegImmRegInstr {
-            RegImmRegInstrType::LD, Reg::S0,  sp - 16, Reg::SP,
         } });
         add({ RegImmInstr {
             RegImmInstrType::ADDI, Reg::SP, Reg::SP, sp
