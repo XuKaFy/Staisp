@@ -548,15 +548,19 @@ struct ConvertBulk {
             type = to_elem_type(type);
             int step = type->length();
             auto index = instr->operand(dim++)->usee;
+            auto r1 = allocate_reg();
+            auto r2 = allocate_reg();
+            auto r3 = allocate_reg();
             add({ImmInstr {
-                ImmInstrType::LI, rd, step
+                ImmInstrType::LI, r1, step
             } });
             add({ RegRegInstr {
-                RegRegInstrType::MUL, rd, rd, toReg(index)
+                RegRegInstrType::MUL, r2, r1, toReg(index)
             } });
             add({ RegRegInstr {
-                RegRegInstrType::ADD, rs, rs, rd
+                RegRegInstrType::ADD, r3, rs, r2
             } });
+            rs = r3;
         }
         add({  RegInstr{
             RegInstrType::MV, rd, rs

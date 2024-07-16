@@ -19,8 +19,8 @@ struct StackObject {
 layout of stack frame
 
 ra
-spilled registers
 local variables
+spilled registers
 caller saved registers
 callee saved registers
 spilled arguments
