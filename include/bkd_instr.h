@@ -273,6 +273,13 @@ struct LoadStackAddressInstr {
     std::vector<GReg> use() const { return {}; }
 };
 
+template<typename... Ts>
+struct overloaded : Ts... {
+    explicit overloaded(Ts... ts): Ts(ts)... {}
+    using Ts::operator()...;
+};
+
+
 
 struct MachineInstr {
     enum class Type {
@@ -306,6 +313,10 @@ struct MachineInstr {
     }
     std::vector<GReg> use() const {
         return std::visit([](auto&& instr) { return instr.use(); }, instr);
+    }
+    template<typename T>
+    T& as() {
+        return std::get<T>(instr);
     }
 
     std::variant<

@@ -85,6 +85,7 @@ struct Func {
     void translate();
     Block translate(const Ir::pBlock &block);
     MachineInstrs translate(const Ir::pInstr &instr);
+    void build_block_graph();
     bool peephole();
     void allocate_register();
     void save_register();
@@ -94,6 +95,7 @@ struct Func {
 
     void passes() {
         translate();
+        build_block_graph();
         while (peephole()) {}
         allocate_register();
         save_register();
