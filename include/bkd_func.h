@@ -86,6 +86,9 @@ struct Func {
     Block translate(const Ir::pBlock &block);
     MachineInstrs translate(const Ir::pInstr &instr);
     void build_block_graph();
+    void build_block_def_use();
+    void number_instruction(Block* block);
+    void liveness_analysis();
     bool peephole();
     void allocate_register();
     void save_register();
@@ -96,6 +99,10 @@ struct Func {
     void passes() {
         translate();
         build_block_graph();
+        build_block_def_use();
+        visited.clear();
+        number_instruction(&blocks.front());
+        liveness_analysis();
         while (peephole()) {}
         allocate_register();
         save_register();
@@ -103,7 +110,7 @@ struct Func {
         generate_epilog();
     }
 
-
+    // for translate
     std::unordered_map<int, int> llvmRegToAsmReg;
     int next_reg_{0};
     int convert_reg(int x) {
@@ -115,8 +122,21 @@ struct Func {
     int next_reg() {
         return next_reg_++;
     }
+    // for numbering
+    Set<Block*> visited;
+    int next_num_{0};
+    int next_num() {
+        return next_num_++;
+    }
+    Map<int, MachineInstr*> num2instr;
 
-    int liveness_analysis();
+    struct LiveRange {
+        int fromNum, toNum;
+        int cnt;
+        Block* block;
+    };
+    Map<GReg, std::vector<LiveRange>> live_ranges;
+
 };
 
 struct BlockValue {
@@ -129,13 +149,5 @@ struct BlockValue {
 
     Set<GReg> uses;
 };
-
-struct TransferFunction {
-    void operator()(const Block *p, BlockValue &v);
-    int operator()(const Block *p, const BlockValue &IN, const BlockValue &OUT);
-};
-
-// copied from DFA, for liveness analysis
-int from_bottom_analysis(Func &p);
 
 } // namespace Backend

@@ -14,23 +14,7 @@ struct Block {
     std::string name;
     MachineInstrs body;
     std::vector<Block*> in_blocks, out_blocks;
-
-    std::vector<GReg> def() const {
-        std::vector<GReg> ans;
-        for (auto&& instr : body) {
-            auto r = instr.def();
-            ans.insert(ans.end(), r.begin(), r.end());
-        }
-        return ans;
-    }
-    std::vector<GReg> use() const {
-        std::vector<GReg> ans;
-        for (auto&& instr : body) {
-            auto r = instr.use();
-            ans.insert(ans.end(), r.begin(), r.end());
-        }
-        return ans;
-    }
+    std::unordered_set<GReg> defs, uses;
 };
 
 } // namespace Backend

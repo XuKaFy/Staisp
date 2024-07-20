@@ -326,6 +326,10 @@ struct MachineInstr {
         JInstr, CallInstr, ReturnInstr,
         LoadAddressInstr, LoadStackAddressInstr
     > instr;
+
+    // aux info
+    // ordinal number
+    int number{-1};
 };
 
 typedef List<MachineInstr> MachineInstrs;
