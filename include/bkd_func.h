@@ -114,7 +114,7 @@ struct Func {
         return next_reg_++;
     }
 
-    int live_register_analysis();
+    int liveness_analysis();
 };
 
 struct BlockValue {
@@ -125,8 +125,7 @@ struct BlockValue {
 
     void clear();
 
-    Set<Reg> uses;
-    Set<FReg> fuses;
+    Set<GReg> uses;
 };
 
 struct TransferFunction {

@@ -15,8 +15,6 @@
 #include <bkd_regfreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
 #include <bkd_fcmpinstrtype.h>
-#include <bkd_regimmreginstrtype.h>
-#include <bkd_fregimmreginstrtype.h>
 #include <bkd_reglabelinstrtype.h>
 #include <variant>
 
@@ -41,6 +39,12 @@ std::string format(Type&& type, Args&&... args) {
     return result;
 }
 
+using GReg = std::variant<Reg, FReg>;
+
+inline std::string stringify(GReg reg) {
+    return std::visit([](auto reg) { return Backend::stringify(reg); }, reg);
+}
+
 struct ImmInstr {
     ImmInstrType type;
     Reg rd; int imm;
@@ -49,10 +53,8 @@ struct ImmInstr {
         return format(type, rd, imm);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {}; }
 };
 
 struct RegInstr {
@@ -63,10 +65,8 @@ struct RegInstr {
         return format(type, rd, rs);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {rs}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs}; }
 };
 
 struct RegRegInstr {
@@ -77,10 +77,8 @@ struct RegRegInstr {
         return format(type, rd, rs1, rs2);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {rs1, rs2}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs1, rs2}; }
 };
 
 struct RegImmInstr {
@@ -91,10 +89,8 @@ struct RegImmInstr {
         return format(type, rd, rs, imm);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {rs}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs}; }
 };
 
 struct BranchInstr {
@@ -105,10 +101,8 @@ struct BranchInstr {
         return format(type, rs1, rs2, label);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {rs1, rs2}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {rs1, rs2}; }
 };
 
 struct FRegInstr {
@@ -119,10 +113,8 @@ struct FRegInstr {
         return format(type, rd, rs);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {rd}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {}; }
 };
 
 struct FRegRegInstr {
@@ -133,10 +125,8 @@ struct FRegRegInstr {
         return format(type, rd, rs);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {rs}; }
-    std::vector<FReg> fdef() const { return {rd}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs}; }
 };
 
 struct RegFRegInstr {
@@ -147,10 +137,8 @@ struct RegFRegInstr {
         return format(type, rd, rs);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {rd}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {rs}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs}; }
 };
 
 struct FRegFRegInstr {
@@ -161,10 +149,8 @@ struct FRegFRegInstr {
         return format(type, rd, rs1, rs2);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {rd}; }
-    std::vector<FReg> fuse() const { return {rs1, rs2}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs1, rs2}; }
 };
 
 struct FCmpInstr {
@@ -175,94 +161,61 @@ struct FCmpInstr {
         return format(type, rd, rs1, rs2);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {rs1, rs2}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs1, rs2}; }
 };
 
-struct RegImmRegInstr {
-    RegImmRegInstrType type;
-    Reg rd; int imm; Reg rs;
+template<typename T1, typename T2>
+std::string stringifyLS(std::string instr, T1 rd, int imm, T2 rs) {
+    instr += " ";
+    instr += stringify(rd);
+    instr += ", ";
+    instr += stringify(imm);
+    instr += "(";
+    instr += stringify(rs);
+    instr += ")";
+    return instr;
+}
 
-    std::string stringify() const {
-        std::string buf = Backend::stringify(type);
-        buf += " ";
-        buf += Backend::stringify(rd);
-        buf += ", ";
-        buf += Backend::stringify(imm);
-        buf += "(";
-        buf += Backend::stringify(rs);
-        buf += ")";
-        return buf;
-    }
-
-    bool is_load() const {
-        return type == RegImmRegInstrType::LW || type == RegImmRegInstrType::LD;
-    }
-    std::vector<Reg> def() const {
-        if (is_load()) return {rd};
-        return {};
-    }
-
-    std::vector<Reg> use() const {
-        if (is_load()) return {rs};
-        return {rd, rs};
-    }
-
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+enum class LSType {
+    WORD, DWORD, FLOAT
 };
 
-struct FRegImmRegInstr {
-    FRegImmRegInstrType type;
-    FReg rd; int imm; Reg rs;
+struct LoadInstr {
+    LSType type;
+    GReg rd; int imm; Reg rs;
 
     std::string stringify() const {
-        std::string buf = Backend::stringify(type);
-        buf += " ";
-        buf += Backend::stringify(rd);
-        buf += ", ";
-        buf += Backend::stringify(imm);
-        buf += "(";
-        buf += Backend::stringify(rs);
-        buf += ")";
-        return buf;
+        return stringifyLS(type == LSType::WORD ? "lw" : type == LSType::DWORD ? "ld" : "flw", rd, imm, rs);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {rs}; }
-    std::vector<FReg> fdef() const {
-        if (type == FRegImmRegInstrType::FLW) return {rd};
-        return {};
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs}; }
+
+};
+
+struct StoreInstr {
+    LSType type;
+    GReg rs2; int imm; Reg rs1;
+
+    std::string stringify() const {
+        return stringifyLS(type == LSType::WORD ? "sw" : type == LSType::DWORD ? "sd" : "fsw", rs2, imm, rs1);
     }
 
-    std::vector<FReg> fuse() const {
-        if (type != FRegImmRegInstrType::FLW) return {rd};
-        return {};
-    }
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {rs1, rs2}; }
 };
 
 struct RegLabelInstr {
     RegLabelInstrType type;
-    Reg rd; std::string label;
+    Reg rs; std::string label;
 
     std::string stringify() const {
-        return format(type, rd, label);
+        return format(type, rs, label);
     }
 
-    std::vector<Reg> def() const {
-        if (type == RegLabelInstrType::LA) return {rd};
-        return {};
-    }
-
-    std::vector<Reg> use() const {
-        if (type != RegLabelInstrType::LA) return {rd};
-        return {};
-    }
-
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {rs}; }
 };
 
 struct JInstr {
@@ -272,10 +225,8 @@ struct JInstr {
         return format("j", label);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {}; }
 };
 
 struct CallInstr {
@@ -285,10 +236,8 @@ struct CallInstr {
         return format("call", label);
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {}; }
 };
 
 struct ReturnInstr {
@@ -296,10 +245,19 @@ struct ReturnInstr {
         return "ret";
     }
 
-    std::vector<Reg> def() const { return {}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {}; }
+};
+
+struct LoadAddressInstr {
+    Reg rd; std::string label;
+
+    std::string stringify() const {
+        return format("la", rd, label);
+    }
+
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {}; }
 };
 
 struct LoadStackAddressInstr {
@@ -311,10 +269,8 @@ struct LoadStackAddressInstr {
         return "LSA " + Backend::stringify(rd) + " from " + (arg ? "$" : "#") + std::to_string(index);
     }
 
-    std::vector<Reg> def() const { return {rd}; }
-    std::vector<Reg> use() const { return {}; }
-    std::vector<FReg> fdef() const { return {}; }
-    std::vector<FReg> fuse() const { return {}; }
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {}; }
 };
 
 
@@ -330,12 +286,13 @@ struct MachineInstr {
         REGFREG,
         FREGFREG,
         FCMP,
-        REGIMMREG,
-        FREGIMMREG,
+        LOAD,
+        STORE,
         REGLABEL,
         J,
         CALL,
         RETURN,
+        LOAD_ADDRESS,
 
         LOAD_STACK_ADDRESS
     };
@@ -344,28 +301,22 @@ struct MachineInstr {
     std::string stringify() const {
         return std::visit([](auto&& instr) { return instr.stringify(); }, instr);
     }
-    std::vector<Reg> def() const {
+    std::vector<GReg> def() const {
         return std::visit([](auto&& instr) { return instr.def(); }, instr);
     }
-    std::vector<Reg> use() const {
+    std::vector<GReg> use() const {
         return std::visit([](auto&& instr) { return instr.use(); }, instr);
-    }
-    std::vector<FReg> fdef() const {
-        return std::visit([](auto&& instr) { return instr.fdef(); }, instr);
-    }
-    std::vector<FReg> fuse() const {
-        return std::visit([](auto&& instr) { return instr.fuse(); }, instr);
     }
 
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr, BranchInstr,
         FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
-        RegImmRegInstr, FRegImmRegInstr, RegLabelInstr,
+        LoadInstr, StoreInstr, RegLabelInstr,
         JInstr, CallInstr, ReturnInstr,
-        LoadStackAddressInstr
+        LoadAddressInstr, LoadStackAddressInstr
     > instr;
 };
 
-typedef Vector<MachineInstr> MachineInstrs;
+typedef List<MachineInstr> MachineInstrs;
 
 } // namespace Backend

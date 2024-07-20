@@ -456,8 +456,8 @@ struct ConvertBulk {
                     } });
                     farg = (FReg)((int)farg + 1);
                 } else {
-                    add({ FRegImmRegInstr {
-                        FRegImmRegInstrType::FSW, rs,  0, next_arg(),
+                    add({ StoreInstr {
+                        LSType::FLOAT, rs,  0, next_arg(),
                     } });
                 }
             } else {
@@ -469,8 +469,8 @@ struct ConvertBulk {
                     } });
                     arg = (Reg)((int)arg + 1);
                 } else {
-                    add({ RegImmRegInstr {
-                        RegImmRegInstrType::SD, rs,  0, next_arg(),
+                    add({ StoreInstr {
+                        LSType::DWORD, rs,  0, next_arg(),
                     } });
                 }
             }
@@ -497,8 +497,8 @@ struct ConvertBulk {
         if (name[0] == '@') {
             // global
             auto rd = allocate_reg();
-            add({ RegLabelInstr{
-                RegLabelInstrType::LA, rd, name.substr(1)
+            add({ LoadAddressInstr{
+               rd, name.substr(1)
             } });
             return rd;
         }
@@ -509,13 +509,13 @@ struct ConvertBulk {
         auto address = load_address(instr->operand(0)->usee);
         if (is_float(instr->ty)) {
             auto rs = toFReg(instr->operand(1)->usee);
-            add({ FRegImmRegInstr{
-                FRegImmRegInstrType::FSW, rs, 0, address
+            add({ StoreInstr{
+                LSType::FLOAT, rs, 0, address
             } });
         } else {
             auto rs = toReg(instr->operand(1)->usee);
-            add({ RegImmRegInstr{
-                RegImmRegInstrType::SW, rs, 0, address
+            add({ StoreInstr{
+                LSType::WORD, rs, 0, address
             } });
         }
     }
@@ -524,13 +524,13 @@ struct ConvertBulk {
         auto address = load_address(instr->operand(0)->usee);
         if (is_float(instr->ty)) {
             auto rd = toFReg(instr.get());
-            add({ FRegImmRegInstr{
-                FRegImmRegInstrType::FLW, rd, 0, address
+            add({ LoadInstr{
+                LSType::FLOAT, rd, 0, address
             } });
         } else {
             auto rd = toReg(instr.get());
-            add({ RegImmRegInstr{
-                RegImmRegInstrType::LW, rd, 0, address
+            add({ LoadInstr{
+                LSType::WORD, rd, 0, address
             } });
         }
     }
@@ -646,8 +646,8 @@ void Func::generate_prolog() {
         add({ RegImmInstr {
             RegImmInstrType::ADDI, Reg::SP, Reg::SP, -sp
         } });
-        add({ RegImmRegInstr {
-            RegImmRegInstrType::SD, Reg::RA,  sp - 8, Reg::SP,
+        add({ StoreInstr {
+            LSType::DWORD, Reg::RA,  sp - 8, Reg::SP,
         } });
     }
     Reg arg = Reg::A0;
@@ -668,8 +668,8 @@ void Func::generate_prolog() {
                 } });
                 farg = (FReg)((int)farg + 1);
             } else {
-                add({ FRegImmRegInstr {
-                    FRegImmRegInstrType::FLW, rd,  0, next_arg(),
+                add({ LoadInstr {
+                    LSType::FLOAT, rd,  0, next_arg(),
                 } });
             }
         } else {
@@ -681,8 +681,8 @@ void Func::generate_prolog() {
                 } });
                 arg = (Reg)((int)arg + 1);
             } else {
-                add({ RegImmRegInstr {
-                    RegImmRegInstrType::LD, rd,  0, next_arg(),
+                add({ LoadInstr {
+                    LSType::DWORD, rd,  0, next_arg(),
                 } });
             }
         }
@@ -695,8 +695,8 @@ void Func::generate_epilog() {
     };
     {
         int sp = (int)frame.size();
-        add({ RegImmRegInstr {
-            RegImmRegInstrType::LD, Reg::RA,  sp - 8, Reg::SP,
+        add({ LoadInstr {
+            LSType::DWORD, Reg::RA,  sp - 8, Reg::SP,
         } });
         add({ RegImmInstr {
             RegImmInstrType::ADDI, Reg::SP, Reg::SP, sp

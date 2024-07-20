@@ -11,7 +11,7 @@ void Func::save_register() {
 }
 
 bool BlockValue::operator==(const BlockValue &b) const {
-    return uses == b.uses && fuses == b.fuses;
+    return uses == b.uses;
 }
 
 bool BlockValue::operator!=(const BlockValue &b) const {
@@ -22,34 +22,22 @@ void BlockValue::cup(const BlockValue &v) {
     for (const auto &i : v.uses) {
         uses.insert(i);
     }
-    for (const auto &i : v.fuses) {
-        fuses.insert(i);
-    }
 }
 
 void BlockValue::clear() {
     uses.clear();
-    fuses.clear();
 }
 
 void TransferFunction::operator()(const Block *p, BlockValue &v) {
     // in = use + (in - def)
     auto use = p->use();
-    auto fuse = p->fuse();
     auto def = p->def();
-    auto fdef = p->fdef();
 
     for (auto i : def) {
         v.uses.erase(i);
     }
-    for (auto i : fdef) {
-        v.fuses.erase(i);
-    }
     for (auto i : use) {
         v.uses.insert(i);
-    }
-    for (auto i : fuse) {
-        v.fuses.insert(i);
     }
 }
 
@@ -57,7 +45,7 @@ int TransferFunction::operator()(const Block *p, const BlockValue &IN, const Blo
     return 0;
 }
 
-int Func::live_register_analysis() {
+int Func::liveness_analysis() {
     Map<const Block *, BlockValue> INs;
     Map<const Block *, BlockValue> OUTs;
     std::deque<const Block *> pending_blocks;
@@ -77,7 +65,7 @@ int Func::live_register_analysis() {
         BlockValue &OUT = OUTs[b];
 
         OUT.clear();
-        auto out_block = b->out_blocks();
+        auto out_block = b->out_blocks;
         if (!out_block.empty()) {
             OUT = INs[*out_block.begin()];
             for (auto block : out_block) {
@@ -89,7 +77,7 @@ int Func::live_register_analysis() {
         transfer(b, IN); // transfer function
 
         if (old_IN != IN) {
-            auto in_block = b->in_blocks();
+            auto in_block = b->in_blocks;
             pending_blocks.insert(pending_blocks.end(), in_block.begin(), in_block.end());
         }
     }

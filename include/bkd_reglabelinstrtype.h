@@ -8,7 +8,6 @@
 namespace Backend {
 
 enum class RegLabelInstrType {
-    LA,
     BEQZ,
     BNEZ,
     BLTZ,
@@ -18,7 +17,6 @@ enum class RegLabelInstrType {
 };
 
 inline constexpr std::string_view REGLABELINSTRTYPE_NAME[] = {
-    "la",
     "beqz",
     "bnez",
     "bltz",
