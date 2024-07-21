@@ -12,9 +12,20 @@ void test_sysy_backend(const std::string &filename) {
     const std::string gcc = "riscv64-linux-gnu-gcc-12 -static ";
     const std::string rvlinux = "~/riscv/rvlinux ";
 
-    std::string input = path + ".sy.s";
+    std::string sys = path + ".sy.s";
+    std::string out = id + ".out";
 
-    ASSERT_FALSE(system((gcc + input + " -o " + id).c_str()));
+    ASSERT_FALSE(system((gcc + sys + " ../../lib/sylib.c" + " -o " + id).c_str()));
 
-    ASSERT_FALSE(system((rvlinux + id).c_str()));
+    ASSERT_FALSE(system((rvlinux + id + " > " + out).c_str()));
+
+    auto result = read(out);
+    // trunc first line
+    result = result.substr(result.find('\n') + 1);
+    auto split_point = result.find(">>> Program exited, exit code = ");
+    auto actual = result.substr(0, split_point);
+    auto code = std::stoi(result.substr(split_point + strlen(">>> Program exited, exit code = ")));
+    actual = combine(actual, code);
+    std::string expected = read(path + ".out");
+    ASSERT_EQ(normalizeLineEndings(actual), normalizeLineEndings(expected));
 }

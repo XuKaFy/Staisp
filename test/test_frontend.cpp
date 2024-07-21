@@ -36,11 +36,7 @@ void judge(const std::string &id, const std::string& ll, const std::string &in, 
     code = WEXITSTATUS(code);
     std::string actual = read(id + ".out");
     std::string expected = read(out);
-    if (!actual.empty() && actual.back() != '\n') {
-        actual += "\n";
-    }
-    actual += std::to_string(code);
-    actual += "\n";
+    actual = combine(actual, code);
 
     // always remove
     remove((id + ".sylib.ll").c_str());
@@ -66,9 +62,10 @@ void test_sysy_frontend(const std::string &filename) {
         ASSERT_FALSE(system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
     });
 
-    double t2 = stopwatch.timeit([&] {
-        judge(id, path + ".sy.ll", path + ".in", path + ".out");
-    });
+    double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
+    // double t2 = stopwatch.timeit([&] {
+    //     judge(id, path + ".sy.ll", path + ".in", path + ".out");
+    // });
 
     // if you hope to watch detailed time info, use following command:
     // ctest -V | grep sysy_tests

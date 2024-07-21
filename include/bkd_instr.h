@@ -59,6 +59,9 @@ struct ImmInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) {}
 };
 
 struct RegInstr {
@@ -71,6 +74,9 @@ struct RegInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<Reg>(to); }
 };
 
 struct RegRegInstr {
@@ -83,6 +89,12 @@ struct RegRegInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs1, rs2}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) {
+        if (GReg(rs1) == from) rs1 = std::get<Reg>(to);
+        if (GReg(rs2) == from) rs2 = std::get<Reg>(to);
+    }
 };
 
 struct RegImmInstr {
@@ -95,6 +107,9 @@ struct RegImmInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<Reg>(to); }
 };
 
 struct BranchInstr {
@@ -107,6 +122,12 @@ struct BranchInstr {
 
     std::vector<GReg> def() const { return {}; }
     std::vector<GReg> use() const { return {rs1, rs2}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) {
+        if (GReg(rs1) == from) rs1 = std::get<Reg>(to);
+        if (GReg(rs2) == from) rs2 = std::get<Reg>(to);
+    }
 };
 
 struct FRegInstr {
@@ -119,6 +140,9 @@ struct FRegInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<FReg>(to); }
+    void replace_use(GReg from, GReg to) {}
 };
 
 struct FRegRegInstr {
@@ -131,6 +155,9 @@ struct FRegRegInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<FReg>(to); }
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<Reg>(to); }
 };
 
 struct RegFRegInstr {
@@ -143,6 +170,9 @@ struct RegFRegInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<FReg>(to); }
 };
 
 struct FRegFRegInstr {
@@ -155,6 +185,12 @@ struct FRegFRegInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs1, rs2}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<FReg>(to); }
+    void replace_use(GReg from, GReg to) {
+        if (GReg(rs1) == from) rs1 = std::get<FReg>(to);
+        if (GReg(rs2) == from) rs2 = std::get<FReg>(to);
+    }
 };
 
 struct FCmpInstr {
@@ -167,6 +203,12 @@ struct FCmpInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs1, rs2}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) {
+        if (GReg(rs1) == from) rs1 = std::get<FReg>(to);
+        if (GReg(rs2) == from) rs2 = std::get<FReg>(to);
+    }
 };
 
 template<typename T1, typename T2>
@@ -196,6 +238,9 @@ struct LoadInstr {
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {rs}; }
 
+    void replace_def(GReg from, GReg to) { if (rd == from) rd = to; }
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<Reg>(to); }
+
 };
 
 struct StoreInstr {
@@ -208,6 +253,12 @@ struct StoreInstr {
 
     std::vector<GReg> def() const { return {}; }
     std::vector<GReg> use() const { return {rs1, rs2}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) {
+        if (GReg(rs1) == from) rs1 = std::get<Reg>(to);
+        if (rs2 == from) rs2 = to;
+    }
 };
 
 struct RegLabelInstr {
@@ -220,6 +271,9 @@ struct RegLabelInstr {
 
     std::vector<GReg> def() const { return {}; }
     std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<Reg>(to); }
 };
 
 struct JInstr {
@@ -231,6 +285,9 @@ struct JInstr {
 
     std::vector<GReg> def() const { return {}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) {}
 };
 
 struct CallInstr {
@@ -242,6 +299,9 @@ struct CallInstr {
 
     std::vector<GReg> def() const { return {}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) {}
 };
 
 struct ReturnInstr {
@@ -251,6 +311,9 @@ struct ReturnInstr {
 
     std::vector<GReg> def() const { return {}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) {}
 };
 
 struct LoadAddressInstr {
@@ -262,6 +325,9 @@ struct LoadAddressInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) {}
 };
 
 struct LoadStackAddressInstr {
@@ -275,6 +341,9 @@ struct LoadStackAddressInstr {
 
     std::vector<GReg> def() const { return {rd}; }
     std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
+    void replace_use(GReg from, GReg to) {}
 };
 
 template<typename... Ts>
@@ -317,6 +386,12 @@ struct MachineInstr {
     }
     std::vector<GReg> use() const {
         return std::visit([](auto&& instr) { return instr.use(); }, instr);
+    }
+    void replace_def(GReg from, GReg to) {
+        return std::visit([&](auto&& instr) { return instr.replace_def(from, to); }, instr);
+    }
+    void replace_use(GReg from, GReg to) {
+        return std::visit([&](auto&& instr) { return instr.replace_use(from, to); }, instr);
     }
     template<typename T>
     T& as() {

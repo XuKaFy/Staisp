@@ -79,3 +79,12 @@ inline std::string get_path(const std::string &filename) {
     // pwd: ./build/test
     return "../../" + filename;
 }
+
+inline std::string combine(std::string actual, int code) {
+    if (!actual.empty() && actual.back() != '\n') {
+        actual += "\n";
+    }
+    actual += std::to_string(code);
+    actual += "\n";
+    return actual;
+}

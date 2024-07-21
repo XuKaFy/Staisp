@@ -59,31 +59,29 @@ void Func::number_instruction(Block *block) {
     if (visited.count(block)) return;
     visited.insert(block);
     for (auto&& instr : block->body) {
-        instr.number = next_num();
-        num2instr[instr.number] = &instr;
+        instr.number = next_instr_num(&instr);
     }
     for (auto&& out : block->out_blocks) {
         number_instruction(out);
     }
 }
 
-bool BlockValue::operator==(const BlockValue &b) const {
-    return uses == b.uses;
-}
+struct BlockValue {
+    bool operator==(const BlockValue &b) const { return uses == b.uses; }
+    bool operator!=(const BlockValue &b) const { return !operator==(b); }
 
-bool BlockValue::operator!=(const BlockValue &b) const {
-    return !operator==(b);
-}
-
-void BlockValue::cup(const BlockValue &v) {
-    for (const auto &i : v.uses) {
-        uses.insert(i);
+    void cup(const BlockValue &v) {
+        for (const auto &i : v.uses) {
+            uses.insert(i);
+        }
     }
-}
 
-void BlockValue::clear() {
-    uses.clear();
-}
+    void clear() {
+        uses.clear();
+    }
+
+    Set<GReg> uses;
+};
 
 void transfer(const Block *block, BlockValue &in) {
     // in = use + (in - def)
@@ -134,7 +132,7 @@ void Func::liveness_analysis() {
 
     for (auto& block : blocks) {
         auto frontNum = block.body.front().number;
-        auto backNum = block.body.end()->number;
+        auto backNum = block.body.back().number;
         Map<GReg, LiveRange> range_buffer;
         for (auto&& reg : OUTs[&block].uses) {
             range_buffer[reg] = LiveRange{frontNum, backNum, 0, &block};
@@ -144,17 +142,18 @@ void Func::liveness_analysis() {
             auto&& instr = *it;
             auto curNum = instr.number;
             for (auto reg : it->def()) {
-                if (!range_buffer.count(reg)) {
+                auto hot = range_buffer.find(reg);
+                if (hot == range_buffer.end()) {
                     // dead def (in current block)
                     live_ranges[reg].push_back({
                         curNum, curNum, 1, &block
                     });
                 } else {
-                    auto range = range_buffer[reg];
+                    auto range = hot->second;
                     range.fromNum = curNum;
                     range.instr_cnt++;
                     live_ranges[reg].push_back(range);
-                    range_buffer.erase(reg);
+                    range_buffer.erase(hot);
                 }
             }
             for (auto reg : it->use()) {

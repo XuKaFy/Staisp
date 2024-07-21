@@ -94,9 +94,11 @@ struct Func {
     void allocate_init();
     void allocate_weight();
     void allocate_register();
+    void rewrite_operands();
     bool peephole();
     void save_register();
     void generate_prolog();
+    void remove_pseudo();
     void generate_epilog();
     String generate_asm() const;
 
@@ -111,9 +113,11 @@ struct Func {
         allocate_init();
         allocate_weight();
         allocate_register();
+        rewrite_operands();
         while (peephole()) {}
         save_register();
         generate_prolog();
+        remove_pseudo();
         generate_epilog();
     }
 
@@ -131,16 +135,25 @@ struct Func {
     }
     // for numbering
     Set<Block*> visited;
-    int next_num_{0};
-    int next_num() {
-        return next_num_++;
+    std::vector<MachineInstr*> num2instr;
+    int next_instr_num(MachineInstr* instr) {
+        auto index = num2instr.size();
+        num2instr.push_back(instr);
+        return index;
     }
-    Map<int, MachineInstr*> num2instr;
 
     struct LiveRange {
         int fromNum, toNum;
-        int instr_cnt;
+        int instr_cnt = 0;
         Block* block;
+        bool conflict(const LiveRange &r) const {
+            return (fromNum >= r.fromNum && fromNum < r.toNum) || (toNum > r.fromNum && toNum <= r.toNum) ||
+                   (fromNum <= r.fromNum && toNum >= r.toNum);
+        }
+        bool operator<(const LiveRange &r) const {
+            if (fromNum != r.fromNum) return fromNum < r.fromNum;
+            return toNum < r.toNum;
+        }
     };
     Map<GReg, std::vector<LiveRange>> live_ranges;
 
@@ -161,6 +174,11 @@ struct Func {
     int next_alloc_num() {
         return next_alloc_num_++;
     }
+
+    Map<Block*, double> block_weight_map;
+    double get_range_weight(const LiveRange& range);
+    double get_spill_weight(int alloc_num);
+
     Map<int, GReg> alloc_map;
     Map<int, GReg> alloc_operand_map;
     Map<int, std::vector<LiveRange>> alloc_range_map;
@@ -182,20 +200,12 @@ struct Func {
     void try_allocate(int alloc_num);
     void try_split(int alloc_num);
     void spill(int alloc_num);
-    AllocPriority Func::get_alloc_priority(int alloc_num);
+    AllocPriority get_alloc_priority(int alloc_num);
+
+    std::set<GReg> saved_registers;
+    void add_saved_register(GReg reg);
 
 
-};
-
-struct BlockValue {
-    bool operator==(const BlockValue &b) const;
-    bool operator!=(const BlockValue &b) const;
-
-    void cup(const BlockValue &v);
-
-    void clear();
-
-    Set<GReg> uses;
 };
 
 } // namespace Backend

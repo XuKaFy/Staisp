@@ -65,6 +65,8 @@ void Func::translate()
         blocks.push_back(translate(block));
     }
     blocks.emplace_back(name + "_epilog");
+    blocks.front().body.push_back(MachineInstr { JInstr{ blocks[1].name } });
+    blocks.back().body.push_back(MachineInstr { ReturnInstr{} });
 }
 
 Block Func::translate(const Ir::pBlock &block)
@@ -638,6 +640,7 @@ bool Func::peephole() {
 
 
 void Func::generate_prolog() {
+    blocks.front().body.clear();
     auto add = [this](MachineInstr const& value) {
         blocks.front().body.push_back(value);
     };
@@ -663,9 +666,9 @@ void Func::generate_prolog() {
             auto rd = (FReg) ~reg++;
             auto rs = farg;
             if (rs <= FReg::FA7) {
-                add({  FRegInstr{
-                    FRegInstrType::FMV_S, rd, rs
-                } });
+                // add({  FRegInstr{
+                //     FRegInstrType::FMV_S, rd, rs
+                // } });
                 farg = (FReg)((int)farg + 1);
             } else {
                 add({ LoadInstr {
@@ -676,9 +679,9 @@ void Func::generate_prolog() {
             auto rd = (Reg) ~reg++;
             auto rs = arg;
             if (rs <= Reg::A7) {
-                add({  RegInstr{
-                    RegInstrType::MV, rd, rs
-                } });
+                // add({  RegInstr{
+                //     RegInstrType::MV, rd, rs
+                // } });
                 arg = (Reg)((int)arg + 1);
             } else {
                 add({ LoadInstr {
@@ -689,7 +692,21 @@ void Func::generate_prolog() {
     }
 }
 
+void Func::remove_pseudo() {
+    frame.adjust_args();
+    for (auto&& block : blocks) {
+        for (auto& instr : block.body) {
+            if (instr.instr_type() == MachineInstr::Type::LOAD_STACK_ADDRESS) {
+                auto LSA = instr.as<LoadStackAddressInstr>();
+                int offset = (LSA.arg ? frame.args : frame.locals)[LSA.index].offset;
+                instr = { RegImmInstr{ RegImmInstrType::ADDI, LSA.rd, Reg::SP, offset} };
+            }
+        }
+    }
+}
+
 void Func::generate_epilog() {
+    blocks.back().body.clear();
     auto add = [this](MachineInstr const& value) {
         blocks.back().body.push_back(value);
     };

@@ -2,6 +2,7 @@
 
 #include <bkd_reg.h>
 #include <bkd_freg.h>
+#include <bkd_instr.h>
 
 namespace Backend {
 
@@ -80,5 +81,12 @@ inline constexpr RegisterUsage FREG_USAGE[] {
     RegisterUsage::CallerSaved, // ft10
     RegisterUsage::CallerSaved, // ft11
 };
+
+RegisterUsage getUsage(GReg reg) {
+    return std::visit(overloaded {
+        [](Reg reg) { return REG_USAGE[(int)reg]; },
+        [](FReg freg) { return FREG_USAGE[(int)freg]; }
+    }, reg);
+}
 
 }
