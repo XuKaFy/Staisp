@@ -439,15 +439,17 @@ struct ConvertBulk {
     }
 
     void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
+        auto function_name = instr->operand(0)->usee->name();
+        auto args_size = instr->operand_size() - 1;
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
-        func.frame.at_least_args(instr->operand_size() - 1);
+        func.frame.at_least_args(args_size);
         auto next_arg = [this, i = (size_t)0] () mutable {
             auto rd = allocate_reg();
             add({ LoadStackAddressInstr {rd, i++, true} });
             return rd;
         };
-        for (size_t i = 1; i < instr->operand_size(); ++i) {
+        for (size_t i = 1; i <= args_size; ++i) {
             auto param = instr->operand(i)->usee;
             if (is_float(param->ty)) {
                 auto rd = farg;
@@ -477,7 +479,7 @@ struct ConvertBulk {
                 }
             }
         }
-        add({ CallInstr{instr->operand(0)->usee->name()} });
+        add({ CallInstr{ function_name } });
         auto rt = instr->func_ty->ret_type;
         if (is_float(rt)) {
             auto rd = toFReg(instr.get());

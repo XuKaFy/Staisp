@@ -27,7 +27,6 @@
 #include <utility>
 
 #define BUILTIN_INITIALIZER "__buildin_initializer"
-#define MEMSET "llvm.memset.p0i8.i64"
 
 namespace AstToIr {
 
@@ -777,16 +776,14 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                                 "array should be initialized by a list");
                 }
                 auto rrr = std::dynamic_pointer_cast<Ast::ArrayDefNode>(r->val);
-                auto imm1 = _cur_ctx.cpool.add(ImmValue(0LL, IMM_I8));
-                auto imm2 = _cur_ctx.cpool.add(ImmValue(static_cast<unsigned long long>(
-                                                   to_array_type(ty)->length()),
-                                               IMM_U64));
-                auto imm3 = _cur_ctx.cpool.add(ImmValue(0LL, IMM_I1));
+                auto len = to_array_type(ty)->length();
+                assert(len % 4 == 0);
+                auto imm = _cur_ctx.cpool.add(ImmValue(static_cast<unsigned long long>(len / 4), IMM_I32));
                 add_instr(Ir::make_call_instr(
-                    find_func(MEMSET),
+                    find_func("__builtin_fill_zero"),
                     {cast_to_type(r, tmp,
                                   make_pointer_type(make_basic_type(IMM_I8))),
-                     imm1, imm2, imm3}));
+                      imm}));
                 copy_to_array(r, tmp, to_array_type(ty), rrr, false);
             }
             break;
@@ -1164,7 +1161,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
     _mod->add_func_declaration(Ir::make_func(TypedSym("stoptime", vd), {}));
 
     _mod->add_func_declaration(
-        Ir::make_func(TypedSym(MEMSET, vd), {i8s, i8, i64, i1}));
+        Ir::make_func(TypedSym("__builtin_fill_zero", vd), {i8s, i32}));
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));

@@ -408,7 +408,12 @@ void Func::try_split(int alloc_num) {
 }
 
 void Func::spill(int alloc_num) {
-
+    // placeholder to let gcc compiles
+    auto operand = alloc_operand_map[alloc_num];
+    if (operand.index() == 0)
+        alloc_map[alloc_num] = Reg::A0;
+    else
+        alloc_map[alloc_num] = FReg::FA0;
 }
 
 void Func::rewrite_operands() {

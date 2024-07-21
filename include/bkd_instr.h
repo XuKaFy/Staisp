@@ -139,10 +139,10 @@ struct FRegInstr {
     }
 
     std::vector<GReg> def() const { return {rd}; }
-    std::vector<GReg> use() const { return {}; }
+    std::vector<GReg> use() const { return {rs}; }
 
     void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<FReg>(to); }
-    void replace_use(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<FReg>(to); }
 };
 
 struct FRegRegInstr {

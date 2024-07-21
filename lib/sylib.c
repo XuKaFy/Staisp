@@ -109,3 +109,11 @@ void stoptime()
     static int i = 0;
     _sysy_stoptime(++i);
 }
+
+#ifdef WANT_FILL_ZERO
+void __builtin_fill_zero(void* ptr, int size) {
+    int* p = (int*)ptr;
+    int* q = p + size;
+    while (p != q) *p++ = 0;
+}
+#endif

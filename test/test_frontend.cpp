@@ -11,7 +11,7 @@ const bool interpret = false;
 
 void judge(const std::string &id, const std::string& ll, const std::string &in, const std::string &out) {
     ASSERT_FALSE(
-        system(("clang -S -emit-llvm ../../lib/sylib.c -o " + id + ".sylib.ll")
+        system(("clang -DWANT_FILL_ZERO -S -emit-llvm ../../lib/sylib.c -o " + id + ".sylib.ll")
                    .c_str()));
     ASSERT_FALSE(system(("llvm-link -S " + ll + " " + id + ".sylib.ll -o " +
                          id + ".final.ll")
@@ -62,10 +62,10 @@ void test_sysy_frontend(const std::string &filename) {
         ASSERT_FALSE(system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
     });
 
-    double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
-    // double t2 = stopwatch.timeit([&] {
-    //     judge(id, path + ".sy.ll", path + ".in", path + ".out");
-    // });
+    // double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
+    double t2 = stopwatch.timeit([&] {
+        judge(id, path + ".sy.ll", path + ".in", path + ".out");
+    });
 
     // if you hope to watch detailed time info, use following command:
     // ctest -V | grep sysy_tests
