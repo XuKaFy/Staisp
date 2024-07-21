@@ -2,6 +2,7 @@
 
 #include <ir_func.h>
 #include <ir_func_defined.h>
+#include <set>
 #include <type.h>
 #include <utility>
 
@@ -89,8 +90,11 @@ struct Func {
     void build_block_def_use();
     void number_instruction(Block* block);
     void liveness_analysis();
-    bool peephole();
+    void allocate_hint();
+    void allocate_init();
+    void allocate_weight();
     void allocate_register();
+    bool peephole();
     void save_register();
     void generate_prolog();
     void generate_epilog();
@@ -103,8 +107,11 @@ struct Func {
         visited.clear();
         number_instruction(&blocks.front());
         liveness_analysis();
-        while (peephole()) {}
+        allocate_hint();
+        allocate_init();
+        allocate_weight();
         allocate_register();
+        while (peephole()) {}
         save_register();
         generate_prolog();
         generate_epilog();
@@ -132,10 +139,51 @@ struct Func {
 
     struct LiveRange {
         int fromNum, toNum;
-        int cnt;
+        int instr_cnt;
         Block* block;
     };
     Map<GReg, std::vector<LiveRange>> live_ranges;
+
+    enum class AllocStatus {
+        New,
+        Assign,
+        Split,
+        Spill,
+        Memory,
+        Done,
+    };
+
+    using AllocPriority = std::tuple<AllocStatus, int, int, bool>;
+    using PrioritizedAlloc = std::pair<AllocPriority, int>;
+    using AllocRange = std::pair<LiveRange, int>;
+
+    int next_alloc_num_{0};
+    int next_alloc_num() {
+        return next_alloc_num_++;
+    }
+    Map<int, GReg> alloc_map;
+    Map<int, GReg> alloc_operand_map;
+    Map<int, std::vector<LiveRange>> alloc_range_map;
+    Map<int, AllocStatus> alloc_status_map;
+    std::priority_queue<PrioritizedAlloc> alloc_priority_queue;
+
+    Map<GReg, Set<int>> occupied_map;
+    Map<GReg, std::set<AllocRange>> occupied_range_map;
+
+    // offset in memory.
+    Map<GReg, size_t> operand_spill_map;
+
+    // used temporary registers.
+    Map<MachineInstr*, Set<GReg>> used_temp_map;
+
+    Map<GReg, GReg> coalesce_map;
+    Map<GReg, GReg> hint_map;
+
+    void try_allocate(int alloc_num);
+    void try_split(int alloc_num);
+    void spill(int alloc_num);
+    AllocPriority Func::get_alloc_priority(int alloc_num);
+
 
 };
 

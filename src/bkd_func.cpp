@@ -152,7 +152,7 @@ void Func::liveness_analysis() {
                 } else {
                     auto range = range_buffer[reg];
                     range.fromNum = curNum;
-                    range.cnt++;
+                    range.instr_cnt++;
                     live_ranges[reg].push_back(range);
                     range_buffer.erase(reg);
                 }
@@ -162,7 +162,7 @@ void Func::liveness_analysis() {
                     // new use
                     range_buffer[reg] = LiveRange{frontNum, curNum, 1, &block};
                 } else {
-                    range_buffer[reg].cnt++;
+                    range_buffer[reg].instr_cnt++;
                 }
             }
         }

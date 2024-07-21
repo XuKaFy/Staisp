@@ -45,6 +45,10 @@ inline std::string stringify(GReg reg) {
     return std::visit([](auto reg) { return Backend::stringify(reg); }, reg);
 }
 
+inline bool is_virtual(GReg reg) {
+    return std::visit([](auto reg) { return Backend::is_virtual(reg); }, reg);
+}
+
 struct ImmInstr {
     ImmInstrType type;
     Reg rd; int imm;
