@@ -86,6 +86,7 @@ struct Func {
     void translate();
     Block translate(const Ir::pBlock &block);
     MachineInstrs translate(const Ir::pInstr &instr);
+    Block prolog_prototype();
     void build_block_graph();
     void build_block_def_use();
     void number_instruction(Block* block);

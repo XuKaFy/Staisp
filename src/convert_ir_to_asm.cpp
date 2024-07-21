@@ -60,12 +60,12 @@ Global Convertor::convert(const Ir::pGlobal &glob)
 
 void Func::translate()
 {
-    blocks.emplace_back(name + "_prolog");
+    blocks.push_back(prolog_prototype());
     for (auto && block : ir_func->p) {
         blocks.push_back(translate(block));
     }
     blocks.emplace_back(name + "_epilog");
-    blocks.front().body.push_back(MachineInstr { JInstr{ blocks[1].name } });
+    blocks.front().body.push_back({ JInstr{ blocks[1].name } });
     blocks.back().body.push_back(MachineInstr { ReturnInstr{} });
 }
 
@@ -640,19 +640,27 @@ bool Func::peephole() {
 
 
 void Func::generate_prolog() {
-    blocks.front().body.clear();
-    auto add = [this](MachineInstr const& value) {
-        blocks.front().body.push_back(value);
+    std::vector<MachineInstr> prepend;
+    auto add = [&](MachineInstr const& value) {
+        prepend.push_back(value);
     };
-    {
-        int sp = (int)frame.size();
-        add({ RegImmInstr {
-            RegImmInstrType::ADDI, Reg::SP, Reg::SP, -sp
-        } });
-        add({ StoreInstr {
-            LSType::DWORD, Reg::RA,  sp - 8, Reg::SP,
-        } });
-    }
+
+    int sp = (int)frame.size();
+    add({ RegImmInstr {
+        RegImmInstrType::ADDI, Reg::SP, Reg::SP, -sp
+    } });
+    add({ StoreInstr {
+        LSType::DWORD, Reg::RA,  sp - 8, Reg::SP,
+    } });
+
+    blocks.front().body.insert(blocks.front().body.begin(), prepend.begin(), prepend.end());
+}
+
+Block Func::prolog_prototype() {
+    Block block(name + "_prolog");
+    auto add = [&](MachineInstr const& value) {
+        block.body.push_back(value);
+    };
     Reg arg = Reg::A0;
     FReg farg = FReg::FA0;
     auto next_arg = [this, add, i = (size_t)0] () mutable {
@@ -666,9 +674,9 @@ void Func::generate_prolog() {
             auto rd = (FReg) ~reg++;
             auto rs = farg;
             if (rs <= FReg::FA7) {
-                // add({  FRegInstr{
-                //     FRegInstrType::FMV_S, rd, rs
-                // } });
+                add({  FRegInstr{
+                    FRegInstrType::FMV_S, rd, rs
+                } });
                 farg = (FReg)((int)farg + 1);
             } else {
                 add({ LoadInstr {
@@ -679,9 +687,9 @@ void Func::generate_prolog() {
             auto rd = (Reg) ~reg++;
             auto rs = arg;
             if (rs <= Reg::A7) {
-                // add({  RegInstr{
-                //     RegInstrType::MV, rd, rs
-                // } });
+                add({  RegInstr{
+                    RegInstrType::MV, rd, rs
+                } });
                 arg = (Reg)((int)arg + 1);
             } else {
                 add({ LoadInstr {
@@ -690,6 +698,7 @@ void Func::generate_prolog() {
             }
         }
     }
+    return block;
 }
 
 void Func::remove_pseudo() {
