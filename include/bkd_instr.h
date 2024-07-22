@@ -411,6 +411,11 @@ struct MachineInstr {
     int number{-1};
 };
 
+inline bool check_itype_immediate(int32_t value) {
+    return value >= -0x800 && value <= 0x7ff;
+}
+
+
 typedef List<MachineInstr> MachineInstrs;
 
 } // namespace Backend

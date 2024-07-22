@@ -28,13 +28,13 @@ spilled arguments
 
 */
 struct StackFrame {
-    StackObject ra{0, 8};
+    StackObject ra{8, 8};
     size_t offset = 8;
     std::vector<StackObject> locals; // all except ra and args
     size_t push(size_t size) {
         size_t index = locals.size();
-        locals.push_back({offset, size});
         offset += size;
+        locals.push_back({offset, size});
         return index;
     }
 
@@ -44,7 +44,7 @@ struct StackFrame {
         n -= 8; // first eight arguments are in registers
         for (size_t i = args.size(); i < n; ++i) {
             // rest of arguments then are in stack
-            args.push_back({i * 8, 8});
+            args.push_back({8 + i * 8, 8});
         }
     }
     // don't call this too early

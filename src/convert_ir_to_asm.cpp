@@ -640,21 +640,38 @@ bool Func::peephole() {
     return false;
 }
 
+std::vector<MachineInstr> spaddi(Reg rd, int imm) {
+    if (check_itype_immediate(imm)) {
+        return {{ RegImmInstr{ RegImmInstrType::ADDI, rd, Reg::SP, imm} }};
+    } else {
+        return {
+            { ImmInstr { ImmInstrType::LI, rd, imm } },
+            { RegRegInstr{ RegRegInstrType::ADD, rd, Reg::SP, rd} }
+        };
+    }
+}
 
 void Func::generate_prolog() {
-    std::vector<MachineInstr> prepend;
-    auto add = [&](MachineInstr const& value) {
-        prepend.push_back(value);
-    };
-
     int sp = (int)frame.size();
-    add({ RegImmInstr {
-        RegImmInstrType::ADDI, Reg::SP, Reg::SP, -sp
-    } });
-    add({ StoreInstr {
-        LSType::DWORD, Reg::RA,  sp - 8, Reg::SP,
-    } });
-
+    std::vector<MachineInstr> prepend = spaddi(Reg::SP, -sp);
+    {
+        int offset = sp - 8;
+        if (check_itype_immediate(offset)) {
+            prepend.push_back({ StoreInstr {
+                LSType::DWORD, Reg::RA,  offset, Reg::SP,
+            } });
+        } else {
+            prepend.push_back({ ImmInstr {
+                ImmInstrType::LI, Reg::T0, offset
+            } });
+            prepend.push_back({ RegRegInstr {
+                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+            } });
+            prepend.push_back({ StoreInstr {
+                LSType::DWORD, Reg::RA, 0, Reg::T0,
+            } });
+        }
+    }
     blocks.front().body.insert(blocks.front().body.begin(), prepend.begin(), prepend.end());
 }
 
@@ -706,31 +723,48 @@ Block Func::prolog_prototype() {
 void Func::remove_pseudo() {
     frame.adjust_args();
     for (auto&& block : blocks) {
-        for (auto& instr : block.body) {
+        for (auto it = block.body.begin(); it != block.body.end(); ) {
+            auto instr = *it;
             if (instr.instr_type() == MachineInstr::Type::LOAD_STACK_ADDRESS) {
                 auto LSA = instr.as<LoadStackAddressInstr>();
                 int offset = (LSA.arg ? frame.args : frame.locals)[LSA.index].offset;
-                instr = { RegImmInstr{ RegImmInstrType::ADDI, LSA.rd, Reg::SP, offset} };
+                auto replacement = spaddi(LSA.rd, (int)frame.size() - offset);
+                it = block.body.erase(it);
+                it = block.body.insert(it, replacement.begin(), replacement.end());
+            } else {
+                ++it;
             }
         }
     }
 }
 
 void Func::generate_epilog() {
-    blocks.back().body.clear();
-    auto add = [this](MachineInstr const& value) {
-        blocks.back().body.push_back(value);
-    };
+    int sp = (int)frame.size();
+    std::vector<MachineInstr> prepend;
     {
-        int sp = (int)frame.size();
-        add({ LoadInstr {
-            LSType::DWORD, Reg::RA,  sp - 8, Reg::SP,
-        } });
-        add({ RegImmInstr {
-            RegImmInstrType::ADDI, Reg::SP, Reg::SP, sp
-        } });
-        add({ ReturnInstr{} });
+        int offset = sp - 8;
+        if (check_itype_immediate(offset)) {
+            prepend.push_back({ LoadInstr {
+                LSType::DWORD, Reg::RA, offset, Reg::SP,
+            } });
+        } else {
+            prepend.push_back({ ImmInstr {
+                ImmInstrType::LI, Reg::T0, offset
+            } });
+            prepend.push_back({ RegRegInstr {
+                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+            } });
+            prepend.push_back({ LoadInstr {
+                LSType::DWORD, Reg::RA, 0, Reg::T0,
+            } });
+        }
     }
+    {
+        auto rewind = spaddi(Reg::SP, sp);
+        prepend.insert(prepend.end(), rewind.begin(), rewind.end());
+    }
+    blocks.back().body.insert(blocks.back().body.begin(), prepend.begin(), prepend.end());
+
 }
 
 
