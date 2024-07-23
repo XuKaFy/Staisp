@@ -408,12 +408,71 @@ void Func::try_split(int alloc_num) {
 }
 
 void Func::spill(int alloc_num) {
-    // placeholder to let gcc compiles
     auto operand = alloc_operand_map[alloc_num];
-    if (operand.index() == 0)
-        alloc_map[alloc_num] = Reg::A0;
-    else
-        alloc_map[alloc_num] = FReg::FA0;
+    bool is_flt = operand.index();
+    auto range_list = alloc_range_map[alloc_num];
+    std::vector<MachineInstr*> def_worklist, use_worklist;
+    for (auto&& range : range_list) {
+        for (auto instr_num = range.fromNum; instr_num <= range.toNum; ++instr_num) {
+            auto instr = num2instr[instr_num];
+            auto def = instr->def();
+            auto use = instr->use();
+            if (std::find(def.begin(), def.end(), operand) != def.end()) {
+                def_worklist.push_back(instr);
+            }
+            if (std::find(use.begin(), use.end(), operand) != use.end()) {
+                use_worklist.push_back(instr);
+            }
+        }
+    }
+    int offset;
+    if (operand_spill_map.count(operand)) {
+        offset = operand_spill_map[operand];
+    } else {
+        operand_spill_map[operand] = offset = frame.push(8);
+    }
+
+    Map<MachineInstr*, std::pair<std::list<MachineInstr>*, std::list<MachineInstr>::iterator>> lookup;
+    for (auto&& block : blocks) {
+        for (auto it = block.body.begin(); it != block.body.end(); ++it) {
+            lookup[&*it] = {&block.body, it};
+        }
+    }
+
+    for (auto&& instr : def_worklist) {
+        auto [list, it] = lookup[instr];
+        if (is_flt) {
+            instr->replace_def(operand, FReg::FT0);
+            list->insert(++it, MachineInstr{ StoreInstr { LSType::FLOAT, FReg::FT0, offset, Reg::SP } });
+        } else {
+            instr->replace_def(operand, Reg::T0);
+            list->insert(++it, MachineInstr{ StoreInstr { LSType::WORD, Reg::T0, offset, Reg::SP } });
+        }
+    }
+
+    for (auto&& instr : use_worklist) {
+        auto [list, it] = lookup[instr];
+        if (is_flt) {
+            auto tmp = FReg::FT0;
+            if (used_temp_map.count(instr)) {
+                tmp = FReg::FT1;
+            } else {
+                used_temp_map.insert(instr);
+            }
+            instr->replace_def(operand, tmp);
+            list->insert(it, MachineInstr{ LoadInstr { LSType::FLOAT, tmp, offset, Reg::SP } });
+        } else {
+            auto tmp = Reg::T0;
+            if (used_temp_map.count(instr)) {
+                tmp = Reg::T1;
+            } else {
+                used_temp_map.insert(instr);
+            }
+            instr->replace_use(operand, tmp);
+            list->insert(it, MachineInstr{ LoadInstr { LSType::WORD, tmp, offset, Reg::SP } });
+        }
+    }
+
 }
 
 void Func::rewrite_operands() {
@@ -440,12 +499,6 @@ void Func::add_saved_register(GReg reg) {
     if (getUsage(reg) == RegisterUsage::CalleeSaved) {
         saved_registers.insert(reg);
     }
-}
-
-
-
-void Func::save_register() {
-
 }
 
 }

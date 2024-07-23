@@ -55,9 +55,8 @@ struct StackFrame {
         }
     }
 
-    size_t size() {
+    size_t size(size_t sz = 8) {
         size_t alignment;
-        size_t sz = 8;
         for (auto&& local : locals) sz += local.size;
         alignment = 8;
         if (sz % alignment != 0) sz += alignment - sz % alignment;
@@ -97,7 +96,6 @@ struct Func {
     void allocate_register();
     void rewrite_operands();
     bool peephole();
-    void save_register();
     void generate_prolog();
     void remove_pseudo();
     void generate_epilog();
@@ -116,7 +114,6 @@ struct Func {
         allocate_register();
         rewrite_operands();
         while (peephole()) {}
-        save_register();
         generate_prolog();
         remove_pseudo();
         generate_epilog();
@@ -190,10 +187,10 @@ struct Func {
     Map<GReg, std::set<AllocRange>> occupied_range_map;
 
     // offset in memory.
-    Map<GReg, size_t> operand_spill_map;
+    Map<GReg, int> operand_spill_map;
 
     // used temporary registers.
-    Map<MachineInstr*, Set<GReg>> used_temp_map;
+    Set<MachineInstr*> used_temp_map;
 
     Map<GReg, GReg> coalesce_map;
     Map<GReg, GReg> hint_map;

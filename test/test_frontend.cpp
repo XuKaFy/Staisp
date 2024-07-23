@@ -16,16 +16,17 @@ void judge(const std::string &id, const std::string& ll, const std::string &in, 
     ASSERT_FALSE(system(("llvm-link -S " + ll + " " + id + ".sylib.ll -o " +
                          id + ".final.ll")
                             .c_str()));
-    int code;
+
+    auto id_out = id + ".out";
     std::string io;
     if (fs::exists(in)) {
         io += " < ";
         io += in;
     }
     io += " > ";
-    io += id;
-    io += ".out";
+    io += id_out;
 
+    int code;
     if (interpret) {
         code = system(("lli " + id + ".final.ll" + io).c_str());
     } else {
@@ -34,7 +35,7 @@ void judge(const std::string &id, const std::string& ll, const std::string &in, 
         code = system(("./" + id + io).c_str());
     }
     code = WEXITSTATUS(code);
-    std::string actual = read(id + ".out");
+    std::string actual = read(id_out);
     std::string expected = read(out);
     actual = combine(actual, code);
 

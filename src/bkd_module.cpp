@@ -5,14 +5,16 @@ namespace Backend {
 String Module::print_module() const
 {
     String res;
+    res += ".data\n";
+    for (auto &&i : globs) {
+        res += i.print();
+    }
 
+    res += "\n";
     res += ".text\n";
     res += ".global main\n";
     res += "\n";
 
-    for (auto &&i : globs) {
-        res += i.print();
-    }
 
     for (auto &&func : funcs) {
         res += func.generate_asm();

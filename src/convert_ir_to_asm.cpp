@@ -66,7 +66,13 @@ void Func::translate()
     }
     blocks.emplace_back(name + "_epilog");
     blocks.front().body.push_back({ JInstr{ blocks[1].name } });
-    blocks.back().body.push_back(MachineInstr { ReturnInstr{} });
+    std::vector<GReg> uses;
+    if (is_float(type->ret_type)) {
+        uses = {FReg::FA0};
+    } else if (is_integer(type->ret_type)) {
+        uses = {Reg::A0};
+    }
+    blocks.back().body.push_back(MachineInstr { ReturnInstr{ uses } });
 }
 
 Block Func::translate(const Ir::pBlock &block)
@@ -444,6 +450,7 @@ struct ConvertBulk {
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
         func.frame.at_least_args(args_size);
+        std::vector<GReg> uses;
         auto next_arg = [this, i = (size_t)0] () mutable {
             auto rd = allocate_reg();
             add({ LoadStackAddressInstr {rd, i++, true} });
@@ -458,6 +465,7 @@ struct ConvertBulk {
                     add({  FRegInstr{
                         FRegInstrType::FMV_S, rd, rs
                     } });
+                    uses.emplace_back(rd);
                     farg = (FReg)((int)farg + 1);
                 } else {
                     add({ StoreInstr {
@@ -471,6 +479,7 @@ struct ConvertBulk {
                     add({  RegInstr{
                         RegInstrType::MV, rd, rs
                     } });
+                    uses.emplace_back(rd);
                     arg = (Reg)((int)arg + 1);
                 } else {
                     add({ StoreInstr {
@@ -479,19 +488,17 @@ struct ConvertBulk {
                 }
             }
         }
-        add({ CallInstr{ function_name } });
         auto rt = instr->func_ty->ret_type;
+        add({ CallInstr{ function_name, uses } });
         if (is_float(rt)) {
             auto rd = toFReg(instr.get());
-            auto fa0 = FReg::FA0;
             add({ FRegInstr{
-                FRegInstrType::FMV_S, rd, fa0
+                FRegInstrType::FMV_S, rd, FReg::FA0
             } });
         } else if (is_integer(rt)) {
             auto rd = toReg(instr.get());
-            auto a0 = Reg::A0;
             add({ RegInstr{
-                RegInstrType::MV, rd, a0
+                RegInstrType::MV, rd, Reg::A0
             } });
         }
     }
@@ -551,7 +558,7 @@ struct ConvertBulk {
         for (size_t dim = 1; dim < instr->operand_size(); ++dim) {
             type = to_elem_type(type);
             int step = type->length();
-            auto index = instr->operand(dim++)->usee;
+            auto index = instr->operand(dim)->usee;
             auto r1 = allocate_reg();
             auto r2 = allocate_reg();
             auto r3 = allocate_reg();
@@ -652,13 +659,13 @@ std::vector<MachineInstr> spaddi(Reg rd, int imm) {
 }
 
 void Func::generate_prolog() {
-    int sp = (int)frame.size();
+    int sp = (int)frame.size(8 * saved_registers.size() + 8);
     std::vector<MachineInstr> prepend = spaddi(Reg::SP, -sp);
-    {
-        int offset = sp - 8;
+    auto save = [&prepend](int offset, GReg reg) {
+        auto type = reg.index() ? LSType::FLOAT : LSType::DWORD;
         if (check_itype_immediate(offset)) {
             prepend.push_back({ StoreInstr {
-                LSType::DWORD, Reg::RA,  offset, Reg::SP,
+                type, reg,  offset, Reg::SP,
             } });
         } else {
             prepend.push_back({ ImmInstr {
@@ -668,9 +675,14 @@ void Func::generate_prolog() {
                 RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
             } });
             prepend.push_back({ StoreInstr {
-                LSType::DWORD, Reg::RA, 0, Reg::T0,
+                type, reg, 0, Reg::T0,
             } });
         }
+    };
+    save(sp - 8, Reg::RA);
+    for (auto&& reg : saved_registers) {
+        int index = frame.push(8);
+        save(sp - (int)frame.locals[index].offset, reg);
     }
     blocks.front().body.insert(blocks.front().body.begin(), prepend.begin(), prepend.end());
 }
@@ -741,11 +753,11 @@ void Func::remove_pseudo() {
 void Func::generate_epilog() {
     int sp = (int)frame.size();
     std::vector<MachineInstr> prepend;
-    {
-        int offset = sp - 8;
+    auto reload = [&prepend](int offset, GReg reg){
+        auto type = reg.index() ? LSType::FLOAT : LSType::DWORD;
         if (check_itype_immediate(offset)) {
             prepend.push_back({ LoadInstr {
-                LSType::DWORD, Reg::RA, offset, Reg::SP,
+                type, reg, offset, Reg::SP,
             } });
         } else {
             prepend.push_back({ ImmInstr {
@@ -755,9 +767,15 @@ void Func::generate_epilog() {
                 RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
             } });
             prepend.push_back({ LoadInstr {
-                LSType::DWORD, Reg::RA, 0, Reg::T0,
+                type, reg, 0, Reg::T0,
             } });
         }
+    };
+    reload(sp - 8, Reg::RA);
+    int offset = 0;
+    for (auto&& reg : saved_registers) {
+        reload(offset, reg);
+        offset += 8;
     }
     {
         auto rewind = spaddi(Reg::SP, sp);

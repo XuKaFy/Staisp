@@ -66,7 +66,9 @@ String GlobalPart::print() const
 
 String Global::print() const
 {
-    String res = name + ":\n";
+    String res;
+    res += ".globl " + name + "\n";
+    res += name + ":\n";
     for (auto &&i : component) {
         res += i.print() + "\n";
     }

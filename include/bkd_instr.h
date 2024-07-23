@@ -292,25 +292,67 @@ struct JInstr {
 
 struct CallInstr {
     std::string label;
+    std::vector<GReg> uses;
 
     std::string stringify() const {
         return format("call", label);
     }
 
-    std::vector<GReg> def() const { return {}; }
-    std::vector<GReg> use() const { return {}; }
+    std::vector<GReg> def() const {
+        return {
+            Reg::T0,
+            Reg::T1,
+            Reg::T2,
+            Reg::A0,
+            Reg::A1,
+            Reg::A2,
+            Reg::A3,
+            Reg::A4,
+            Reg::A5,
+            Reg::A6,
+            Reg::A7,
+            Reg::T3,
+            Reg::T4,
+            Reg::T5,
+            Reg::T6,
+
+            FReg::FT0,
+            FReg::FT1,
+            FReg::FT2,
+            FReg::FT3,
+            FReg::FT4,
+            FReg::FT5,
+            FReg::FT6,
+            FReg::FT7,
+            FReg::FA0,
+            FReg::FA1,
+            FReg::FA2,
+            FReg::FA3,
+            FReg::FA4,
+            FReg::FA5,
+            FReg::FA6,
+            FReg::FA7,
+            FReg::FT8,
+            FReg::FT9,
+            FReg::FT10,
+            FReg::FT11,
+        };
+    }
+    std::vector<GReg> use() const { return uses; }
 
     void replace_def(GReg from, GReg to) {}
     void replace_use(GReg from, GReg to) {}
 };
 
 struct ReturnInstr {
+    std::vector<GReg> uses;
+
     std::string stringify() const {
         return "ret";
     }
 
     std::vector<GReg> def() const { return {}; }
-    std::vector<GReg> use() const { return {}; }
+    std::vector<GReg> use() const { return uses; }
 
     void replace_def(GReg from, GReg to) {}
     void replace_use(GReg from, GReg to) {}
