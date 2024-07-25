@@ -12,8 +12,7 @@
 namespace Backend {
 
 struct StackObject {
-    size_t offset, size;
-    // and more...
+    int offset, size;
 };
 
 /*
@@ -29,39 +28,28 @@ spilled arguments
 */
 struct StackFrame {
     StackObject ra{8, 8};
-    size_t offset = 8;
+    int offset = 8;
     std::vector<StackObject> locals; // all except ra and args
-    size_t push(size_t size) {
+    size_t push(int size) {
         size_t index = locals.size();
+        if (size == 8 && offset % 8 == 4) offset += 4;
         offset += size;
         locals.push_back({offset, size});
         return index;
     }
 
-    std::vector<StackObject> args;
-    void at_least_args(size_t n) {
-        if (n <= 8) return;
-        n -= 8; // first eight arguments are in registers
-        for (size_t i = args.size(); i < n; ++i) {
-            // rest of arguments then are in stack
-            args.push_back({8 + i * 8, 8});
-        }
-    }
-    // don't call this too early
-    // and don't forget to call this
-    void adjust_args() {
-        for (auto& arg : args) {
-            arg.offset += offset;
-        }
+    int args = 0;
+    void at_least_args(int n) {
+        args = std::max(n - 8, args);
     }
 
-    size_t size(size_t sz = 8) {
-        size_t alignment;
-        for (auto&& local : locals) sz += local.size;
+    int size() const {
+        int sz = offset;
+        int alignment;
         alignment = 8;
         if (sz % alignment != 0) sz += alignment - sz % alignment;
+        sz += args * 8;
         alignment = 16;
-        for (auto&& arg : args) sz += arg.size;
         if (sz % alignment != 0) sz += alignment - sz % alignment;
         return sz;
     }
@@ -102,6 +90,7 @@ struct Func {
     String generate_asm() const;
 
     void passes() {
+        preprocess();
         translate();
         build_block_graph();
         build_block_def_use();
@@ -131,6 +120,15 @@ struct Func {
     int next_reg() {
         return next_reg_++;
     }
+
+    void preprocess() {
+        int args_size = type->arg_type.size();
+        for (int i = 0; i < args_size; ++i) {
+            llvmRegToAsmReg[i] = i;
+        }
+        next_reg_ = args_size;
+    }
+
     // for numbering
     Set<Block*> visited;
     std::vector<MachineInstr*> num2instr;
@@ -200,7 +198,7 @@ struct Func {
     void spill(int alloc_num);
     AllocPriority get_alloc_priority(int alloc_num);
 
-    std::set<GReg> saved_registers;
+    Map<GReg, int> saved_registers;
     void add_saved_register(GReg reg);
 
 

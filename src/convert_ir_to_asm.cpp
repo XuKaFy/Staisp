@@ -451,9 +451,9 @@ struct ConvertBulk {
         FReg farg = FReg::FA0;
         func.frame.at_least_args(args_size);
         std::vector<GReg> uses;
-        auto next_arg = [this, i = (size_t)0] () mutable {
+        auto next_arg = [this, args_size] (int i) mutable {
             auto rd = allocate_reg();
-            add({ LoadStackAddressInstr {rd, i++, true} });
+            add({ LoadStackAddressInstr {rd, args_size - i, LoadStackAddressInstr::Type::CHILD_ARG} });
             return rd;
         };
         for (size_t i = 1; i <= args_size; ++i) {
@@ -469,7 +469,7 @@ struct ConvertBulk {
                     farg = (FReg)((int)farg + 1);
                 } else {
                     add({ StoreInstr {
-                        LSType::FLOAT, rs,  0, next_arg(),
+                        LSType::FLOAT, rs,  0, next_arg(i),
                     } });
                 }
             } else {
@@ -483,7 +483,7 @@ struct ConvertBulk {
                     arg = (Reg)((int)arg + 1);
                 } else {
                     add({ StoreInstr {
-                        LSType::DWORD, rs,  0, next_arg(),
+                        LSType::DWORD, rs,  0, next_arg(i),
                     } });
                 }
             }
@@ -658,35 +658,6 @@ std::vector<MachineInstr> spaddi(Reg rd, int imm) {
     }
 }
 
-void Func::generate_prolog() {
-    int sp = (int)frame.size(8 * saved_registers.size() + 8);
-    std::vector<MachineInstr> prepend = spaddi(Reg::SP, -sp);
-    auto save = [&prepend](int offset, GReg reg) {
-        auto type = reg.index() ? LSType::FLOAT : LSType::DWORD;
-        if (check_itype_immediate(offset)) {
-            prepend.push_back({ StoreInstr {
-                type, reg,  offset, Reg::SP,
-            } });
-        } else {
-            prepend.push_back({ ImmInstr {
-                ImmInstrType::LI, Reg::T0, offset
-            } });
-            prepend.push_back({ RegRegInstr {
-                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
-            } });
-            prepend.push_back({ StoreInstr {
-                type, reg, 0, Reg::T0,
-            } });
-        }
-    };
-    save(sp - 8, Reg::RA);
-    for (auto&& reg : saved_registers) {
-        int index = frame.push(8);
-        save(sp - (int)frame.locals[index].offset, reg);
-    }
-    blocks.front().body.insert(blocks.front().body.begin(), prepend.begin(), prepend.end());
-}
-
 Block Func::prolog_prototype() {
     Block block(name + "_prolog");
     auto add = [&](MachineInstr const& value) {
@@ -696,7 +667,7 @@ Block Func::prolog_prototype() {
     FReg farg = FReg::FA0;
     auto next_arg = [this, add, i = (size_t)0] () mutable {
         auto rd = (Reg) ~next_reg();
-        add({ LoadStackAddressInstr {rd, i++, true} });
+        add({ LoadStackAddressInstr {rd, i++, LoadStackAddressInstr::Type::PARENT_ARG} });
         return rd;
     };
     int reg = 0;
@@ -732,15 +703,58 @@ Block Func::prolog_prototype() {
     return block;
 }
 
+void Func::generate_prolog() {
+    for (auto& [reg, index] : saved_registers) {
+        index = frame.push(8);
+    }
+    int frame_size = frame.size();
+    std::vector<MachineInstr> prepend = spaddi(Reg::SP, -frame_size);
+    auto save = [&prepend](int offset, GReg reg) {
+        auto type = reg.index() ? LSType::FLOAT : LSType::DWORD;
+        if (check_itype_immediate(offset)) {
+            prepend.push_back({ StoreInstr {
+                type, reg,  offset, Reg::SP,
+            } });
+        } else {
+            prepend.push_back({ ImmInstr {
+                ImmInstrType::LI, Reg::T0, offset
+            } });
+            prepend.push_back({ RegRegInstr {
+                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+            } });
+            prepend.push_back({ StoreInstr {
+                type, reg, 0, Reg::T0,
+            } });
+        }
+    };
+    save(frame_size - 8, Reg::RA);
+    for (auto& [reg, index] : saved_registers) {
+        save(frame_size - frame.locals[index].offset, reg);
+    }
+    blocks.front().body.insert(blocks.front().body.begin(), prepend.begin(), prepend.end());
+}
+
 void Func::remove_pseudo() {
-    frame.adjust_args();
+    int frame_size = frame.size();
     for (auto&& block : blocks) {
         for (auto it = block.body.begin(); it != block.body.end(); ) {
             auto instr = *it;
             if (instr.instr_type() == MachineInstr::Type::LOAD_STACK_ADDRESS) {
                 auto LSA = instr.as<LoadStackAddressInstr>();
-                int offset = (LSA.arg ? frame.args : frame.locals)[LSA.index].offset;
-                auto replacement = spaddi(LSA.rd, (int)frame.size() - offset);
+                int offset = 0;
+                switch (LSA.type) {
+                    case LoadStackAddressInstr::Type::LOCAL:
+                        offset = frame_size - frame.locals[LSA.index].offset;
+                        break;
+                    case LoadStackAddressInstr::Type::PARENT_ARG:
+                        offset = frame_size + (int)LSA.index * 8;
+                        break;
+                    case LoadStackAddressInstr::Type::CHILD_ARG:
+                        offset = (int)LSA.index * 8;
+                        break;
+                }
+
+                auto replacement = spaddi(LSA.rd, offset);
                 it = block.body.erase(it);
                 it = block.body.insert(it, replacement.begin(), replacement.end());
             } else {
@@ -751,7 +765,7 @@ void Func::remove_pseudo() {
 }
 
 void Func::generate_epilog() {
-    int sp = (int)frame.size();
+    int frame_size = frame.size();
     std::vector<MachineInstr> prepend;
     auto reload = [&prepend](int offset, GReg reg){
         auto type = reg.index() ? LSType::FLOAT : LSType::DWORD;
@@ -771,14 +785,12 @@ void Func::generate_epilog() {
             } });
         }
     };
-    reload(sp - 8, Reg::RA);
-    int offset = 0;
-    for (auto&& reg : saved_registers) {
-        reload(offset, reg);
-        offset += 8;
+    for (auto&& [reg, index] : saved_registers) {
+        reload(frame_size - frame.locals[index].offset, reg);
     }
+    reload(frame_size - 8, Reg::RA);
     {
-        auto rewind = spaddi(Reg::SP, sp);
+        auto rewind = spaddi(Reg::SP, frame_size);
         prepend.insert(prepend.end(), rewind.begin(), rewind.end());
     }
     blocks.back().body.insert(blocks.back().body.begin(), prepend.begin(), prepend.end());

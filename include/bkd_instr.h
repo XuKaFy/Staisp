@@ -375,10 +375,12 @@ struct LoadAddressInstr {
 struct LoadStackAddressInstr {
     Reg rd;
     size_t index;
-    bool arg{false};
+    enum class Type {
+        LOCAL, CHILD_ARG, PARENT_ARG
+    } type = Type::LOCAL;
 
     std::string stringify() const {
-        return "LSA " + Backend::stringify(rd) + " from " + (arg ? "$" : "#") + std::to_string(index);
+        return "LSA " + Backend::stringify(rd) + " from " + (type == Type::LOCAL ? "#" : type == Type::CHILD_ARG ? "$" : "^") + std::to_string(index);
     }
 
     std::vector<GReg> def() const { return {rd}; }

@@ -497,7 +497,7 @@ void Func::rewrite_operands() {
 
 void Func::add_saved_register(GReg reg) {
     if (getUsage(reg) == RegisterUsage::CalleeSaved) {
-        saved_registers.insert(reg);
+        saved_registers[reg] = -1;
     }
 }
 
