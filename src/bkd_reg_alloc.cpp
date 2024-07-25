@@ -425,12 +425,13 @@ void Func::spill(int alloc_num) {
             }
         }
     }
-    int offset;
+    size_t index;
     if (operand_spill_map.count(operand)) {
-        offset = operand_spill_map[operand];
+        index = operand_spill_map[operand];
     } else {
-        operand_spill_map[operand] = offset = frame.push(8);
+        operand_spill_map[operand] = index = frame.push(8);
     }
+    int offset = frame.locals[index].offset;
 
     Map<MachineInstr*, std::pair<std::list<MachineInstr>*, std::list<MachineInstr>::iterator>> lookup;
     for (auto&& block : blocks) {
@@ -438,38 +439,52 @@ void Func::spill(int alloc_num) {
             lookup[&*it] = {&block.body, it};
         }
     }
+    GReg t1; if (is_flt) t1 = FReg::FT1; else t1 = Reg::T1;
+    GReg t2; if (is_flt) t2 = FReg::FT2; else t2 = Reg::T2;
 
     for (auto&& instr : def_worklist) {
         auto [list, it] = lookup[instr];
-        if (is_flt) {
-            instr->replace_def(operand, FReg::FT0);
-            list->insert(++it, MachineInstr{ StoreInstr { LSType::FLOAT, FReg::FT0, offset, Reg::SP } });
+        GReg reg = t1;
+        auto type = is_flt ? LSType::FLOAT : LSType::DWORD;
+        instr->replace_def(operand, reg);
+        if (check_itype_immediate(offset)) {
+            list->insert(++it, MachineInstr{ StoreInstr { type, reg, offset, Reg::SP } });
         } else {
-            instr->replace_def(operand, Reg::T0);
-            list->insert(++it, MachineInstr{ StoreInstr { LSType::WORD, Reg::T0, offset, Reg::SP } });
+            it = list->insert(++it, { ImmInstr {
+                ImmInstrType::LI, Reg::T0, offset
+            } });
+            it = list->insert(++it, { RegRegInstr {
+                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+            } });
+            it = list->insert(++it, { StoreInstr {
+                type, reg, 0, Reg::T0,
+            } });
         }
+
     }
 
     for (auto&& instr : use_worklist) {
         auto [list, it] = lookup[instr];
-        if (is_flt) {
-            auto tmp = FReg::FT0;
-            if (used_temp_map.count(instr)) {
-                tmp = FReg::FT1;
-            } else {
-                used_temp_map.insert(instr);
-            }
-            instr->replace_def(operand, tmp);
-            list->insert(it, MachineInstr{ LoadInstr { LSType::FLOAT, tmp, offset, Reg::SP } });
+        GReg reg = t1;
+        auto type = is_flt ? LSType::FLOAT : LSType::DWORD;
+        if (used_temp_map.count(instr)) {
+            reg = t2;
         } else {
-            auto tmp = Reg::T0;
-            if (used_temp_map.count(instr)) {
-                tmp = Reg::T1;
-            } else {
-                used_temp_map.insert(instr);
-            }
-            instr->replace_use(operand, tmp);
-            list->insert(it, MachineInstr{ LoadInstr { LSType::WORD, tmp, offset, Reg::SP } });
+            used_temp_map.insert(instr);
+        }
+        instr->replace_use(operand, reg);
+        if (check_itype_immediate(offset)) {
+            list->insert(it, MachineInstr{ LoadInstr { type, reg, offset, Reg::SP } });
+        } else {
+            it = list->insert(it, { ImmInstr {
+                ImmInstrType::LI, Reg::T0, offset
+            } });
+            it = list->insert(++it, { RegRegInstr {
+                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+            } });
+            it = list->insert(++it, { LoadInstr {
+                type, reg, 0, Reg::T0,
+            } });
         }
     }
 

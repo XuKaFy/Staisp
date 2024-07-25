@@ -524,9 +524,10 @@ struct ConvertBulk {
                 LSType::FLOAT, rs, 0, address
             } });
         } else {
+            bool wide = instr->operand(1)->usee->ty->length() > 4;
             auto rs = toReg(instr->operand(1)->usee);
             add({ StoreInstr{
-                LSType::WORD, rs, 0, address
+                wide ? LSType::DWORD : LSType::WORD, rs, 0, address
             } });
         }
     }
@@ -539,9 +540,10 @@ struct ConvertBulk {
                 LSType::FLOAT, rd, 0, address
             } });
         } else {
+            bool wide = instr->ty->length() > 4;
             auto rd = toReg(instr.get());
             add({ LoadInstr{
-                LSType::WORD, rd, 0, address
+                wide ? LSType::DWORD : LSType::WORD, rd, 0, address
             } });
         }
     }
@@ -652,8 +654,8 @@ std::vector<MachineInstr> spaddi(Reg rd, int imm) {
         return {{ RegImmInstr{ RegImmInstrType::ADDI, rd, Reg::SP, imm} }};
     } else {
         return {
-            { ImmInstr { ImmInstrType::LI, rd, imm } },
-            { RegRegInstr{ RegRegInstrType::ADD, rd, Reg::SP, rd} }
+            { ImmInstr { ImmInstrType::LI, Reg::T0, imm } },
+            { RegRegInstr{ RegRegInstrType::ADD, rd, Reg::SP, Reg::T0} }
         };
     }
 }

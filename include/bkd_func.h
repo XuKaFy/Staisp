@@ -185,7 +185,7 @@ struct Func {
     Map<GReg, std::set<AllocRange>> occupied_range_map;
 
     // offset in memory.
-    Map<GReg, int> operand_spill_map;
+    Map<GReg, size_t> operand_spill_map;
 
     // used temporary registers.
     Set<MachineInstr*> used_temp_map;
