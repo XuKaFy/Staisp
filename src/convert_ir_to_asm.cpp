@@ -518,14 +518,15 @@ struct ConvertBulk {
 
     void convert_store_instr(const Pointer<Ir::StoreInstr> &instr) {
         auto address = load_address(instr->operand(0)->usee);
-        if (is_float(instr->ty)) {
-            auto rs = toFReg(instr->operand(1)->usee);
+        auto value = instr->operand(1)->usee;
+        if (is_float(value->ty)) {
+            auto rs = toFReg(value);
             add({ StoreInstr{
                 LSType::FLOAT, rs, 0, address
             } });
         } else {
-            bool wide = instr->operand(1)->usee->ty->length() > 4;
-            auto rs = toReg(instr->operand(1)->usee);
+            bool wide = value->ty->length() > 4;
+            auto rs = toReg(value);
             add({ StoreInstr{
                 wide ? LSType::DWORD : LSType::WORD, rs, 0, address
             } });
