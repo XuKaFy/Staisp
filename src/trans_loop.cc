@@ -6,6 +6,7 @@
 #include "ir_cmp_instr.h"
 #include "ir_constant.h"
 #include "ir_control_instr.h"
+#include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
@@ -195,8 +196,8 @@ bool IndVarPruning_pass::is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir,
         return false;
     };
 
-    std::function<bool(Ir::Val *, const Ir::Val *&)> add_idf =
-        [](Ir::Val *op_val, const Ir::Val *&arg_val) -> bool {
+    std::function<bool(Ir::Val *, Ir::Val *&)> add_idf =
+        [](Ir::Val *op_val, Ir::Val *&arg_val) -> bool {
         return arg_val == op_val;
     };
     if (val_as_instr->instr_type() == Ir::INSTR_PHI) {
@@ -207,23 +208,23 @@ bool IndVarPruning_pass::is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir,
                 continue;
 
             Ir::Const *step;
-            if (addtion_verifier(phi_usee, val, step, add_idf,
-                                 add_signed_constf))
+            if (binary_exactor(phi_usee, val, step, add_idf, add_signed_constf))
                 return false;
+
+            auto step_as_int = step->v.imm_value().val.ival;
             if (dir) {
-                if (step->v.imm_value() <= 0)
+                if (step_as_int <= 0)
                     return false;
-                if (step <= maxIncrement)
+                if (step_as_int <= maxIncrement)
                     continue;
             } else {
-                if (step >= 0)
+                if (step_as_int >= 0)
                     return false;
-                if (step >= -maxIncrement)
+                if (step_as_int >= -maxIncrement)
                     continue;
             }
             return false;
         }
-
         return true;
     }
     if (depth < 0) {
@@ -232,16 +233,73 @@ bool IndVarPruning_pass::is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir,
     Ir::Val *acc;
     Ir::Const *inc;
 
-    if (addtion_verifier(val, acc, inc, add_tautof, add_signed_constf)) {
+    if (binary_exactor(val, acc, inc, add_tautof, add_signed_constf)) {
         return is_Mono(val, loop_hdr, dir, depth - 1);
     }
     return false;
 }
 
-template <typename Tl, typename Tr>
-bool addtion_verifier(Ir::Val *val, Tl &lhs, Tr &rhs,
-                      const std::function<bool(Ir::Val *, Tl &)> &lf,
-                      const std::function<bool(Ir::Val *, Tr &)> &rf) {
+bool IndVarPruning_pass::is_pure(Ir::Block *arg_blk) {
+    auto is_pure_instr = [](const Ir::pInstr &arg_instr) -> bool {
+        if (arg_instr->users.empty())
+            return false;
+
+        my_assert(arg_instr->instr_type() != Ir::INSTR_STORE, "non-store");
+        if (arg_instr->instr_type() == Ir::INSTR_CALL) {
+            auto call_instr = dynamic_cast<Ir::CallInstr *>(arg_instr.get());
+            my_assert(call_instr->func_ty->type_type() != TYPE_VOID_TYPE,
+                      "non void ret");
+            auto callee = call_instr->operand(0)->usee;
+            auto callee_func = dynamic_cast<Ir::FuncDefined *>(callee);
+            // function attribute predicate
+            return false;
+        }
+        return true;
+    };
+    for (const auto &instr : *arg_blk) {
+        if (instr->is_end_of_block())
+            continue;
+        if (!is_pure_instr(instr) || instr->instr_type() == Ir::INSTR_LOAD)
+            return false;
+    }
+    return true;
+}
+
+bool IndVarPruning_pass::is_closure_loop(Ir::Block *block, Ir::Block *exit) {
+    for (auto cur_instr : *block) {
+        for (auto instr_Use : cur_instr->users) {
+            auto cur_user = instr_Use->user;
+            if (auto usr_instr = dynamic_cast<Ir::Instr *>(cur_user);
+                usr_instr) {
+                if (Alys::is_dom(exit, usr_instr->block(), dom_set))
+                    return true;
+
+                if (usr_instr->instr_type() == Ir::INSTR_PHI) {
+                    auto phi = dynamic_cast<Ir::PhiInstr *>(usr_instr);
+                    for (auto [pred_blk, val] : *phi) {
+                        if (val == cur_instr.get()) {
+                            if (Alys::is_dom(exit, pred_blk->block(), dom_set))
+                                return true;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+void IndVarPruning_pass::ap() {
+    for (auto cur_blk : cur_func) {
+    }
+}
+
+template <typename Tl, typename Tr, Ir::InstrType exactee>
+bool binary_exactor(Ir::Val *val, Tl &lhs, Tr &rhs,
+                    const std::function<bool(Ir::Val *, Tl &)> &lf,
+                    const std::function<bool(Ir::Val *, Tr &)> &rf) {
     auto val_as_instr = dynamic_cast<Ir::Instr *>(val);
 
     if (val_as_instr->instr_type() != Ir::INSTR_BINARY)

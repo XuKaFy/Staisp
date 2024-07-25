@@ -5,7 +5,9 @@
 #include "alys_loop.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_call_instr.h"
 #include "ir_constant.h"
+#include "ir_control_instr.h"
 #include "ir_instr.h"
 #include "ir_val.h"
 namespace Optimize {
@@ -46,10 +48,12 @@ public:
     }
 
     bool is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir, int depth);
+    bool is_pure(Ir::Block *arg_blk);
+    bool is_closure_loop(Ir::Block *block, Ir::Block *exit);
 };
 
-template <typename Tl, typename Tr>
-bool addtion_verifier(Ir::Val *val, Tl &lhs, Tr &rhs,
-                      const std::function<bool(Ir::Val *, Tl &)> &lf,
-                      const std::function<bool(Ir::Val *, Tr &)> &rf);
+template <typename Tl, typename Tr, Ir::InstrType>
+bool binary_exactor(Ir::Val *val, Tl &lhs, Tr &rhs,
+                    const std::function<bool(Ir::Val *, Tl &)> &lf,
+                    const std::function<bool(Ir::Val *, Tr &)> &rf);
 } // namespace Optimize
