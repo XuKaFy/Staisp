@@ -26,6 +26,8 @@ enum class RegRegInstrType {
     SRAW,
     AND,
     OR,
+    XOR,
+    SLT,
 };
 
 inline constexpr std::string_view REGREGINSTRTYPE_NAME[] = {
@@ -47,6 +49,8 @@ inline constexpr std::string_view REGREGINSTRTYPE_NAME[] = {
     "sraw",
     "and",
     "or",
+    "xor",
+    "slt",
 };
 
 inline std::string stringify(RegRegInstrType value) {

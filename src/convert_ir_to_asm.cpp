@@ -98,28 +98,6 @@ struct ConvertBulk {
         bulk.push_back(value);
     }
 
-    template<typename T>
-    T selector(ImmType ty,
-        T i32_use,
-        T i64_use) {
-        switch (ty) {
-            case IMM_I1:
-            case IMM_I8:
-            case IMM_I16:
-            case IMM_I32:
-            case IMM_U1:
-            case IMM_U8:
-            case IMM_U16:
-            case IMM_U32:
-                return i32_use;
-            case IMM_I64:
-            case IMM_U64:
-                return i64_use;
-            default:
-                unreachable();
-        }
-    }
-
     Reg allocate_reg() {
         return (Reg) ~func.next_reg();
     }
@@ -173,52 +151,36 @@ struct ConvertBulk {
         return ftmp;
     }
 
-    RegRegInstrType selectRRType(ImmType ty, Ir::BinInstrType bin) {
+    RegRegInstrType selectRRType(Ir::BinInstrType bin) {
         switch (bin) {
             case Ir::INSTR_ADD:
-                return selector(ty,
-                    RegRegInstrType::ADD,
-                    RegRegInstrType::ADDW);
+                return RegRegInstrType::ADDW;
             case Ir::INSTR_SUB:
-                return selector(ty,
-                    RegRegInstrType::SUB,
-                    RegRegInstrType::SUBW);
+                return RegRegInstrType::SUBW;
             case Ir::INSTR_MUL:
-                return selector(ty,
-                    RegRegInstrType::MUL,
-                    RegRegInstrType::MULW);
+                return RegRegInstrType::MULW;
             case Ir::INSTR_SDIV:
             case Ir::INSTR_UDIV:
-                return selector(ty,
-                    RegRegInstrType::DIV,
-                    RegRegInstrType::DIVW);
+                return RegRegInstrType::DIVW;
             case Ir::INSTR_SREM:
             case Ir::INSTR_UREM:
-                return selector(ty,
-                    RegRegInstrType::REM,
-                    RegRegInstrType::REMW);
+                return RegRegInstrType::REMW;
             case Ir::INSTR_AND:
                 return RegRegInstrType::AND;
             case Ir::INSTR_OR:
                 return RegRegInstrType::OR;
             case Ir::INSTR_ASHR:
-                return selector(ty,
-                    RegRegInstrType::SRA,
-                    RegRegInstrType::SRAW);
-                case Ir::INSTR_LSHR:
-                return selector(ty,
-                    RegRegInstrType::SRL,
-                    RegRegInstrType::SRLW);
+                return RegRegInstrType::SRAW;
+            case Ir::INSTR_LSHR:
+                return RegRegInstrType::SRLW;
             case Ir::INSTR_SHL:
-                return selector(ty,
-                    RegRegInstrType::SLL,
-                    RegRegInstrType::SLLW);
+                return RegRegInstrType::SLLW;
             default:
                 unreachable();
         }
     }
 
-    FRegFRegInstrType selectFRFRType(ImmType ty, Ir::BinInstrType bin) {
+    FRegFRegInstrType selectFRFRType(Ir::BinInstrType bin) {
         switch (bin) {
             case Ir::INSTR_FADD:
                 return FRegFRegInstrType::FADD_S;
@@ -247,14 +209,14 @@ struct ConvertBulk {
             auto rs1 = toFReg(instr->operand(0)->usee);
             auto rs2 = toFReg(instr->operand(1)->usee);
             add({ FRegFRegInstr {
-                selectFRFRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
+                selectFRFRType(instr->binType), rd, rs1, rs2,
             } });
         } else {
             auto rd = toReg(instr.get());
             auto rs1 = toReg(instr->operand(0)->usee);
             auto rs2 = toReg(instr->operand(1)->usee);
             add({ RegRegInstr {
-                selectRRType(to_basic_type(instr->ty)->ty, instr->binType), rd, rs1, rs2,
+                selectRRType(instr->binType), rd, rs1, rs2,
             } });
         }
     }
@@ -371,7 +333,7 @@ struct ConvertBulk {
             switch (instr->cmp_type) {
                 case Ir::CMP_EQ:
                     add({ RegRegInstr {
-                        RegRegInstrType::SUB, rd, rs1, rs2
+                        RegRegInstrType::XOR, rd, rs1, rs2
                     } });
                     add({ RegInstr {
                         RegInstrType::SEQZ, rd, rd
@@ -379,7 +341,7 @@ struct ConvertBulk {
                     break;
                 case Ir::CMP_NE:
                     add({ RegRegInstr {
-                        RegRegInstrType::SUB, rd, rs1, rs2
+                        RegRegInstrType::XOR, rd, rs1, rs2
                     } });
                     add({ RegInstr {
                         RegInstrType::SNEZ, rd, rd
@@ -388,19 +350,13 @@ struct ConvertBulk {
                 case Ir::CMP_ULT:
                 case Ir::CMP_SLT:
                     add({ RegRegInstr {
-                        RegRegInstrType::SUB, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SLTZ, rd, rd
+                        RegRegInstrType::SLT, rd, rs1, rs2
                     } });
                     break;
                 case Ir::CMP_UGE:
                 case Ir::CMP_SGE:
                     add({ RegRegInstr {
-                        RegRegInstrType::SUB, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SLTZ, rd, rd
+                        RegRegInstrType::SLT, rd, rs1, rs2
                     } });
                     add({ RegInstr {
                         RegInstrType::SEQZ, rd, rd
@@ -409,19 +365,13 @@ struct ConvertBulk {
                 case Ir::CMP_UGT:
                 case Ir::CMP_SGT:
                     add({ RegRegInstr {
-                        RegRegInstrType::SUB, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SGTZ, rd, rd
+                        RegRegInstrType::SLT, rd, rs2, rs1
                     } });
                     break;
                 case Ir::CMP_ULE:
                 case Ir::CMP_SLE:
                     add({ RegRegInstr {
-                        RegRegInstrType::SUB, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SGTZ, rd, rd
+                        RegRegInstrType::SLT, rd, rs2, rs1
                     } });
                     add({ RegInstr {
                         RegInstrType::SEQZ, rd, rd
