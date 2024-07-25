@@ -1164,7 +1164,7 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
         Ir::make_func(TypedSym("__builtin_fill_zero", vd), {i8s, i32}));
 
     _mod->add_func_declaration(Ir::make_func(TypedSym("getint", i32), {}));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i8), {}));
+    _mod->add_func_declaration(Ir::make_func(TypedSym("getch", i32), {}));
     _mod->add_func_declaration(
         Ir::make_func(TypedSym("getarray", i32), {make_pointer_type(i32)}));
     _mod->add_func_declaration(Ir::make_func(TypedSym("getfloat", f32), {}));
