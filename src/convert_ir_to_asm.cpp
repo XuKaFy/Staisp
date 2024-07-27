@@ -128,22 +128,25 @@ struct ConvertBulk {
             // %0 => -1
             return (FReg) ~func.convert_reg(std::stoi(name.substr(1)));
         }
+        auto con = dynamic_cast<Ir::Const*>(val);
+        assert(con->v.imm_value().ty == IMM_F32);
+        float f = con->v.imm_value().val.f32val;
         auto ftmp = allocate_freg();
         auto tmp = allocate_reg();
-        // if it is a immediate, load it
-        // lLVM store float constant into hexadecimal integral representation of corresponding double value
-        union {
-            unsigned long long ull;
-            double d;
-        };
-        ull = std::stoull(name, nullptr, 16);
-        union {
-            float f;
-            int x;
-        };
-        f = d;
+        // // if it is a immediate, load it
+        // // lLVM store float constant into hexadecimal integral representation of corresponding double value
+        // union {
+        //     unsigned long long ull;
+        //     double d;
+        // };
+        // ull = std::stoull(name, nullptr, 16);
+        // union {
+        //     float f;
+        //     int x;
+        // };
+        // f = d;
         add({ImmInstr {
-            ImmInstrType::LI, tmp, x
+            ImmInstrType::LI, tmp, *(int*)&f
         } });
         add({ FRegRegInstr {
             FRegRegInstrType::FMV_S_X, ftmp, tmp
@@ -224,19 +227,20 @@ struct ConvertBulk {
     void convert_return_instr(const Pointer<Ir::RetInstr> &instr) {
         auto ret = std::static_pointer_cast<Ir::RetInstr>(instr);
         if (ret->operand_size() > 0) {
-            if (is_float(instr->ty)) {
+            auto value = ret->operand(0)->usee;
+            if (is_float(value->ty)) {
                 auto fa0 = FReg::FA0;
                 add({ FRegInstr{
                     FRegInstrType::FMV_S,
                     fa0,
-                    toFReg(ret->operand(0)->usee)
+                    toFReg(value)
                 } });
             } else {
                 auto a0 = Reg::A0;
                 add({ RegInstr{
                     RegInstrType::MV,
                     a0,
-                    toReg(ret->operand(0)->usee)
+                    toReg(value)
                 } });
             }
         }

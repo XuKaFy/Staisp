@@ -165,6 +165,8 @@ struct RegFRegInstr {
     Reg rd; FReg rs;
 
     std::string stringify() const {
+        if (type == RegFRegInstrType::FCVT_W_S)
+            return format(type, rd, rs, "rtz"); // round to zero
         return format(type, rd, rs);
     }
 
