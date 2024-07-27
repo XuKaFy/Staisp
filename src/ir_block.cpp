@@ -204,7 +204,9 @@ void Block::replace_out(Block *before, Block *out) {
     }
 }
 
-void BlockedProgram::initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool) {
+void BlockedProgram::initialize(String name, Instrs instrs, Vector<pVal> args, ConstPool cpool) {
+    name_ = name;
+    
     RegGenerator g;
     g.generate(args);
     g.generate(instrs);

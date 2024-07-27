@@ -160,6 +160,9 @@ void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
 
 void global2local(const Ir::pModule &mod)
 {
+    // warning: only inline globals that only used in function "main"
+    // may cause stack overflow !!!
+
     Set<Ir::BlockedProgram*> mod_funcs;
     for (auto i = mod->globs.begin(); i != mod->globs.end(); ) {
         bool onlyfans = true;
@@ -176,7 +179,8 @@ void global2local(const Ir::pModule &mod)
             my_assert(j->user->type() == Ir::VAL_INSTR, "?");
             auto user_instr = dynamic_cast<Ir::Instr*>(j->user);
             if (func == nullptr) func = user_instr->block()->program();
-            if (user_instr->block()->program() != func) {
+            if (func->name() != "main" || 
+                user_instr->block()->program() != func) {
                 onlyfans = false;
                 break;
             }

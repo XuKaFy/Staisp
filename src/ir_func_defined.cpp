@@ -44,7 +44,7 @@ void FuncDefined::end_function(FunctionContext& context) {
         }
     }
     body.clear();
-    p.initialize(std::move(final), std::move(params), std::move(context.cpool));
+    p.initialize(name(), std::move(final), std::move(params), std::move(context.cpool));
 }
 
 String FuncDefined::print_func() const {

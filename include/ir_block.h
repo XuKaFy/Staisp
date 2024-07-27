@@ -145,7 +145,7 @@ pBlock make_block();
 
 struct BlockedProgram {
 
-    void initialize(Instrs instrs, Vector<pVal> args, ConstPool cpool);
+    void initialize(String name, Instrs instrs, Vector<pVal> args, ConstPool cpool);
 
     // 重新生成行号信息
     void re_generate() const;
@@ -171,6 +171,10 @@ struct BlockedProgram {
     bool check_empty_use(String state = {});
     // 检查是否有非法的 Phi
     bool check_invalid_phi(String state = {});
+
+    String name() const {
+        return name_;
+    }
 
     Blocks::iterator begin() {
         return blocks.begin();
@@ -235,6 +239,9 @@ private:
 
     // 所有的 basic block
     Blocks blocks;
+
+    // 函数名
+    String name_;
 };
 
 } // namespace Ir

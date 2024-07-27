@@ -14,7 +14,7 @@
 namespace Optimize {
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
-    inline_all_function(mod, convertor);
+    // inline_all_function(mod, convertor);
     global2local(mod);
     for (auto &&func : mod->funsDefined) {
         func->p.check_empty_use();
