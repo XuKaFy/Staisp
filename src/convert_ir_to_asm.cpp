@@ -251,7 +251,14 @@ struct ConvertBulk {
             case Ir::CAST_FPEXT:
             case Ir::CAST_FPTRUNC:
                 unreachable();
-            case Ir::CAST_BITCAST:
+            case Ir::CAST_BITCAST: {
+                auto rs = load_address(instr->operand(0)->usee);
+                auto rd = toReg(instr.get());
+                add({ RegInstr{
+                    RegInstrType::MV, rd, rs
+                } });
+                break;
+            }
             case Ir::CAST_SEXT:
             case Ir::CAST_ZEXT: {
                 auto rs = toReg(instr->operand(0)->usee);
@@ -399,7 +406,6 @@ struct ConvertBulk {
         auto args_size = instr->operand_size() - 1;
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
-        func.frame.at_least_args(args_size);
         std::vector<GReg> uses;
         auto next_arg = [this, args_size] (int i) mutable {
             auto rd = allocate_reg();
@@ -421,6 +427,7 @@ struct ConvertBulk {
                     add({ StoreInstr {
                         LSType::FLOAT, rs,  0, next_arg(i),
                     } });
+                    ++func.frame.args;
                 }
             } else {
                 auto rd = arg;
@@ -435,6 +442,7 @@ struct ConvertBulk {
                     add({ StoreInstr {
                         LSType::DWORD, rs,  0, next_arg(i),
                     } });
+                    ++func.frame.args;
                 }
             }
         }
@@ -463,6 +471,16 @@ struct ConvertBulk {
             } });
             return rd;
         }
+        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(val)) {
+            // local
+            auto index = func.localIndex[alloc];
+            auto rd = allocate_reg();
+            add({  LoadStackAddressInstr{
+                rd, index
+            } });
+            return rd;
+        }
+        // gep
         return toReg(val);
     }
 
@@ -537,10 +555,11 @@ struct ConvertBulk {
         if (size == 1) size = 4; // for bool
         assert(size % 4 == 0);
         auto index = func.frame.push(size);
-        auto rd = toReg(instr.get());
-        add({  LoadStackAddressInstr{
-            rd, index
-        } });
+        func.localIndex[instr.get()] = index;
+        // auto rd = toReg(instr.get());
+        // add({  LoadStackAddressInstr{
+        //     rd, index
+        // } });
     }
 
 };

@@ -39,9 +39,6 @@ struct StackFrame {
     }
 
     int args = 0;
-    void at_least_args(int n) {
-        args = std::max(n - 8, args);
-    }
 
     int size() const {
         int sz = offset;
@@ -109,7 +106,8 @@ struct Func {
     }
 
     // for translate
-    std::unordered_map<int, int> llvmRegToAsmReg;
+    Map<Ir::Instr*, size_t> localIndex;
+    Map<int, int> llvmRegToAsmReg;
     int next_reg_{0};
     int convert_reg(int x) {
         if (auto it = llvmRegToAsmReg.find(x); it != llvmRegToAsmReg.end()) {
