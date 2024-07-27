@@ -1,6 +1,5 @@
 #include <bkd_reg_alloc.h>
 #include <bkd_func.h>
-#include <type.h>
 
 namespace Backend {
 
@@ -220,27 +219,20 @@ void Func::try_allocate(int alloc_num) {
     auto conflict_hard_set = std::set<GReg>();
     std::vector<GReg> register_alloc_vector = {};
 
-    if (hint_map.count(operand))
-    {
-        if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end())
-        {
+    if (hint_map.count(operand)) {
+        if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end()) {
             register_alloc_vector.push_back(hint_map[operand]);
         }
-        for (auto reg : REG_ALLOC)
-        {
-            if (!(reg == hint_map[operand]))
-            {
+        for (auto reg : REG_ALLOC) {
+            if (!(reg == hint_map[operand])) {
                 register_alloc_vector.push_back(reg);
             }
         }
-    }
-    else
-    {
+    } else {
         register_alloc_vector = REG_ALLOC;
     }
 
-    for (auto reg : register_alloc_vector)
-    {
+    for (auto reg : register_alloc_vector) {
         // must be both int or both float
         if (reg.index() != operand.index())
             continue;
@@ -251,16 +243,12 @@ void Func::try_allocate(int alloc_num) {
         conflict_map[reg] = std::set<int>();
 
         // check conflict (maybe used)
-        if (REG_ARGS.count(reg) || REG_TEMP.count(reg))
-        {
-            for (auto &reg_range : live_ranges[reg])
-            {
-                for (auto &range : range_list)
-                {
+        if (REG_ARGS.count(reg) || REG_TEMP.count(reg)) {
+            for (auto &reg_range : live_ranges[reg]) {
+                for (auto &range : range_list) {
                     // traversal to find the conflict
                     // between alloc range and the register(try to alloc) range.
-                    if (range.conflict(reg_range))
-                    {
+                    if (range.conflict(reg_range)) {
                         is_conflict = true;
                         conflict_hard_set.insert(reg);
                         break;
@@ -270,30 +258,24 @@ void Func::try_allocate(int alloc_num) {
                     break;
             }
         }
-        // 冲突，那就再见
+
         if (is_conflict)
             continue;
 
-        // 无occupied，该寄存器空闲，直接alloc。
-        if (occupied_map[reg].empty())
-        {
+        if (occupied_map[reg].empty()) {
             allocated_reg = reg;
             break;
         }
 
-        // 检查最近的occupied range（且之后的range）是否冲突
+        // nearest successor occupied range
         auto iter = occupied_range_map[reg].lower_bound(alloc_range);
-        if (iter != occupied_range_map[reg].begin())
-        {
+        if (iter != occupied_range_map[reg].begin()) {
             --iter;
         }
-        while (iter != occupied_range_map[reg].end())
-        {
+        while (iter != occupied_range_map[reg].end()) {
             const auto &occupied_range = iter->first;
-            for (const auto &range : range_list)
-            {
-                if (range.conflict(occupied_range))
-                {
+            for (const auto &range : range_list) {
+                if (range.conflict(occupied_range)) {
                     is_conflict = true;
                     conflict_map[reg].insert(iter->second);
                     break;
@@ -301,58 +283,48 @@ void Func::try_allocate(int alloc_num) {
             }
             ++iter;
         }
-        // 没conflict就分配
-        if (!is_conflict)
-        {
+
+        if (!is_conflict) {
             allocated_reg = reg;
             break;
         }
     }
 
-    if (allocated_reg.has_value())
-    {
+    if (allocated_reg.has_value()) {
         auto now_reg = allocated_reg.value();
         occupied_map[now_reg].insert(alloc_num);
-        for (auto &range : range_list)
-        {
+        for (auto &range : range_list) {
             occupied_range_map[now_reg].insert(AllocRange(range, alloc_num));
         }
         // update other infomathion.
         alloc_map[alloc_num] = now_reg;
         alloc_status_map[alloc_num] = AllocStatus::Assign;
 
-        // TODO: Hint.
-        if (coalesce_map.count(operand))
-        {
+        // TODO: use hint
+        if (coalesce_map.count(operand)) {
             auto coalesce_target = coalesce_map[operand];
             hint_map[coalesce_target] = now_reg;
         }
-    }
-    else
-    {
+    } else {
         // evict
         auto min_weight = 1e308;
         GReg min_weight_reg;
 
-        for (const auto &[reg, conflict_list] : conflict_map)
-        {
+        for (const auto &[reg, conflict_list] : conflict_map) {
             if (conflict_hard_set.count(reg))
                 continue;
 
             double weight = 0.0;
-            for (auto conflict_id : conflict_list)
-            {
+            for (auto conflict_id : conflict_list) {
                 weight += get_spill_weight(conflict_id);
             }
 
-            if (weight < min_weight)
-            {
+            if (weight < min_weight) {
                 min_weight = weight;
                 min_weight_reg = reg;
             }
         }
-        // min_weight_reg 必定有值。
-        // 这里只是因为register没有默认的构造函数才定义为optional.
+
         auto alloc_weight = get_spill_weight(alloc_num);
 
         if (alloc_weight <= min_weight)
@@ -361,26 +333,18 @@ void Func::try_allocate(int alloc_num) {
             alloc_status_map[alloc_num] = AllocStatus::Split;
             auto priority = get_alloc_priority(alloc_num);
             alloc_priority_queue.push(PrioritizedAlloc(priority, alloc_num));
-        }
-        else
-        {
+        } else {
             // Evict the origin min_weight_reg.
-            for (auto conflict_num : conflict_map[min_weight_reg])
-            {
+            for (auto conflict_num : conflict_map[min_weight_reg]) {
                 // update status
                 occupied_map[min_weight_reg].erase(conflict_num);
                 auto& min_map = occupied_range_map[min_weight_reg];
-                for (auto iter = min_map.begin(); iter != min_map.end();)
-                {
-                    if (iter->second == conflict_num)
-                    {
-                        iter = occupied_range_map[min_weight_reg].erase(iter);
+                for (auto iter = min_map.begin(); iter != min_map.end(); ) {
+                    if (iter->second == conflict_num) {
+                        occupied_range_map[min_weight_reg].erase(iter);
                         break;
                     }
-                    else
-                    {
-                        ++iter;
-                    }
+                    ++iter;
                 }
 
                 alloc_map.erase(conflict_num);
@@ -391,8 +355,7 @@ void Func::try_allocate(int alloc_num) {
 
             // update min_weight_reg with alloc_num.
             occupied_map[min_weight_reg].insert(alloc_num);
-            for (auto &range : range_list)
-            {
+            for (auto &range : range_list) {
                 occupied_range_map[min_weight_reg].insert(AllocRange(range, alloc_num));
             }
             alloc_map[alloc_num] = min_weight_reg;
@@ -431,7 +394,6 @@ void Func::spill(int alloc_num) {
     } else {
         operand_spill_map[operand] = index = frame.push(8);
     }
-    int offset = frame.locals[index].offset;
 
     Map<MachineInstr*, std::pair<std::list<MachineInstr>*, std::list<MachineInstr>::iterator>> lookup;
     for (auto&& block : blocks) {
@@ -447,20 +409,8 @@ void Func::spill(int alloc_num) {
         GReg reg = t1;
         auto type = is_flt ? LSType::FLOAT : LSType::DWORD;
         instr->replace_def(operand, reg);
-        if (check_itype_immediate(offset)) {
-            list->insert(++it, MachineInstr{ StoreInstr { type, reg, offset, Reg::SP } });
-        } else {
-            it = list->insert(++it, { ImmInstr {
-                ImmInstrType::LI, Reg::T0, offset
-            } });
-            it = list->insert(++it, { RegRegInstr {
-                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
-            } });
-            it = list->insert(++it, { StoreInstr {
-                type, reg, 0, Reg::T0,
-            } });
-        }
-
+        it = list->insert(++it, { LoadStackAddressInstr { Reg::T0, index } });
+        it = list->insert(++it, { StoreInstr { type, reg, 0, Reg::T0 } });
     }
 
     for (auto&& instr : use_worklist) {
@@ -473,19 +423,8 @@ void Func::spill(int alloc_num) {
             used_temp_map.insert(instr);
         }
         instr->replace_use(operand, reg);
-        if (check_itype_immediate(offset)) {
-            list->insert(it, MachineInstr{ LoadInstr { type, reg, offset, Reg::SP } });
-        } else {
-            it = list->insert(it, { ImmInstr {
-                ImmInstrType::LI, Reg::T0, offset
-            } });
-            it = list->insert(++it, { RegRegInstr {
-                RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
-            } });
-            it = list->insert(++it, { LoadInstr {
-                type, reg, 0, Reg::T0,
-            } });
-        }
+        it = list->insert(it, { LoadStackAddressInstr { Reg::T0, index } });
+        it = list->insert(++it, { LoadInstr { type, reg, 0, Reg::T0 } });
     }
 
 }
@@ -511,8 +450,8 @@ void Func::rewrite_operands() {
 }
 
 void Func::add_saved_register(GReg reg) {
-    if (getUsage(reg) == RegisterUsage::CalleeSaved) {
-        saved_registers[reg] = -1;
+    if (getUsage(reg) == RegisterUsage::CalleeSaved && !saved_registers.count(reg)) {
+        saved_registers[reg] = frame.push(8);
     }
 }
 

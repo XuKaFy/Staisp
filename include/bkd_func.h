@@ -38,7 +38,7 @@ struct StackFrame {
         return index;
     }
 
-    int args = 0;
+    size_t args = 0;
 
     int size() const {
         int sz = offset;
@@ -196,7 +196,7 @@ struct Func {
     void spill(int alloc_num);
     AllocPriority get_alloc_priority(int alloc_num);
 
-    Map<GReg, int> saved_registers;
+    Map<GReg, size_t> saved_registers;
     void add_saved_register(GReg reg);
 
 

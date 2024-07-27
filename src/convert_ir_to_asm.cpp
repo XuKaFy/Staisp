@@ -411,11 +411,7 @@ struct ConvertBulk {
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
         std::vector<GReg> uses;
-        auto next_arg = [this, args_size] (int i) mutable {
-            auto rd = allocate_reg();
-            add({ LoadStackAddressInstr {rd, args_size - i, LoadStackAddressInstr::Type::CHILD_ARG} });
-            return rd;
-        };
+        std::vector<GReg> spilled;
         for (size_t i = 1; i <= args_size; ++i) {
             auto param = instr->operand(i)->usee;
             if (is_float(param->ty)) {
@@ -428,10 +424,7 @@ struct ConvertBulk {
                     uses.emplace_back(rd);
                     farg = (FReg)((int)farg + 1);
                 } else {
-                    add({ StoreInstr {
-                        LSType::FLOAT, rs,  0, next_arg(i),
-                    } });
-                    ++func.frame.args;
+                    spilled.emplace_back(rs);
                 }
             } else {
                 auto rd = arg;
@@ -443,12 +436,18 @@ struct ConvertBulk {
                     uses.emplace_back(rd);
                     arg = (Reg)((int)arg + 1);
                 } else {
-                    add({ StoreInstr {
-                        LSType::DWORD, rs,  0, next_arg(i),
-                    } });
-                    ++func.frame.args;
+                    spilled.emplace_back(rs);
                 }
             }
+        }
+        func.frame.args = std::max(func.frame.args, spilled.size());
+        for (size_t i = 0; i < spilled.size(); ++i) {
+            auto rd = allocate_reg();
+            auto rs = spilled[i];
+            add({ LoadStackAddressInstr {rd, i, LoadStackAddressInstr::Type::CHILD_ARG} });
+            add({ StoreInstr {
+                rs.index() ? LSType::FLOAT : LSType::DWORD, rs,  0, rd,
+            } });
         }
         auto rt = instr->func_ty->ret_type;
         add({ CallInstr{ function_name, uses } });
@@ -680,9 +679,6 @@ Block Func::prolog_prototype() {
 }
 
 void Func::generate_prolog() {
-    for (auto& [reg, index] : saved_registers) {
-        index = frame.push(8);
-    }
     int frame_size = frame.size();
     std::vector<MachineInstr> prepend = spaddi(Reg::SP, -frame_size);
     auto save = [&prepend](int offset, GReg reg) {
