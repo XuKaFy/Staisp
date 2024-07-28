@@ -60,7 +60,7 @@ Global Convertor::convert(const Ir::pGlobal &glob)
 
 void Func::translate()
 {
-    blocks.push_back(prolog_prototype());
+    blocks.push_back(generate_prolog_tail());
     for (auto && block : ir_func->p) {
         blocks.push_back(translate(block));
     }
@@ -80,7 +80,7 @@ Block Func::translate(const Ir::pBlock &block)
     Block bkd_block(ir_func->name() + "_" + block->label()->name());
 
     for (auto && instr : *block) {
-        auto res = translate(instr);
+        auto res = translate(block, instr);
         bkd_block.body.insert(bkd_block.body.end(),
             std::move_iterator(res.begin()), std::move_iterator(res.end()));
     }
@@ -407,8 +407,9 @@ struct ConvertBulk {
         add({ JInstr{ label1 } });
     }
 
-    void convert_call_instr(const Pointer<Ir::CallInstr> &instr) {
+    void convert_call_instr(bool tail, const Pointer<Ir::CallInstr> &instr) {
         auto function_name = instr->operand(0)->usee->name();
+        tail &= function_name == func.name;
         auto args_size = instr->operand_size() - 1;
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
@@ -446,13 +447,16 @@ struct ConvertBulk {
         for (size_t i = 0; i < spilled.size(); ++i) {
             auto rd = allocate_reg();
             auto rs = spilled[i];
-            add({ LoadStackAddressInstr {rd, i, LoadStackAddressInstr::Type::CHILD_ARG} });
+            add({ LoadStackAddressInstr {rd, i,
+                    tail ? LoadStackAddressInstr::Type::PARENT_ARG : LoadStackAddressInstr::Type::CHILD_ARG} });
             add({ StoreInstr {
                 rs.index() ? LSType::FLOAT : LSType::DWORD, rs,  0, rd,
             } });
         }
         auto rt = instr->func_ty->ret_type;
-        add({ CallInstr{ function_name, uses } });
+        if (tail) function_name += "_prolog_tail";
+        add({ CallInstr{ function_name, uses, tail } });
+        if (tail) return;
         if (is_float(rt)) {
             auto rd = toFReg(instr.get());
             add({ FRegInstr{
@@ -565,7 +569,7 @@ struct ConvertBulk {
 
 };
 
-MachineInstrs Func::translate(const Ir::pInstr &instr)
+MachineInstrs Func::translate(const Ir::pBlock &block, const Ir::pInstr &instr)
 {
     ConvertBulk bulk(*this);
     switch (instr->instr_type()) {
@@ -578,9 +582,14 @@ MachineInstrs Func::translate(const Ir::pInstr &instr)
         case Ir::INSTR_BR_COND:
             bulk.convert_branch_instr(std::static_pointer_cast<Ir::BrCondInstr>(instr));
             break;
-        case Ir::INSTR_CALL:
-            bulk.convert_call_instr(std::static_pointer_cast<Ir::CallInstr>(instr));
+        case Ir::INSTR_CALL: {
+            auto terminator = *block->rbegin();
+            auto before_terminator = *++block->rbegin();
+            bool tail = terminator->instr_type() == Ir::INSTR_RET && before_terminator == instr
+                        && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+            bulk.convert_call_instr(tail, std::static_pointer_cast<Ir::CallInstr>(instr));
             break;
+        }
         case Ir::INSTR_UNARY:
             bulk.convert_unary_instr(std::static_pointer_cast<Ir::UnaryInstr>(instr));
             break;
@@ -631,8 +640,8 @@ std::vector<MachineInstr> spaddi(Reg rd, int imm) {
     }
 }
 
-Block Func::prolog_prototype() {
-    Block block(name + "_prolog");
+Block Func::generate_prolog_tail() {
+    Block block(name + "_prolog_tail");
     auto add = [&](MachineInstr const& value) {
         block.body.push_back(value);
     };
@@ -678,21 +687,22 @@ Block Func::prolog_prototype() {
 
 void Func::generate_prolog() {
     int frame_size = frame.size();
-    std::vector<MachineInstr> prepend = spaddi(Reg::SP, -frame_size);
-    auto save = [&prepend](int offset, GReg reg) {
+    Block block(name + "_prolog");
+    std::vector<MachineInstr> prolog = spaddi(Reg::SP, -frame_size);
+    auto save = [&prolog](int offset, GReg reg) {
         auto type = reg.index() ? LSType::FLOAT : LSType::DWORD;
         if (check_itype_immediate(offset)) {
-            prepend.push_back({ StoreInstr {
+            prolog.push_back({ StoreInstr {
                 type, reg,  offset, Reg::SP,
             } });
         } else {
-            prepend.push_back({ ImmInstr {
+            prolog.push_back({ ImmInstr {
                 ImmInstrType::LI, Reg::T0, offset
             } });
-            prepend.push_back({ RegRegInstr {
+            prolog.push_back({ RegRegInstr {
                 RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
             } });
-            prepend.push_back({ StoreInstr {
+            prolog.push_back({ StoreInstr {
                 type, reg, 0, Reg::T0,
             } });
         }
@@ -701,7 +711,8 @@ void Func::generate_prolog() {
     for (auto& [reg, index] : saved_registers) {
         save(frame_size - frame.locals[index].offset, reg);
     }
-    blocks.front().body.insert(blocks.front().body.begin(), prepend.begin(), prepend.end());
+    block.body.assign(prolog.begin(), prolog.end());
+    blocks.push_front(block);
 }
 
 void Func::remove_pseudo() {

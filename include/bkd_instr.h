@@ -295,9 +295,10 @@ struct JInstr {
 struct CallInstr {
     std::string label;
     std::vector<GReg> uses;
+    bool tail = false;
 
     std::string stringify() const {
-        return format("call", label);
+        return format(tail ? "tail" : "call", label);
     }
 
     std::vector<GReg> def() const {

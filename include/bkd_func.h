@@ -57,7 +57,7 @@ struct Func {
     std::string name;
     pFunctionType type;
 
-    std::vector<Block> blocks;
+    std::deque<Block> blocks;
     StackFrame frame;
 
     explicit Func(Ir::pFuncDefined ir_func)
@@ -69,8 +69,8 @@ struct Func {
 // passes:
     void translate();
     Block translate(const Ir::pBlock &block);
-    MachineInstrs translate(const Ir::pInstr &instr);
-    Block prolog_prototype();
+    MachineInstrs translate(const Ir::pBlock &block, const Ir::pInstr &instr);
+    Block generate_prolog_tail();
     void build_block_graph();
     void build_block_def_use();
     void number_instruction(Block* block);
