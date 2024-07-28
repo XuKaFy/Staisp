@@ -3,7 +3,7 @@
 
 namespace Backend {
 
-const std::vector<GReg> REG_ALLOC {
+const std::set<GReg> REG_ALLOC {
     Reg::A0,
     Reg::A1,
     Reg::A2,
@@ -71,49 +71,49 @@ const std::vector<GReg> REG_ALLOC {
     FReg::FS11,
 };
 
-const Set<GReg> REG_ARGS {
-    Reg::A0,
-    Reg::A1,
-    Reg::A2,
-    Reg::A3,
-    Reg::A4,
-    Reg::A5,
-    Reg::A6,
-    Reg::A7,
-
-    FReg::FA0,
-    FReg::FA1,
-    FReg::FA2,
-    FReg::FA3,
-    FReg::FA4,
-    FReg::FA5,
-    FReg::FA6,
-    FReg::FA7,
-};
-
-const Set<GReg> REG_TEMP {
-    Reg::T0,
-    Reg::T1,
-    Reg::T2,
-    Reg::T3,
-    Reg::T4,
-    Reg::T5,
-    Reg::T6,
-
-
-    FReg::FT0,
-    FReg::FT1,
-    FReg::FT2,
-    FReg::FT3,
-    FReg::FT4,
-    FReg::FT5,
-    FReg::FT6,
-    FReg::FT7,
-    FReg::FT8,
-    FReg::FT9,
-    FReg::FT10,
-    FReg::FT11,
-};
+// const Set<GReg> REG_ARGS {
+//     Reg::A0,
+//     Reg::A1,
+//     Reg::A2,
+//     Reg::A3,
+//     Reg::A4,
+//     Reg::A5,
+//     Reg::A6,
+//     Reg::A7,
+//
+//     FReg::FA0,
+//     FReg::FA1,
+//     FReg::FA2,
+//     FReg::FA3,
+//     FReg::FA4,
+//     FReg::FA5,
+//     FReg::FA6,
+//     FReg::FA7,
+// };
+//
+// const Set<GReg> REG_TEMP {
+//     Reg::T0,
+//     Reg::T1,
+//     Reg::T2,
+//     Reg::T3,
+//     Reg::T4,
+//     Reg::T5,
+//     Reg::T6,
+//
+//
+//     FReg::FT0,
+//     FReg::FT1,
+//     FReg::FT2,
+//     FReg::FT3,
+//     FReg::FT4,
+//     FReg::FT5,
+//     FReg::FT6,
+//     FReg::FT7,
+//     FReg::FT8,
+//     FReg::FT9,
+//     FReg::FT10,
+//     FReg::FT11,
+// };
 
 void Func::allocate_hint() {
 }
@@ -217,22 +217,22 @@ void Func::try_allocate(int alloc_num) {
 
     Map<GReg, std::set<int>> conflict_map;
     std::set<GReg> conflict_hard_set;
-    std::vector<GReg> register_alloc_vector;
+    // std::vector<GReg> register_alloc_vector;
 
-    if (hint_map.count(operand)) {
-        if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end()) {
-            register_alloc_vector.push_back(hint_map[operand]);
-        }
-        for (auto reg : REG_ALLOC) {
-            if (!(reg == hint_map[operand])) {
-                register_alloc_vector.push_back(reg);
-            }
-        }
-    } else {
-        register_alloc_vector = REG_ALLOC;
-    }
+    // if (hint_map.count(operand)) {
+    //     if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end()) {
+    //         register_alloc_vector.push_back(hint_map[operand]);
+    //     }
+    //     for (auto reg : REG_ALLOC) {
+    //         if (!(reg == hint_map[operand])) {
+    //             register_alloc_vector.push_back(reg);
+    //         }
+    //     }
+    // } else {
+    //     register_alloc_vector = REG_ALLOC;
+    // }
 
-    for (auto&& reg : register_alloc_vector) {
+    for (auto&& reg : REG_ALLOC) {
         // must be both int or both float
         if (reg.index() != operand.index())
             continue;
@@ -243,7 +243,7 @@ void Func::try_allocate(int alloc_num) {
         conflict_map[reg] = std::set<int>();
 
         // check conflict (maybe used)
-        if (REG_ARGS.count(reg) || REG_TEMP.count(reg)) {
+        if (REG_ALLOC.count(reg)) {
             for (auto &reg_range : live_ranges[reg]) {
                 for (auto &range : range_list) {
                     // traversal to find the conflict
@@ -277,6 +277,7 @@ void Func::try_allocate(int alloc_num) {
             for (const auto &range : range_list) {
                 if (range.conflict(occupied_range)) {
                     is_conflict = true;
+                    conflict_hard_set.insert(reg);
                     conflict_map[reg].insert(iter->second);
                     break;
                 }
