@@ -1,9 +1,10 @@
+#include <ir_cast_instr.h>
+
 #include "alys_dom.h"
 #include "ir_block.h"
 #include "ir_control_instr.h"
 #include "ir_instr.h"
 #include "ir_opr_instr.h"
-#include "ir_phi_instr.h"
 
 namespace Ir {
 
@@ -69,7 +70,7 @@ void BlockedProgram::plain_opt_bb() {
 
 void BlockedProgram::plain_opt_no_bb() {
     // DO NOT EDIT: TWICE AS INTENDED
-    opt_trivial();
+    // opt_trivial();
     opt_trivial();
     opt_remove_dead_code();
 }
@@ -244,7 +245,17 @@ bool BlockedProgram::opt_simplify_branch()
 std::optional<Value> extractConstant(BinInstrType type, Val* val) {
     if (auto bin = dynamic_cast<Ir::BinInstr*>(val)) {
         auto rhs = bin->operand(1)->usee;
-        if (bin->binType == type && rhs->type() == VAL_CONST) {
+        if (rhs->type() == VAL_CONST && bin->binType == type) {
+            return static_cast<Const *>(rhs)->v;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<Value> extractConstant(const std::initializer_list<BinInstrType>& types, Val* val) {
+    if (auto bin = dynamic_cast<Ir::BinInstr*>(val)) {
+        auto rhs = bin->operand(1)->usee;
+        if (rhs->type() == VAL_CONST && std::find(types.begin(), types.end(), bin->binType) != types.end()) {
             return static_cast<Const *>(rhs)->v;
         }
     }
@@ -270,12 +281,64 @@ void optimize_subtract_after_add(const pInstr &instr) {
     }
 }
 
-
-void optimize_multiply_one(const pInstr &instr) {
-    if (auto value1 = extractConstant(INSTR_MUL, instr.get())) {
+// x * 1 => x
+// x / 1 => x
+// x + 0 => x
+// x - 0 => x
+// x | 0 => x
+// x ^ 0 => x
+void optimize_identity_operation(const pInstr &instr) {
+    if (auto value1 = extractConstant({INSTR_MUL, INSTR_UDIV, INSTR_SDIV}, instr.get())) {
         auto lhs = instr->operand(0)->usee;
         if (value1 == Value(ImmValue(1))) {
             instr->replace_self(lhs);
+        }
+    }
+    if (auto value1 = extractConstant({INSTR_ADD, INSTR_SUB, INSTR_OR, INSTR_XOR}, instr.get())) {
+        auto lhs = instr->operand(0)->usee;
+        if (value1 == Value(ImmValue(0))) {
+            instr->replace_self(lhs);
+        }
+    }
+}
+// x * 0 => 0
+// x & 0 => 0
+void optimize_constant_propagate(const pInstr &instr) {
+    if (auto value1 = extractConstant({INSTR_MUL, INSTR_AND}, instr.get())) {
+        auto rhs = instr->operand(1)->usee;
+        if (value1 == Value(ImmValue(0))) {
+            instr->replace_self(rhs);
+        }
+    }
+}
+
+// for x, y of i1
+// zext32(x) bitwise zext32(y) => zext32(x bitwise y)
+void optimize_bitwise_boolean(const pBlock &block) {
+    std::unordered_set<Val*> merged;
+    for (auto it = block->begin(); it != block->end(); ++it) {
+        if (merged.count(it->get())) continue;
+        if (auto bin = dynamic_cast<BinInstr*>(it->get())) {
+            if (bin->binType == INSTR_OR || bin->binType == INSTR_AND || bin->binType == INSTR_XOR) {
+                auto lhs = bin->operand(0)->usee;
+                auto rhs = bin->operand(1)->usee;
+                if (auto cast1 = dynamic_cast<CastInstr*>(lhs); cast1 && cast1->method() == CAST_ZEXT) {
+                    auto bool1 = cast1->operand(0)->usee;
+                    if (auto cast2 = dynamic_cast<CastInstr*>(rhs); cast2 && cast2->method() == CAST_ZEXT) {
+                        auto bool2 = cast2->operand(0)->usee;
+                        if (is_same_type(cast1->ty, cast2->ty) && is_same_type(bool1->ty, bool2->ty)
+                                && is_integer(bool1->ty) && to_basic_type(bool1->ty)->ty == IMM_I1
+                                && is_integer(cast1->ty) && to_basic_type(cast1->ty)->ty == IMM_I32) {
+                            auto bitwise = std::make_shared<BinInstr>(bin->binType, bool1, bool2);
+                            auto cast = std::make_shared<CastInstr>(bin->ty, bitwise);
+                            it = block->insert(it, cast);
+                            it = block->insert(it, bitwise);
+                            bin->replace_self(cast.get());
+                            merged.insert(bin);
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -320,9 +383,11 @@ void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
         for (const auto &instr : block->body) {
             optimize_divide_after_multiply(instr);
-            optimize_multiply_one(instr);
+            optimize_identity_operation(instr);
+            optimize_constant_propagate(instr);
             optimize_subtract_after_add(instr);
         }
+        optimize_bitwise_boolean(block);
         optimize_accumulate(block);
     }
 }

@@ -63,10 +63,10 @@ void test_sysy_frontend(const std::string &filename) {
         ASSERT_FALSE(system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
     });
 
-    double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
-    // double t2 = stopwatch.timeit([&] {
-    //     judge(id, path + ".sy.ll", path + ".in", path + ".out");
-    // });
+    // double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
+    double t2 = stopwatch.timeit([&] {
+        judge(id, path + ".sy.ll", path + ".in", path + ".out");
+    });
 
     // if you hope to watch detailed time info, use following command:
     // ctest -V | grep sysy_tests

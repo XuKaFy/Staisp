@@ -9,12 +9,12 @@
 #include "opt_DSE.h"
 #include "opt_DFA.h"
 
-#define MAX_OPT_COUNT 1
+#define MAX_OPT_COUNT 10
 
 namespace Optimize {
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
-    // inline_all_function(mod, convertor);
+    inline_all_function(mod, convertor);
     global2local(mod);
     for (auto &&func : mod->funsDefined) {
         func->p.check_empty_use();

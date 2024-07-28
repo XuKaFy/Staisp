@@ -211,13 +211,13 @@ void Func::allocate_register() {
 
 void Func::try_allocate(int alloc_num) {
     auto operand = alloc_operand_map[alloc_num];
-    auto range_list = alloc_range_map[alloc_num];
+    const auto& range_list = alloc_range_map[alloc_num];
 
     std::optional<GReg> allocated_reg = std::nullopt;
 
-    auto conflict_map = std::unordered_map<GReg, std::set<int>>();
-    auto conflict_hard_set = std::set<GReg>();
-    std::vector<GReg> register_alloc_vector = {};
+    Map<GReg, std::set<int>> conflict_map;
+    std::set<GReg> conflict_hard_set;
+    std::vector<GReg> register_alloc_vector;
 
     if (hint_map.count(operand)) {
         if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end()) {
@@ -232,7 +232,7 @@ void Func::try_allocate(int alloc_num) {
         register_alloc_vector = REG_ALLOC;
     }
 
-    for (auto reg : register_alloc_vector) {
+    for (auto&& reg : register_alloc_vector) {
         // must be both int or both float
         if (reg.index() != operand.index())
             continue;
@@ -327,12 +327,11 @@ void Func::try_allocate(int alloc_num) {
 
         auto alloc_weight = get_spill_weight(alloc_num);
 
-        if (alloc_weight <= min_weight)
-        {
+        if (alloc_weight <= min_weight) {
             // Split
             alloc_status_map[alloc_num] = AllocStatus::Split;
             auto priority = get_alloc_priority(alloc_num);
-            alloc_priority_queue.push(PrioritizedAlloc(priority, alloc_num));
+            alloc_priority_queue.emplace(priority, alloc_num);
         } else {
             // Evict the origin min_weight_reg.
             for (auto conflict_num : conflict_map[min_weight_reg]) {
@@ -350,13 +349,13 @@ void Func::try_allocate(int alloc_num) {
                 alloc_map.erase(conflict_num);
 
                 auto priority = get_alloc_priority(conflict_num);
-                alloc_priority_queue.push(PrioritizedAlloc(priority, conflict_num));
+                alloc_priority_queue.emplace(priority, conflict_num);
             }
 
             // update min_weight_reg with alloc_num.
             occupied_map[min_weight_reg].insert(alloc_num);
             for (auto &range : range_list) {
-                occupied_range_map[min_weight_reg].insert(AllocRange(range, alloc_num));
+                occupied_range_map[min_weight_reg].emplace(range, alloc_num);
             }
             alloc_map[alloc_num] = min_weight_reg;
         }
@@ -367,7 +366,7 @@ void Func::try_split(int alloc_num) {
     // simple split
     alloc_status_map[alloc_num] = AllocStatus::Spill;
     auto priority = get_alloc_priority(alloc_num);
-    alloc_priority_queue.push(PrioritizedAlloc(priority, alloc_num));
+    alloc_priority_queue.emplace(priority, alloc_num);
 }
 
 void Func::spill(int alloc_num) {
@@ -430,15 +429,12 @@ void Func::spill(int alloc_num) {
 }
 
 void Func::rewrite_operands() {
-    for (auto [alloc_num, reg] : alloc_map)
-    {
+    for (auto [alloc_num, reg] : alloc_map) {
         auto operand = alloc_operand_map[alloc_num];
         auto range_list = alloc_range_map[alloc_num];
 
-        for (const auto &range : range_list)
-        {
-            for (auto instr_num = range.fromNum; instr_num <= range.toNum; ++instr_num)
-            {
+        for (const auto &range : range_list) {
+            for (auto instr_num = range.fromNum; instr_num <= range.toNum; ++instr_num) {
                 auto instr = num2instr[instr_num];
 
                 instr->replace_def(operand, reg);

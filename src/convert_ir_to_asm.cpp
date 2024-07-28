@@ -172,6 +172,8 @@ struct ConvertBulk {
                 return RegRegInstrType::AND;
             case Ir::INSTR_OR:
                 return RegRegInstrType::OR;
+            case Ir::INSTR_XOR:
+                return RegRegInstrType::XOR;
             case Ir::INSTR_ASHR:
                 return RegRegInstrType::SRAW;
             case Ir::INSTR_LSHR:
@@ -559,10 +561,6 @@ struct ConvertBulk {
         assert(size % 4 == 0);
         auto index = func.frame.push(size);
         func.localIndex[instr.get()] = index;
-        // auto rd = toReg(instr.get());
-        // add({  LoadStackAddressInstr{
-        //     rd, index
-        // } });
     }
 
 };
