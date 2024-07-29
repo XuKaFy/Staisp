@@ -409,7 +409,7 @@ struct ConvertBulk {
 
     void convert_call_instr(bool tail, const Pointer<Ir::CallInstr> &instr) {
         auto function_name = instr->operand(0)->usee->name();
-        tail &= function_name == func.name;
+        tail = tail && function_name == func.name;
         auto args_size = instr->operand_size() - 1;
         Reg arg = Reg::A0;
         FReg farg = FReg::FA0;
@@ -456,7 +456,6 @@ struct ConvertBulk {
         auto rt = instr->func_ty->ret_type;
         if (tail) function_name += "_prolog_tail";
         add({ CallInstr{ function_name, uses, tail } });
-        if (tail) return;
         if (is_float(rt)) {
             auto rd = toFReg(instr.get());
             add({ FRegInstr{
@@ -623,10 +622,6 @@ MachineInstrs Func::translate(const Ir::pBlock &block, const Ir::pInstr &instr)
             break;
     }
     return bulk.bulk;
-}
-
-bool Func::peephole() {
-    return false;
 }
 
 std::vector<MachineInstr> spaddi(Reg rd, int imm) {

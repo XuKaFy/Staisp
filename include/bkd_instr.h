@@ -444,6 +444,10 @@ struct MachineInstr {
     T& as() {
         return std::get<T>(instr);
     }
+    template<typename T>
+    const T& as() const {
+        return std::get<T>(instr);
+    }
 
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr, BranchInstr,
