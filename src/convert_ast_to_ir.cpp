@@ -1163,9 +1163,6 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
     _mod->add_func_declaration(
         Ir::make_func(TypedSym("_sysy_stoptime", vd), {i32}));
 
-    _mod->add_func_declaration(Ir::make_func(TypedSym("starttime", vd), {}));
-    _mod->add_func_declaration(Ir::make_func(TypedSym("stoptime", vd), {}));
-
     _mod->add_func_declaration(
         Ir::make_func(TypedSym("__builtin_fill_zero", vd), {i8s, i32}));
 

@@ -415,7 +415,13 @@ UnaryExp:
 
 Call:
   ID LP RP {
-    $$ = new CallNode(NULL, *$1, {});
+    if (*$1 == "starttime") {
+    	$$ = new CallNode(NULL, "_sysy_starttime", {pNode(new ImmNode(NULL, ImmValue(yylineno)))});
+    } else if (*$1 == "stoptime") {
+    	$$ = new CallNode(NULL, "_sysy_stoptime", {pNode(new ImmNode(NULL, ImmValue(yylineno)))});
+    } else {
+    	$$ = new CallNode(NULL, *$1, {});
+    }
     delete $1;
   }|
   ID LP Args RP {

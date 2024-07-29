@@ -98,18 +98,6 @@ void _sysy_stoptime(int lineno) {
     _sysy_idx++;
 }
 
-void starttime()
-{
-    static int i = 0;
-    _sysy_starttime(++i);
-}
-
-void stoptime()
-{
-    static int i = 0;
-    _sysy_stoptime(++i);
-}
-
 #ifdef WANT_FILL_ZERO
 void __builtin_fill_zero(void* ptr, int size) {
     int* p = (int*)ptr;
