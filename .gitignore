@@ -45,3 +45,5 @@ CMakeFiles
 .idea
 Testing
 *.s
+
+testdata

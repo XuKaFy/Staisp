@@ -1024,6 +1024,12 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
 
     analyze_statement_node(root->body);
 
+    if (root->var.name == "main") {
+        analyze_statement_node(
+            Ast::new_return_node(nullptr, Ast::new_imm_node(nullptr, 0)));
+    }
+
+
     func->end_function(_cur_ctx);
     _const_env.end_env();
     _env.end_env();
