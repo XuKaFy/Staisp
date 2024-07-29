@@ -26,7 +26,14 @@ void test_sysy_backend(const std::string &filename) {
         io += in;
     }
     io += " > " + id_out;
-    int code = system(io.c_str());
+    Stopwatch stopwatch;
+    int code;
+    auto elapsed = stopwatch.timeit([&] {
+        code = system(io.c_str());
+    });
+    // if you hope to watch detailed time info, use following command:
+    // ctest -R backend -V | grep sysy_tests
+    printf("\t| %-55s | %5.2fs | \n", id.c_str(), elapsed);
     code = WEXITSTATUS(code);
     auto actual = read(id_out);
     auto expected = read(path + ".out");
