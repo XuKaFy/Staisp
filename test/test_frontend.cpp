@@ -60,7 +60,12 @@ void test_sysy_frontend(const std::string &filename) {
     Stopwatch stopwatch;
 
     double t1 = stopwatch.timeit([&] {
-        ASSERT_FALSE(system(("../frontend/SysYFrontend " + path + ".sy").c_str()));
+        std::string format = "../frontend/SysYFrontend -S -O1";
+        format = format + " -o " + path + ".sy.s";
+        format = format + " -ll " + path + ".sy.ll";
+        format = format + " " + path + ".sy";
+        printf("%s\n", format.c_str());
+        ASSERT_FALSE(system(format.c_str()));
     });
 
     double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
