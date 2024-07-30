@@ -3,7 +3,7 @@
 
 namespace Backend {
 
-const std::set<GReg> REG_ALLOC {
+const std::vector<GReg> REG_ALLOC {
     Reg::A0,
     Reg::A1,
     Reg::A2,
@@ -71,51 +71,37 @@ const std::set<GReg> REG_ALLOC {
     FReg::FS11,
 };
 
-// const Set<GReg> REG_ARGS {
-//     Reg::A0,
-//     Reg::A1,
-//     Reg::A2,
-//     Reg::A3,
-//     Reg::A4,
-//     Reg::A5,
-//     Reg::A6,
-//     Reg::A7,
-//
-//     FReg::FA0,
-//     FReg::FA1,
-//     FReg::FA2,
-//     FReg::FA3,
-//     FReg::FA4,
-//     FReg::FA5,
-//     FReg::FA6,
-//     FReg::FA7,
-// };
-//
-// const Set<GReg> REG_TEMP {
-//     Reg::T0,
-//     Reg::T1,
-//     Reg::T2,
-//     Reg::T3,
-//     Reg::T4,
-//     Reg::T5,
-//     Reg::T6,
-//
-//
-//     FReg::FT0,
-//     FReg::FT1,
-//     FReg::FT2,
-//     FReg::FT3,
-//     FReg::FT4,
-//     FReg::FT5,
-//     FReg::FT6,
-//     FReg::FT7,
-//     FReg::FT8,
-//     FReg::FT9,
-//     FReg::FT10,
-//     FReg::FT11,
-// };
-
 void Func::allocate_hint() {
+    for (auto&& block : blocks) {
+        for (auto&& instr : block.body) {
+            if (instr.instr_type() == MachineInstr::Type::REG) {
+                auto [type, rd, rs] = instr.as<RegInstr>();
+                if (type == RegInstrType::MV) {
+                    if (is_virtual(rd) && is_virtual(rs)) {
+                        coalesce_map[rd] = rs;
+                        coalesce_map[rs] = rd;
+                    } else if (is_virtual(rd)) {
+                        hint_map[rd] = rs;
+                    } else if (is_virtual(rs)) {
+                        hint_map[rs] = rd;
+                    }
+                }
+            }
+            if (instr.instr_type() == MachineInstr::Type::FREG) {
+                auto [type, rd, rs] = instr.as<FRegInstr>();
+                if (type == FRegInstrType::FMV_S) {
+                    if (is_virtual(rd) && is_virtual(rs)) {
+                        coalesce_map[rd] = rs;
+                        coalesce_map[rs] = rd;
+                    } else if (is_virtual(rd)) {
+                        hint_map[rd] = rs;
+                    } else if (is_virtual(rs)) {
+                        hint_map[rs] = rd;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void Func::allocate_init() {
@@ -162,7 +148,7 @@ double Func::get_spill_weight(int alloc_num) {
     return weight;
 }
 
-Func::AllocPriority Func::get_alloc_priority(int alloc_num) {
+Func::PrioritizedAlloc Func::get_alloc_priority(int alloc_num) {
     int block_cnt = 0;
     int instruction_cnt = 0;
 
@@ -174,22 +160,22 @@ Func::AllocPriority Func::get_alloc_priority(int alloc_num) {
     auto operand_id = alloc_operand_map[alloc_num];
     bool hinted = coalesce_map.count(operand_id) || hint_map.count(operand_id);
 
-    return std::make_tuple(alloc_status_map[alloc_num], block_cnt, instruction_cnt, hinted);
+    return {alloc_num, std::make_tuple(alloc_status_map[alloc_num], block_cnt, instruction_cnt, hinted)};
 }
 
 
 void Func::allocate_register() {
 
     for (auto &[alloc_num, _] : alloc_range_map) {
-        alloc_priority_queue.emplace(get_alloc_priority(alloc_num), alloc_num);
+        alloc_priority_queue.emplace(get_alloc_priority(alloc_num));
     }
 
     while (!alloc_priority_queue.empty()) {
         auto priority_alloc = alloc_priority_queue.top();
         alloc_priority_queue.pop();
 
-        auto alloc_num = priority_alloc.second;
-        auto alloc_status = alloc_status_map[alloc_num];
+        auto alloc_num = priority_alloc.alloc_num;
+        auto alloc_status = std::get<0>(priority_alloc.priority);
 
         switch (alloc_status) {
             case AllocStatus::New:
@@ -217,46 +203,42 @@ void Func::try_allocate(int alloc_num) {
 
     Map<GReg, std::set<int>> conflict_map;
     std::set<GReg> conflict_hard_set;
-    // std::vector<GReg> register_alloc_vector;
+    std::vector<GReg> register_alloc_vector;
+    register_alloc_vector.reserve(REG_ALLOC.size());
 
-    // if (hint_map.count(operand)) {
-    //     if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end()) {
-    //         register_alloc_vector.push_back(hint_map[operand]);
-    //     }
-    //     for (auto reg : REG_ALLOC) {
-    //         if (!(reg == hint_map[operand])) {
-    //             register_alloc_vector.push_back(reg);
-    //         }
-    //     }
-    // } else {
-    //     register_alloc_vector = REG_ALLOC;
-    // }
+    if (hint_map.count(operand)) {
+        if (std::find(REG_ALLOC.begin(), REG_ALLOC.end(), hint_map[operand]) != REG_ALLOC.end()) {
+            register_alloc_vector.push_back(hint_map[operand]);
+        }
+        for (auto&& reg : REG_ALLOC) {
+            if (!(reg == hint_map[operand])) {
+                register_alloc_vector.push_back(reg);
+            }
+        }
+    } else {
+        register_alloc_vector = REG_ALLOC;
+    }
 
-    for (auto&& reg : REG_ALLOC) {
+    for (auto&& reg : register_alloc_vector) {
         // must be both int or both float
         if (reg.index() != operand.index())
             continue;
 
-        // liveness: sorted, begin smallest.
+        // liveness: sorted, begin with smallest.
         auto alloc_range = AllocRange(range_list[0], alloc_num);
         bool is_conflict = false;
         conflict_map[reg] = std::set<int>();
 
-        // check conflict (maybe used)
-        if (REG_ALLOC.count(reg)) {
-            for (auto &reg_range : live_ranges[reg]) {
-                for (auto &range : range_list) {
-                    // traversal to find the conflict
-                    // between alloc range and the register(try to alloc) range.
-                    if (range.conflict(reg_range)) {
-                        is_conflict = true;
-                        conflict_hard_set.insert(reg);
-                        break;
-                    }
-                }
-                if (is_conflict)
+        for (auto &reg_range : live_ranges[reg]) {
+            for (auto &range : range_list) {
+                if (range.conflict(reg_range)) {
+                    is_conflict = true;
+                    conflict_hard_set.insert(reg);
                     break;
+                }
             }
+            if (is_conflict)
+                break;
         }
 
         if (is_conflict)
@@ -331,8 +313,7 @@ void Func::try_allocate(int alloc_num) {
         if (alloc_weight <= min_weight) {
             // Split
             alloc_status_map[alloc_num] = AllocStatus::Split;
-            auto priority = get_alloc_priority(alloc_num);
-            alloc_priority_queue.emplace(priority, alloc_num);
+            alloc_priority_queue.emplace(get_alloc_priority(alloc_num));
         } else {
             // Evict the origin min_weight_reg.
             for (auto conflict_num : conflict_map[min_weight_reg]) {
@@ -348,9 +329,7 @@ void Func::try_allocate(int alloc_num) {
                 }
 
                 alloc_map.erase(conflict_num);
-
-                auto priority = get_alloc_priority(conflict_num);
-                alloc_priority_queue.emplace(priority, conflict_num);
+                alloc_priority_queue.emplace(get_alloc_priority(conflict_num));
             }
 
             // update min_weight_reg with alloc_num.
@@ -366,8 +345,7 @@ void Func::try_allocate(int alloc_num) {
 void Func::try_split(int alloc_num) {
     // simple split
     alloc_status_map[alloc_num] = AllocStatus::Spill;
-    auto priority = get_alloc_priority(alloc_num);
-    alloc_priority_queue.emplace(priority, alloc_num);
+    alloc_priority_queue.emplace(get_alloc_priority(alloc_num));
 }
 
 void Func::spill(int alloc_num) {

@@ -69,7 +69,7 @@ struct Func {
 // passes:
     void translate();
     Block translate(const Ir::pBlock &block);
-    MachineInstrs translate(const Ir::pBlock &block, const Ir::pInstr &instr);
+    MachineInstrs translate(const Ir::pBlock &block, const Ir::pInstr &instr, const Ir::pInstr &next, bool& tail);
     Block generate_prolog_tail();
     void build_block_graph();
     void build_block_def_use();
@@ -99,10 +99,10 @@ struct Func {
         allocate_weight();
         allocate_register();
         rewrite_operands();
-        while (peephole()) {}
         generate_prolog();
         remove_pseudo();
         generate_epilog();
+        while (peephole()) {}
     }
 
     // for translate
@@ -161,7 +161,14 @@ struct Func {
     };
 
     using AllocPriority = std::tuple<AllocStatus, int, int, bool>;
-    using PrioritizedAlloc = std::pair<AllocPriority, int>;
+    struct PrioritizedAlloc {
+        int alloc_num;
+        AllocPriority priority;
+
+        bool operator<(PrioritizedAlloc const& other) const {
+            return priority < other.priority;
+        }
+    };
     using AllocRange = std::pair<LiveRange, int>;
 
     int next_alloc_num_{0};
@@ -194,7 +201,7 @@ struct Func {
     void try_allocate(int alloc_num);
     void try_split(int alloc_num);
     void spill(int alloc_num);
-    AllocPriority get_alloc_priority(int alloc_num);
+    PrioritizedAlloc get_alloc_priority(int alloc_num);
 
     Map<GReg, size_t> saved_registers;
     void add_saved_register(GReg reg);

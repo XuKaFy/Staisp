@@ -79,10 +79,14 @@ Block Func::translate(const Ir::pBlock &block)
 {
     Block bkd_block(ir_func->name() + "_" + block->label()->name());
 
-    for (auto && instr : *block) {
-        auto res = translate(block, instr);
+    for (auto it = block->begin(); it != block->end(); ++it) {
+        auto&& instr = *it;
+        auto next = std::next(it);
+        bool tail = false;
+        auto res = translate(block, instr, next == block->end() ? nullptr : *next, tail);
         bkd_block.body.insert(bkd_block.body.end(),
             std::move_iterator(res.begin()), std::move_iterator(res.end()));
+        if (tail) break;
     }
 
     return bkd_block;
@@ -296,9 +300,10 @@ struct ConvertBulk {
         }
     }
 
-    void convert_cmp_instr(const Pointer<Ir::CmpInstr> &instr) {
+    void convert_cmp_instr(bool& tail, const Ir::pInstr &terminator, const Pointer<Ir::CmpInstr> &instr) {
         auto ty = instr->operand(0)->usee->ty;
         if (is_float(ty)) {
+            tail = false;
             auto rd = toReg(instr.get());
             auto rs1 = toFReg(instr->operand(0)->usee);
             auto rs2 = toFReg(instr->operand(1)->usee);
@@ -343,57 +348,106 @@ struct ConvertBulk {
             auto rd = toReg(instr.get());
             auto rs1 = toReg(instr->operand(0)->usee);
             auto rs2 = toReg(instr->operand(1)->usee);
-            switch (instr->cmp_type) {
-                case Ir::CMP_EQ:
-                    add({ RegRegInstr {
-                        RegRegInstrType::XOR, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SEQZ, rd, rd
-                    } });
-                    break;
-                case Ir::CMP_NE:
-                    add({ RegRegInstr {
-                        RegRegInstrType::XOR, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SNEZ, rd, rd
-                    } });
-                    break;
-                case Ir::CMP_ULT:
-                case Ir::CMP_SLT:
-                    add({ RegRegInstr {
-                        RegRegInstrType::SLT, rd, rs1, rs2
-                    } });
-                    break;
-                case Ir::CMP_UGE:
-                case Ir::CMP_SGE:
-                    add({ RegRegInstr {
-                        RegRegInstrType::SLT, rd, rs1, rs2
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SEQZ, rd, rd
-                    } });
-                    break;
-                case Ir::CMP_UGT:
-                case Ir::CMP_SGT:
-                    add({ RegRegInstr {
-                        RegRegInstrType::SLT, rd, rs2, rs1
-                    } });
-                    break;
-                case Ir::CMP_ULE:
-                case Ir::CMP_SLE:
-                    add({ RegRegInstr {
-                        RegRegInstrType::SLT, rd, rs2, rs1
-                    } });
-                    add({ RegInstr {
-                        RegInstrType::SEQZ, rd, rd
-                    } });
-                    break;
-                default:
-                    unreachable();
+            if (tail) {
+                auto branch = dynamic_cast<Ir::BrCondInstr*>(terminator.get());
+                auto label1 = func.name + "_" + branch->operand(1)->usee->name();
+                auto label2 = func.name + "_" + branch->operand(2)->usee->name();
+                switch (instr->cmp_type) {
+                    case Ir::CMP_EQ:
+                        add({ BranchInstr {
+                            BranchInstrType::BNE, rs1, rs2, label2
+                        } });
+                        add({ JInstr{ label1 } });
+                        break;
+                    case Ir::CMP_NE:
+                        add({ BranchInstr {
+                            BranchInstrType::BEQ, rs1, rs2, label2
+                        } });
+                        add({ JInstr{ label1 } });
+                        break;
+                    case Ir::CMP_ULT:
+                    case Ir::CMP_SLT:
+                        add({ BranchInstr {
+                            BranchInstrType::BGE, rs1, rs2, label2
+                        } });
+                        add({ JInstr{ label1 } });
+                        break;
+                    case Ir::CMP_UGE:
+                    case Ir::CMP_SGE:
+                        add({ BranchInstr {
+                            BranchInstrType::BLT, rs1, rs2, label2
+                        } });
+                        add({ JInstr{ label1 } });
+                        break;
+                    case Ir::CMP_UGT:
+                    case Ir::CMP_SGT:
+                        add({ BranchInstr {
+                              BranchInstrType::BLE, rs1, rs2, label2
+                        } });
+                        add({ JInstr{ label1 } });
+                        break;
+                    case Ir::CMP_ULE:
+                    case Ir::CMP_SLE:
+                        add({ BranchInstr {
+                              BranchInstrType::BGT, rs1, rs2, label2
+                        } });
+                        add({ JInstr{ label1 } });
+                        break;
+                    default:
+                        unreachable();
+                }
+            } else {
+                switch (instr->cmp_type) {
+                    case Ir::CMP_EQ:
+                        add({ RegRegInstr {
+                            RegRegInstrType::XOR, rd, rs1, rs2
+                        } });
+                        add({ RegInstr {
+                            RegInstrType::SEQZ, rd, rd
+                        } });
+                        break;
+                    case Ir::CMP_NE:
+                        add({ RegRegInstr {
+                            RegRegInstrType::XOR, rd, rs1, rs2
+                        } });
+                        add({ RegInstr {
+                            RegInstrType::SNEZ, rd, rd
+                        } });
+                        break;
+                    case Ir::CMP_ULT:
+                    case Ir::CMP_SLT:
+                        add({ RegRegInstr {
+                            RegRegInstrType::SLT, rd, rs1, rs2
+                        } });
+                        break;
+                    case Ir::CMP_UGE:
+                    case Ir::CMP_SGE:
+                        add({ RegRegInstr {
+                            RegRegInstrType::SLT, rd, rs1, rs2
+                        } });
+                        add({ RegInstr {
+                            RegInstrType::SEQZ, rd, rd
+                        } });
+                        break;
+                    case Ir::CMP_UGT:
+                    case Ir::CMP_SGT:
+                        add({ RegRegInstr {
+                            RegRegInstrType::SLT, rd, rs2, rs1
+                        } });
+                        break;
+                    case Ir::CMP_ULE:
+                    case Ir::CMP_SLE:
+                        add({ RegRegInstr {
+                            RegRegInstrType::SLT, rd, rs2, rs1
+                        } });
+                        add({ RegInstr {
+                            RegInstrType::SEQZ, rd, rd
+                        } });
+                        break;
+                    default:
+                        unreachable();
+                }
             }
-
         }
     }
 
@@ -407,7 +461,7 @@ struct ConvertBulk {
         add({ JInstr{ label1 } });
     }
 
-    void convert_call_instr(bool tail, const Pointer<Ir::CallInstr> &instr) {
+    void convert_call_instr(bool& tail, const Pointer<Ir::CallInstr> &instr) {
         auto function_name = instr->operand(0)->usee->name();
         tail = tail && function_name == func.name;
         auto args_size = instr->operand_size() - 1;
@@ -456,6 +510,7 @@ struct ConvertBulk {
         auto rt = instr->func_ty->ret_type;
         if (tail) function_name += "_prolog_tail";
         add({ CallInstr{ function_name, uses, tail } });
+        if (tail) return;
         if (is_float(rt)) {
             auto rd = toFReg(instr.get());
             add({ FRegInstr{
@@ -568,24 +623,26 @@ struct ConvertBulk {
 
 };
 
-MachineInstrs Func::translate(const Ir::pBlock &block, const Ir::pInstr &instr)
+MachineInstrs Func::translate(const Ir::pBlock &block, const Ir::pInstr &instr, const Ir::pInstr &next, bool& tail)
 {
     ConvertBulk bulk(*this);
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
             bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
+            tail = true;
             break;
         case Ir::INSTR_BR:
             bulk.add({ JInstr{ name + "_" + instr->operand(0)->usee->name() } });
+            tail = true;
             break;
         case Ir::INSTR_BR_COND:
             bulk.convert_branch_instr(std::static_pointer_cast<Ir::BrCondInstr>(instr));
+            tail = true;
             break;
         case Ir::INSTR_CALL: {
             auto terminator = *block->rbegin();
-            auto before_terminator = *++block->rbegin();
-            bool tail = terminator->instr_type() == Ir::INSTR_RET && before_terminator == instr
-                        && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+            tail = terminator->instr_type() == Ir::INSTR_RET && next == terminator
+                    && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
             bulk.convert_call_instr(tail, std::static_pointer_cast<Ir::CallInstr>(instr));
             break;
         }
@@ -598,9 +655,13 @@ MachineInstrs Func::translate(const Ir::pBlock &block, const Ir::pInstr &instr)
         case Ir::INSTR_CAST:
             bulk.convert_cast_instr(std::static_pointer_cast<Ir::CastInstr>(instr));
             break;
-        case Ir::INSTR_CMP:
-            bulk.convert_cmp_instr(std::static_pointer_cast<Ir::CmpInstr>(instr));
+        case Ir::INSTR_CMP: {
+            auto terminator = *block->rbegin();
+            tail = terminator->instr_type() == Ir::INSTR_BR_COND && next == terminator
+                    && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+            bulk.convert_cmp_instr(tail, terminator, std::static_pointer_cast<Ir::CmpInstr>(instr));
             break;
+        }
         case Ir::INSTR_STORE:
             bulk.convert_store_instr(std::static_pointer_cast<Ir::StoreInstr>(instr));
             break;
@@ -707,7 +768,10 @@ void Func::generate_prolog() {
         save(frame_size - frame.locals[index].offset, reg);
     }
     block.body.assign(prolog.begin(), prolog.end());
-    blocks.push_front(block);
+    auto& prolog_tail = blocks.front();
+    blocks.push_front(std::move(block));
+    blocks.front().out_blocks.push_back(&prolog_tail);
+    prolog_tail.in_blocks.push_back(&blocks.front());
 }
 
 void Func::remove_pseudo() {

@@ -16,6 +16,10 @@ enum class RegImmInstrType {
     SRLIW,
     SRAI,
     SRAIW,
+    ANDI,
+    ORI,
+    XORI,
+    SLTI,
 };
 
 inline constexpr std::string_view REGIMMINSTRTYPE_NAME[] = {
@@ -27,6 +31,10 @@ inline constexpr std::string_view REGIMMINSTRTYPE_NAME[] = {
     "srliw",
     "srai",
     "sraiw",
+    "andi",
+    "ori",
+    "xori",
+    "slti",
 };
 
 inline std::string stringify(RegImmInstrType value) {
