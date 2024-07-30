@@ -109,7 +109,10 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             Vector<ImmValue> vv;
             for (size_t c = 0; c < i->operand_size(); ++c) {
                 auto oprd = i->operand(c)->usee;
-                if (oprd->type() == Ir::VAL_INSTR) {
+                if (oprd->type() == Ir::VAL_GLOBAL) {
+                    v.val[i->name()] = Val();
+                    goto End;
+                } else if (oprd->type() == Ir::VAL_INSTR) {
                     if (v.val.count(oprd->name()) == 0U) { // undef
                         v.val.erase(i->name());            // undef
                         goto End;
