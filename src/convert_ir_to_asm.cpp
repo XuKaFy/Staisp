@@ -110,6 +110,32 @@ struct ConvertBulk {
         return (FReg) ~func.next_reg();
     }
 
+    static bool is_immediate(Ir::Val* val) {
+        auto name = val->name();
+        return name[0] != '%' && name[0] != '@';
+    }
+
+    static std::optional<int> to_itype_immediate(Ir::Val* val, bool negative = false) {
+        auto name = val->name();
+        if (name[0] != '%' && name[0] != '@') {
+            auto imm = std::stoi(name);
+            if (negative) imm = -imm;
+            if (check_itype_immediate(imm))
+                return imm;
+        }
+        return std::nullopt;
+    }
+
+    Reg li(int imm) {
+        if (imm == 0) return Reg::ZERO;
+        auto tmp = allocate_reg();
+        // if it is a immediate, load it
+        add({ImmInstr {
+            ImmInstrType::LI, tmp, imm
+        } });
+        return tmp;
+    }
+
     Reg toReg(Ir::Val* val) {
         auto name = val->name();
         // if it is a register, use it
@@ -117,12 +143,8 @@ struct ConvertBulk {
             // %0 => -1
             return (Reg) ~func.convert_reg(std::stoi(name.substr(1)));
         }
-        auto tmp = allocate_reg();
-        // if it is a immediate, load it
-        add({ImmInstr {
-            ImmInstrType::LI, tmp, std::stoi(name)
-        } });
-        return tmp;
+        auto imm = std::stoi(name);
+        return li(imm);
     }
 
     FReg toFReg(Ir::Val* val) {
@@ -135,27 +157,12 @@ struct ConvertBulk {
         auto con = dynamic_cast<Ir::Const*>(val);
         assert(con->v.imm_value().ty == IMM_F32);
         float f = con->v.imm_value().val.f32val;
-        auto ftmp = allocate_freg();
-        auto tmp = allocate_reg();
-        // // if it is a immediate, load it
-        // // lLVM store float constant into hexadecimal integral representation of corresponding double value
-        // union {
-        //     unsigned long long ull;
-        //     double d;
-        // };
-        // ull = std::stoull(name, nullptr, 16);
-        // union {
-        //     float f;
-        //     int x;
-        // };
-        // f = d;
-        add({ImmInstr {
-            ImmInstrType::LI, tmp, *(int*)&f
-        } });
+        int imm = *(int*)&f;
+        auto tmp = allocate_freg();
         add({ FRegRegInstr {
-            FRegRegInstrType::FMV_S_X, ftmp, tmp
+            FRegRegInstrType::FMV_S_X, tmp, li(imm)
         } });
-        return ftmp;
+        return tmp;
     }
 
     RegRegInstrType selectRRType(Ir::BinInstrType bin) {
@@ -184,9 +191,47 @@ struct ConvertBulk {
                 return RegRegInstrType::SRLW;
             case Ir::INSTR_SHL:
                 return RegRegInstrType::SLLW;
+            case Ir::INSTR_SLT:
+                return RegRegInstrType::SLT;
             default:
                 unreachable();
         }
+    }
+
+    std::optional<RegImmInstrType> selectRIType(Ir::BinInstrType bin) {
+        switch (bin) {
+            case Ir::INSTR_ADD:
+                return RegImmInstrType::ADDIW;
+            case Ir::INSTR_AND:
+                return RegImmInstrType::ANDI;
+            case Ir::INSTR_OR:
+                return RegImmInstrType::ORI;
+            case Ir::INSTR_XOR:
+                return RegImmInstrType::XORI;
+            case Ir::INSTR_ASHR:
+                return RegImmInstrType::SRAIW;
+            case Ir::INSTR_LSHR:
+                return RegImmInstrType::SRLIW;
+            case Ir::INSTR_SHL:
+                return RegImmInstrType::SLLIW;
+            case Ir::INSTR_SLT:
+                return RegImmInstrType::SLTI;
+        }
+        return std::nullopt;
+    }
+
+    std::optional<RegImmInstrType> selectIRType(Ir::BinInstrType bin) {
+        switch (bin) {
+            case Ir::INSTR_ADD:
+                return RegImmInstrType::ADDIW;
+            case Ir::INSTR_AND:
+                return RegImmInstrType::ANDI;
+            case Ir::INSTR_OR:
+                return RegImmInstrType::ORI;
+            case Ir::INSTR_XOR:
+                return RegImmInstrType::XORI;
+        }
+        return std::nullopt;
     }
 
     FRegFRegInstrType selectFRFRType(Ir::BinInstrType bin) {
@@ -212,6 +257,38 @@ struct ConvertBulk {
         } });
     }
 
+    void add_int_binary(Reg rd, Ir::BinInstrType type, Ir::Val* lhs, Ir::Val* rhs) {
+        if (auto imm = to_itype_immediate(rhs)) {
+            if (auto ritype = selectRIType(type)) {
+                add({ RegImmInstr {
+                    ritype.value(), rd, toReg(lhs), imm.value(),
+                } });
+                return;
+            }
+        }
+        if (auto imm = to_itype_immediate(rhs, true)) {
+            if (type == Ir::INSTR_SUB) {
+                add({ RegImmInstr {
+                    RegImmInstrType::ADDIW, rd, toReg(lhs), imm.value(),
+                } });
+                return;
+            }
+        }
+        if (auto imm = to_itype_immediate(lhs)) {
+            if (auto ritype = selectIRType(type)) {
+                add({ RegImmInstr {
+                    ritype.value(), rd, toReg(rhs), imm.value(),
+                } });
+                return;
+            }
+        }
+        auto rs1 = toReg(lhs);
+        auto rs2 = toReg(rhs);
+        add({ RegRegInstr {
+            selectRRType(type), rd, rs1, rs2,
+        } });
+    }
+
     void convert_binary_instr(const Pointer<Ir::BinInstr> &instr) {
         if (is_float(instr->ty)) {
             auto rd = toFReg(instr.get());
@@ -222,11 +299,9 @@ struct ConvertBulk {
             } });
         } else {
             auto rd = toReg(instr.get());
-            auto rs1 = toReg(instr->operand(0)->usee);
-            auto rs2 = toReg(instr->operand(1)->usee);
-            add({ RegRegInstr {
-                selectRRType(instr->binType), rd, rs1, rs2,
-            } });
+            auto lhs = instr->operand(0)->usee;
+            auto rhs = instr->operand(1)->usee;
+            add_int_binary(rd, instr->binType, lhs, rhs);
         }
     }
 
@@ -346,10 +421,12 @@ struct ConvertBulk {
             }
         } else {
             auto rd = toReg(instr.get());
-            auto rs1 = toReg(instr->operand(0)->usee);
-            auto rs2 = toReg(instr->operand(1)->usee);
+            auto lhs = instr->operand(0)->usee;
+            auto rhs = instr->operand(1)->usee;
             if (tail) {
                 auto branch = dynamic_cast<Ir::BrCondInstr*>(terminator.get());
+                auto rs1 = toReg(lhs);
+                auto rs2 = toReg(rhs);
                 auto label1 = func.name + "_" + branch->operand(1)->usee->name();
                 auto label2 = func.name + "_" + branch->operand(2)->usee->name();
                 switch (instr->cmp_type) {
@@ -399,47 +476,35 @@ struct ConvertBulk {
             } else {
                 switch (instr->cmp_type) {
                     case Ir::CMP_EQ:
-                        add({ RegRegInstr {
-                            RegRegInstrType::XOR, rd, rs1, rs2
-                        } });
+                        add_int_binary(rd, Ir::INSTR_XOR, lhs, rhs);
                         add({ RegInstr {
                             RegInstrType::SEQZ, rd, rd
                         } });
                         break;
                     case Ir::CMP_NE:
-                        add({ RegRegInstr {
-                            RegRegInstrType::XOR, rd, rs1, rs2
-                        } });
+                        add_int_binary(rd, Ir::INSTR_XOR, lhs, rhs);
                         add({ RegInstr {
                             RegInstrType::SNEZ, rd, rd
                         } });
                         break;
                     case Ir::CMP_ULT:
                     case Ir::CMP_SLT:
-                        add({ RegRegInstr {
-                            RegRegInstrType::SLT, rd, rs1, rs2
-                        } });
+                        add_int_binary(rd, Ir::INSTR_SLT, lhs, rhs);
                         break;
                     case Ir::CMP_UGE:
                     case Ir::CMP_SGE:
-                        add({ RegRegInstr {
-                            RegRegInstrType::SLT, rd, rs1, rs2
-                        } });
+                        add_int_binary(rd, Ir::INSTR_SLT, lhs, rhs);
                         add({ RegInstr {
                             RegInstrType::SEQZ, rd, rd
                         } });
                         break;
                     case Ir::CMP_UGT:
                     case Ir::CMP_SGT:
-                        add({ RegRegInstr {
-                            RegRegInstrType::SLT, rd, rs2, rs1
-                        } });
+                        add_int_binary(rd, Ir::INSTR_SLT, rhs, lhs);
                         break;
                     case Ir::CMP_ULE:
                     case Ir::CMP_SLE:
-                        add({ RegRegInstr {
-                            RegRegInstrType::SLT, rd, rs2, rs1
-                        } });
+                        add_int_binary(rd, Ir::INSTR_SLT, rhs, lhs);
                         add({ RegInstr {
                             RegInstrType::SEQZ, rd, rd
                         } });
@@ -592,20 +657,24 @@ struct ConvertBulk {
         for (size_t dim = 1; dim < instr->operand_size(); ++dim) {
             type = to_elem_type(type);
             int step = type->length();
-            auto index = instr->operand(dim)->usee;
-            auto r1 = allocate_reg();
-            auto r2 = allocate_reg();
-            auto r3 = allocate_reg();
-            add({ImmInstr {
-                ImmInstrType::LI, r1, step
-            } });
-            add({ RegRegInstr {
-                RegRegInstrType::MUL, r2, r1, toReg(index)
-            } });
-            add({ RegRegInstr {
-                RegRegInstrType::ADD, r3, rs, r2
-            } });
-            rs = r3;
+            auto index = toReg(instr->operand(dim)->usee);
+            if (index != Reg::ZERO) {
+                auto forward  = allocate_reg();
+                auto forwarded  = allocate_reg();
+                if ((step & (step - 1)) == 0) {
+                    add({ RegImmInstr {
+                        RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+                    } });
+                } else {
+                    add({ RegRegInstr {
+                        RegRegInstrType::MUL, forward, li(step), index
+                    } });
+                }
+                add({ RegRegInstr {
+                    RegRegInstrType::ADD, forwarded, rs, forward
+                } });
+                rs = forwarded;
+            }
         }
         add({  RegInstr{
             RegInstrType::MV, rd, rs

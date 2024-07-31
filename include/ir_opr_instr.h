@@ -25,7 +25,8 @@ namespace Ir {
     ENTRY(OR, or)                                                              \
     ENTRY(ASHR, ashr)                                                          \
     ENTRY(LSHR, lshr)                                                          \
-    ENTRY(SHL, shl)
+    ENTRY(SHL, shl)                                                            \
+    ENTRY(SLT, slt) /* magic binary op for backend convenience*/
 
 #define ENTRY(x, y) INSTR_##x,
 enum BinInstrType { BIN_INSTR_TABLE };
