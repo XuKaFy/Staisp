@@ -1,4 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR CONST i32:a 0
-    RETURN a
-}

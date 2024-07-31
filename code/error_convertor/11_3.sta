@@ -1,7 +1,0 @@
-DEFVAR CONST i32[10][10]:i []
-
-DEFFUNC i32:main() BLOCK {
-    DEFVAR i32:a ITEM i [0 0]
-    ASSIGN ITEM i [0 0] 1
-    RETURN ITEM i [0 0]
-}

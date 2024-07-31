@@ -1,7 +1,0 @@
-DEFFUNC i32:hello () {
-    RETURN 1
-}
-
-DEFFUNC i32:main() {
-    RETURN NE hello ( ) 1
-}

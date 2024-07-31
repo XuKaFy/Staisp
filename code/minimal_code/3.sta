@@ -1,5 +1,0 @@
-DEFVAR i32:a 1
-
-DEFFUNC i32:main() {
-    RETURN NE a 1
-}

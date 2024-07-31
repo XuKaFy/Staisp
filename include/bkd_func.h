@@ -9,6 +9,8 @@
 #include "bkd_block.h"
 #include "def.h"
 
+extern bool flag_O1;
+
 namespace Backend {
 
 struct StackObject {
@@ -94,7 +96,7 @@ struct Func {
         visited.clear();
         number_instruction(&blocks.front());
         liveness_analysis();
-        allocate_hint();
+        if (flag_O1) allocate_hint();
         allocate_init();
         allocate_weight();
         allocate_register();
@@ -102,7 +104,7 @@ struct Func {
         generate_prolog();
         remove_pseudo();
         generate_epilog();
-        while (peephole()) {}
+        if (flag_O1) while (peephole()) {}
     }
 
     // for translate

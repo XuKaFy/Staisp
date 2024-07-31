@@ -1,5 +1,0 @@
-DEFFUNC i32:main() BLOCK {
-    DEFVAR CONST i32:i 0
-    ASSIGN i 1
-    RETURN 0
-}

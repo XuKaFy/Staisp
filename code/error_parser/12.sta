@@ -1,5 +1,0 @@
-DEFFUNC i32:main() BLOCK {
-    DEFVAR i32:ans 0
-    ASSIGN 5 ans
-    RETURN ans
-}

@@ -11,6 +11,7 @@
 extern void setFileName(const char *name);
 extern void yyparse();
 extern Vector<pNode> root;
+bool flag_O1 = false;
 
 int main(int argc, char *argv[]) {
     if (argc == 1) {
@@ -19,7 +20,6 @@ int main(int argc, char *argv[]) {
     }
 
     bool flag_S = false;
-    bool flag_O1 = false;
     bool in_file_set = false;
     String out_file_o;
     String out_file_ll;
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
         Ir::pModule mod = convertor.generate(ast_root);
 
         Optimize::optimize(mod, convertor);
-        
+
         if (!out_file_ll.empty()) {
             out.open(out_file_ll, std::fstream::out);
             out << mod->print_module();

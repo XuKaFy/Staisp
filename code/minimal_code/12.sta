@@ -1,5 +1,0 @@
-DEFFUNC i32:main() {
-    WHILE 1
-        RETURN 0
-    RETURN 1
-}

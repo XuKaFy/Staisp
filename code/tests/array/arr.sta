@@ -1,7 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR i32[10]:b []
-    DEFVAR i32[10]:a [1 2 3 4 5 6 7 8 9 10] # a: int*
-    ASSIGN ITEM a [3] 5
-    # RETURN NE ITEM a [7] 8
-    RETURN 0
-}

@@ -1,3 +1,0 @@
-DEFFUNC i32:main() {
-    RETURN 0.0
-}

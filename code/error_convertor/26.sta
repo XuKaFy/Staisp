@@ -1,8 +1,0 @@
-DEFFUNC i32:fun(i32:a i32:a) {
-    RETURN a
-}
-
-DEFFUNC i32:main() {
-    DEFVAR i32:a 0
-    RETURN fun(a a)
-}

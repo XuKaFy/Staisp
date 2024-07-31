@@ -1,7 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR i32:i 1
-    DEFVAR i32:j ADD i 1
-    DEFVAR i32:k ADD j 1
-    DEFVAR i32:l ADD k 1
-    RETURN l
-}

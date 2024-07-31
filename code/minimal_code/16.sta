@@ -1,8 +1,0 @@
-DEFFUNC void:fun() {
-    RET_VOID
-}
-
-DEFFUNC i32:main() {
-    fun()
-    RETURN 0
-}

@@ -115,8 +115,8 @@ void Func::allocate_init() {
     }
 
     for (auto reg : REG_ALLOC) {
-        occupied_map[reg] = Set<int>();
-        occupied_range_map[reg] = std::set<AllocRange>();
+        occupied_map[reg] = {};
+        occupied_range_map[reg] = {};
     }
 }
 

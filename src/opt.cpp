@@ -9,7 +9,7 @@
 #include "opt_DSE.h"
 #include "opt_DFA.h"
 
-#define MAX_OPT_COUNT 10
+extern int flag_O1;
 
 namespace Optimize {
 
@@ -25,6 +25,7 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         
         int cnt = 0;
         func->p.re_generate(); // must re-generate for DFA
+        const int MAX_OPT_COUNT = flag_O1 ? 8 : 2;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_bottom_analysis<OptDSE::BlockValue, OptDSE::TransferFunction>(func->p);
             func->p.plain_opt_all();

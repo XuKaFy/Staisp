@@ -1,6 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR i32[10]:a []
-    DEFVAR i32:b 0
-    ASSIGN a b
-    RETURN 0
-}

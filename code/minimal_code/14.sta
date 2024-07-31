@@ -1,9 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR i32:a 0
-    IF LT a 1
-        ASSIGN a ADD a 1
-    IFE LT a 2
-        ASSIGN a ADD a 1
-        ASSIGN a SUB a 1
-    RETURN NE a 2
-}

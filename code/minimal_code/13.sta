@@ -1,8 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR i32:foo 0
-    WHILE 1
-        IFE foo
-            RETURN 0
-            RETURN 0
-    RETURN 0
-}

@@ -1,4 +1,0 @@
-DEFFUNC i32:main() {
-    DEFVAR i32:a 0
-    RETURN ITEM a [0]
-}

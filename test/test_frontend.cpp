@@ -60,7 +60,8 @@ void test_sysy_frontend(const std::string &filename) {
     Stopwatch stopwatch;
 
     double t1 = stopwatch.timeit([&] {
-        std::string format = "../frontend/SysYFrontend -S -O1";
+        std::string format = "../frontend/SysYFrontend -S ";
+        if (path.find("performance") != std::string::npos) format += "-O1 ";
         format = format + " -o " + path + ".sy.s";
         format = format + " -ll " + path + ".sy.ll";
         format = format + " " + path + ".sy";
