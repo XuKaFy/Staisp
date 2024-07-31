@@ -564,13 +564,11 @@ struct ConvertBulk {
         }
         func.frame.args = std::max(func.frame.args, spilled.size());
         for (size_t i = 0; i < spilled.size(); ++i) {
-            auto rd = allocate_reg();
             auto rs = spilled[i];
-            add({ LoadStackAddressInstr {rd, i,
-                    tail ? LoadStackAddressInstr::Type::PARENT_ARG : LoadStackAddressInstr::Type::CHILD_ARG} });
-            add({ StoreInstr {
-                rs.index() ? LSType::FLOAT : LSType::DWORD, rs,  0, rd,
-            } });
+            add({ StoreStackInstr {
+                rs.index() ? LSType::FLOAT : LSType::DWORD, rs, i,
+                tail ? StackObjectType::PARENT_ARG : StackObjectType::CHILD_ARG
+            }});
         }
         auto rt = instr->func_ty->ret_type;
         if (tail) function_name += "_prolog_tail";
@@ -589,8 +587,8 @@ struct ConvertBulk {
         }
     }
 
-    Reg load_address(Ir::Val* val) {
-        auto name = val->name();
+    Reg load_address(Ir::Val* address) {
+        auto name = address->name();
         if (name[0] == '@') {
             // global
             auto rd = allocate_reg();
@@ -599,7 +597,7 @@ struct ConvertBulk {
             } });
             return rd;
         }
-        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(val)) {
+        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(address)) {
             // local
             auto index = func.localIndex[alloc];
             auto rd = allocate_reg();
@@ -609,40 +607,67 @@ struct ConvertBulk {
             return rd;
         }
         // gep
-        return toReg(val);
+        return toReg(address);
+    }
+
+    static LSType getLSType(Ir::Val* val) {
+        return is_float(val->ty) ? LSType::FLOAT : val->ty->length() > 4 ? LSType::DWORD : LSType::WORD;
+    }
+
+    GReg to_generic_reg(Ir::Val* val) {
+        if (is_float(val->ty)) return toFReg(val); else return toReg(val);
     }
 
     void convert_store_instr(const Pointer<Ir::StoreInstr> &instr) {
-        auto address = load_address(instr->operand(0)->usee);
-        auto value = instr->operand(1)->usee;
-        if (is_float(value->ty)) {
-            auto rs = toFReg(value);
-            add({ StoreInstr{
-                LSType::FLOAT, rs, 0, address
+        auto from = instr->operand(1)->usee;
+        auto address = instr->operand(0)->usee;
+        auto name = address->name();
+        auto type = getLSType(from);
+        auto rs = to_generic_reg(from);
+        if (name[0] == '@') {
+            // global
+            add({ StoreGlobalInstr{
+               type, rs, name.substr(1)
             } });
-        } else {
-            bool wide = value->ty->length() > 4;
-            auto rs = toReg(value);
-            add({ StoreInstr{
-                wide ? LSType::DWORD : LSType::WORD, rs, 0, address
-            } });
+            return;
         }
+        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(address)) {
+            // local
+            auto index = func.localIndex[alloc];
+            add({  StoreStackInstr{
+                type, rs, index
+            } });
+            return;
+        }
+        add({ StoreInstr{
+            type, rs, 0, toReg(address)
+        } });
     }
 
     void convert_load_instr(const Pointer<Ir::LoadInstr> &instr) {
-        auto address = load_address(instr->operand(0)->usee);
-        if (is_float(instr->ty)) {
-            auto rd = toFReg(instr.get());
-            add({ LoadInstr{
-                LSType::FLOAT, rd, 0, address
+        auto to = instr.get();
+        auto address = instr->operand(0)->usee;
+        auto name = address->name();
+        auto type = getLSType(to);
+        auto rd = to_generic_reg(to);
+        if (name[0] == '@') {
+            // global
+            add({ LoadGlobalInstr{
+               type, rd, name.substr(1)
             } });
-        } else {
-            bool wide = instr->ty->length() > 4;
-            auto rd = toReg(instr.get());
-            add({ LoadInstr{
-                wide ? LSType::DWORD : LSType::WORD, rd, 0, address
-            } });
+            return;
         }
+        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(address)) {
+            // local
+            auto index = func.localIndex[alloc];
+            add({  LoadStackInstr{
+                type, rd, index
+            } });
+            return;
+        }
+        add({ LoadInstr{
+            type, rd, 0, toReg(address)
+        } });
     }
 
     void convert_gep_instr(const Pointer<Ir::ItemInstr> &instr) {
@@ -772,11 +797,7 @@ Block Func::generate_prolog_tail() {
     };
     Reg arg = Reg::A0;
     FReg farg = FReg::FA0;
-    auto next_arg = [this, add, i = (size_t)0] () mutable {
-        auto rd = (Reg) ~next_reg();
-        add({ LoadStackAddressInstr {rd, i++, LoadStackAddressInstr::Type::PARENT_ARG} });
-        return rd;
-    };
+    size_t next_arg = 0;
     int reg = 0;
     for (auto&& at : type->arg_type) {
         if (is_float(at)) {
@@ -788,8 +809,8 @@ Block Func::generate_prolog_tail() {
                 } });
                 farg = (FReg)((int)farg + 1);
             } else {
-                add({ LoadInstr {
-                    LSType::FLOAT, rd,  0, next_arg(),
+                add({ LoadStackInstr {
+                    LSType::FLOAT, rd,  next_arg++, StackObjectType::PARENT_ARG,
                 } });
             }
         } else {
@@ -801,8 +822,8 @@ Block Func::generate_prolog_tail() {
                 } });
                 arg = (Reg)((int)arg + 1);
             } else {
-                add({ LoadInstr {
-                    LSType::DWORD, rd,  0, next_arg(),
+                add({ LoadStackInstr {
+                    LSType::DWORD, rd,  next_arg++, StackObjectType::PARENT_ARG,
                 } });
             }
         }
@@ -843,27 +864,68 @@ void Func::generate_prolog() {
     prolog_tail.in_blocks.push_back(&blocks.front());
 }
 
-void Func::remove_pseudo() {
+int Func::translate(StackObjectType type, size_t index) const {
     int frame_size = frame.size();
+    switch (type) {
+        case StackObjectType::LOCAL:
+            return frame_size - frame.locals[index].offset;
+        case StackObjectType::PARENT_ARG:
+            return frame_size + (int)index * 8;
+        case StackObjectType::CHILD_ARG:
+            return (int)index * 8;
+    }
+}
+
+void Func::remove_pseudo() {
     for (auto&& block : blocks) {
         for (auto it = block.body.begin(); it != block.body.end(); ) {
             auto instr = *it;
             if (instr.instr_type() == MachineInstr::Type::LOAD_STACK_ADDRESS) {
                 auto LSA = instr.as<LoadStackAddressInstr>();
-                int offset = 0;
-                switch (LSA.type) {
-                    case LoadStackAddressInstr::Type::LOCAL:
-                        offset = frame_size - frame.locals[LSA.index].offset;
-                        break;
-                    case LoadStackAddressInstr::Type::PARENT_ARG:
-                        offset = frame_size + (int)LSA.index * 8;
-                        break;
-                    case LoadStackAddressInstr::Type::CHILD_ARG:
-                        offset = (int)LSA.index * 8;
-                        break;
-                }
-
+                int offset = translate(LSA.type, LSA.index);
                 auto replacement = spaddi(LSA.rd, offset);
+                it = block.body.erase(it);
+                it = block.body.insert(it, replacement.begin(), replacement.end());
+            } else if (instr.instr_type() == MachineInstr::Type::LOAD_STACK) {
+                auto LSA = instr.as<LoadStackInstr>();
+                int offset = translate(LSA.type1, LSA.index);
+                std::vector<MachineInstr> replacement;
+                if (check_itype_immediate(offset)) {
+                    replacement.push_back({ LoadInstr {
+                        LSA.type, LSA.rd, offset, Reg::SP,
+                    } });
+                } else {
+                    replacement.push_back({ ImmInstr {
+                        ImmInstrType::LI, Reg::T0, offset
+                    } });
+                    replacement.push_back({ RegRegInstr {
+                        RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+                    } });
+                    replacement.push_back({ LoadInstr {
+                        LSA.type, LSA.rd, 0, Reg::T0,
+                    } });
+                }
+                it = block.body.erase(it);
+                it = block.body.insert(it, replacement.begin(), replacement.end());
+            } else if (instr.instr_type() == MachineInstr::Type::STORE_STACK) {
+                auto LSA = instr.as<StoreStackInstr>();
+                int offset = translate(LSA.type1, LSA.index);
+                std::vector<MachineInstr> replacement;
+                if (check_itype_immediate(offset)) {
+                    replacement.push_back({ StoreInstr {
+                        LSA.type, LSA.rs, offset, Reg::SP,
+                    } });
+                } else {
+                    replacement.push_back({ ImmInstr {
+                        ImmInstrType::LI, Reg::T0, offset
+                    } });
+                    replacement.push_back({ RegRegInstr {
+                        RegRegInstrType::ADD, Reg::T0, Reg::T0, Reg::SP,
+                    } });
+                    replacement.push_back({ StoreInstr {
+                        LSA.type, LSA.rs, 0, Reg::T0,
+                    } });
+                }
                 it = block.body.erase(it);
                 it = block.body.insert(it, replacement.begin(), replacement.end());
             } else {

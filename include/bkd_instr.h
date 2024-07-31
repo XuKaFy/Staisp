@@ -229,12 +229,20 @@ enum class LSType {
     WORD, DWORD, FLOAT
 };
 
+inline std::string stringifyLoad(LSType type) {
+    return type == LSType::WORD ? "lw" : type == LSType::DWORD ? "ld" : "flw";
+}
+
+inline std::string stringifyStore(LSType type) {
+    return type == LSType::WORD ? "sw" : type == LSType::DWORD ? "sd" : "fsw";
+}
+
 struct LoadInstr {
     LSType type;
     GReg rd; int imm; Reg rs;
 
     std::string stringify() const {
-        return stringifyLS(type == LSType::WORD ? "lw" : type == LSType::DWORD ? "ld" : "flw", rd, imm, rs);
+        return stringifyLS(stringifyLoad(type), rd, imm, rs);
     }
 
     std::vector<GReg> def() const { return {rd}; }
@@ -250,7 +258,7 @@ struct StoreInstr {
     GReg rs2; int imm; Reg rs1;
 
     std::string stringify() const {
-        return stringifyLS(type == LSType::WORD ? "sw" : type == LSType::DWORD ? "sd" : "fsw", rs2, imm, rs1);
+        return stringifyLS(stringifyStore(type), rs2, imm, rs1);
     }
 
     std::vector<GReg> def() const { return {}; }
@@ -375,15 +383,62 @@ struct LoadAddressInstr {
     void replace_use(GReg from, GReg to) {}
 };
 
+struct LoadGlobalInstr {
+    LSType type;
+    GReg rd; std::string label;
+
+    std::string stringify() const {
+        if (type == LSType::FLOAT) return format(stringifyLoad(type), rd, label, Reg::T0);
+        return format(stringifyLoad(type), rd, label);
+    }
+
+    std::vector<GReg> def() const {
+        if (type == LSType::FLOAT) return {rd, Reg::T0};
+        return {rd};
+    }
+    std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) { if (rd == from) rd = to; }
+    void replace_use(GReg from, GReg to) {}
+};
+
+struct StoreGlobalInstr {
+    LSType type;
+    GReg rs; std::string label;
+
+    std::string stringify() const {
+        return format(stringifyStore(type), rs, label, Reg::T0);
+    }
+
+    std::vector<GReg> def() const { return {Reg::T0}; }
+    std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) { if (rs == from) rs = to; }
+};
+
+enum class StackObjectType {
+    LOCAL, CHILD_ARG, PARENT_ARG
+};
+
+inline std::string stringify(StackObjectType type) {
+    switch (type) {
+        case StackObjectType::LOCAL:
+            return "L";
+        case StackObjectType::CHILD_ARG:
+            return "C";
+        case StackObjectType::PARENT_ARG:
+            return "P";
+    }
+}
+
 struct LoadStackAddressInstr {
     Reg rd;
     size_t index;
-    enum class Type {
-        LOCAL, CHILD_ARG, PARENT_ARG
-    } type = Type::LOCAL;
+    StackObjectType type = StackObjectType::LOCAL;
 
     std::string stringify() const {
-        return "LSA " + Backend::stringify(rd) + " from " + (type == Type::LOCAL ? "#" : type == Type::CHILD_ARG ? "$" : "^") + std::to_string(index);
+        return "LSA " + Backend::stringify(rd) + " at " + Backend::stringify(type) + std::to_string(index);
     }
 
     std::vector<GReg> def() const { return {rd}; }
@@ -391,6 +446,40 @@ struct LoadStackAddressInstr {
 
     void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<Reg>(to); }
     void replace_use(GReg from, GReg to) {}
+};
+
+struct LoadStackInstr {
+    LSType type;
+    GReg rd;
+    size_t index;
+    StackObjectType type1 = StackObjectType::LOCAL;
+
+    std::string stringify() const {
+        return "LSA-" + stringifyLoad(type) + " " + Backend::stringify(rd) + " at " + Backend::stringify(type1) + std::to_string(index);
+    }
+
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {}; }
+
+    void replace_def(GReg from, GReg to) { if (rd == from) rd = to; }
+    void replace_use(GReg from, GReg to) {}
+};
+
+struct StoreStackInstr {
+    LSType type;
+    GReg rs;
+    size_t index;
+    StackObjectType type1 = StackObjectType::LOCAL;
+
+    std::string stringify() const {
+        return "LSA-" + stringifyStore(type) + Backend::stringify(rs) + " at " + Backend::stringify(type1) + std::to_string(index);
+    }
+
+    std::vector<GReg> def() const { return {}; }
+    std::vector<GReg> use() const { return {rs}; }
+
+    void replace_def(GReg from, GReg to) {}
+    void replace_use(GReg from, GReg to) { if (rs == from) rs = to; }
 };
 
 template<typename... Ts>
@@ -420,8 +509,12 @@ struct MachineInstr {
         CALL,
         RETURN,
         LOAD_ADDRESS,
+        LOAD_GLOBAL,
+        STORE_GLOBAL,
 
-        LOAD_STACK_ADDRESS
+        LOAD_STACK_ADDRESS,
+        LOAD_STACK,
+        STORE_STACK
     };
 
     Type instr_type() const { return (Type) instr.index(); }
@@ -454,7 +547,8 @@ struct MachineInstr {
         FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
         LoadInstr, StoreInstr, RegLabelInstr,
         JInstr, CallInstr, ReturnInstr,
-        LoadAddressInstr, LoadStackAddressInstr
+        LoadAddressInstr, LoadGlobalInstr, StoreGlobalInstr,
+        LoadStackAddressInstr, LoadStackInstr, StoreStackInstr
     > instr;
 
     // aux info

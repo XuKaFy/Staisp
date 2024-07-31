@@ -208,6 +208,7 @@ struct Func {
     Map<GReg, size_t> saved_registers;
     void add_saved_register(GReg reg);
 
+    int translate(StackObjectType type, size_t index) const;
 
 };
 
