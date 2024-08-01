@@ -3,6 +3,7 @@
 #include "alys_loop.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_call_instr.h"
 #include "ir_cmp_instr.h"
 #include "ir_constant.h"
 #include "ir_control_instr.h"
@@ -17,58 +18,78 @@
 
 namespace Optimize {
 
+inline void alter_cmp(Ir::CmpType &cmp_type) {
+    switch (cmp_type) {
+
+    case Ir::CMP_SGE:
+        cmp_type = Ir::CMP_SLE;
+        break;
+    case Ir::CMP_SLE:
+        cmp_type = Ir::CMP_SGE;
+        break;
+    case Ir::CMP_SGT:
+        cmp_type = Ir::CMP_SLT;
+        break;
+    case Ir::CMP_SLT:
+        cmp_type = Ir::CMP_SGT;
+        break;
+
+    case Ir::CMP_OGE:
+        cmp_type = Ir::CMP_OLE;
+        break;
+    case Ir::CMP_OLE:
+        cmp_type = Ir::CMP_OGE;
+        break;
+    case Ir::CMP_OGT:
+        cmp_type = Ir::CMP_OLT;
+        break;
+    case Ir::CMP_OLT:
+        cmp_type = Ir::CMP_OGT;
+        break;
+
+    case Ir::CMP_UGE:
+        cmp_type = Ir::CMP_ULE;
+        break;
+    case Ir::CMP_ULE:
+        cmp_type = Ir::CMP_UGE;
+        break;
+    case Ir::CMP_ULT:
+        cmp_type = Ir::CMP_UGT;
+        break;
+    case Ir::CMP_UGT:
+        cmp_type = Ir::CMP_ULT;
+        break;
+
+    case Ir::CMP_UNE:
+    case Ir::CMP_OEQ:
+    case Ir::CMP_NE:
+    case Ir::CMP_EQ:
+        break;
+    }
+}
+
+auto inline true_label(Ir::BrCondInstr *br_cond) {
+    return dynamic_cast<Ir::LabelInstr *>(br_cond->operand(1)->usee);
+}
+
+auto inline false_label(Ir::BrCondInstr *br_cond) {
+    return dynamic_cast<Ir::LabelInstr *>(br_cond->operand(2)->usee);
+}
+
+auto branch_label_replace(Ir::BrCondInstr *br_cond, Ir::LabelInstr *old_label,
+                          Ir::LabelInstr *new_label) {
+    if (true_label(br_cond) == old_label) {
+        br_cond->change_operand(1, new_label);
+        return;
+    } else if (false_label(br_cond) == old_label) {
+        br_cond->change_operand(2, new_label);
+        return;
+    }
+    my_assert(false, "replace non-existed label");
+}
+
 void Canonicalizer_pass::ap() {
     auto dom_set = Alys::build_dom_set(dom_ctx);
-    auto changed = false;
-    auto alter_cmp = [](Ir::CmpType &cmp_type) {
-        switch (cmp_type) {
-
-        case Ir::CMP_SGE:
-            cmp_type = Ir::CMP_SLE;
-            break;
-        case Ir::CMP_SLE:
-            cmp_type = Ir::CMP_SGE;
-            break;
-        case Ir::CMP_SGT:
-            cmp_type = Ir::CMP_SLT;
-            break;
-        case Ir::CMP_SLT:
-            cmp_type = Ir::CMP_SGT;
-            break;
-
-        case Ir::CMP_OGE:
-            cmp_type = Ir::CMP_OLE;
-            break;
-        case Ir::CMP_OLE:
-            cmp_type = Ir::CMP_OGE;
-            break;
-        case Ir::CMP_OGT:
-            cmp_type = Ir::CMP_OLT;
-            break;
-        case Ir::CMP_OLT:
-            cmp_type = Ir::CMP_OGT;
-            break;
-
-        case Ir::CMP_UGE:
-            cmp_type = Ir::CMP_ULE;
-            break;
-        case Ir::CMP_ULE:
-            cmp_type = Ir::CMP_UGE;
-            break;
-        case Ir::CMP_ULT:
-            cmp_type = Ir::CMP_UGT;
-            break;
-        case Ir::CMP_UGT:
-            cmp_type = Ir::CMP_ULT;
-            break;
-
-        case Ir::CMP_UNE:
-        case Ir::CMP_OEQ:
-        case Ir::CMP_NE:
-        case Ir::CMP_EQ:
-            break;
-        }
-    };
 
     auto negate_cmp = [](Ir::CmpType &cmp_type) {
         switch (cmp_type) {
@@ -155,7 +176,6 @@ void Canonicalizer_pass::ap() {
             loop_comparator->add_operand(op2);
             loop_comparator->add_operand(op1);
             alter_cmp(loop_comparator->cmp_type);
-            changed = true;
         }
 
         auto l_label =
@@ -171,7 +191,6 @@ void Canonicalizer_pass::ap() {
             back_instr->add_operand(r_label);
             back_instr->add_operand(l_label);
             negate_cmp(loop_comparator->cmp_type);
-            changed = true;
         }
     }
 }
@@ -208,7 +227,8 @@ bool IndVarPruning_pass::is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir,
                 continue;
 
             Ir::Const *step;
-            if (binary_exactor(phi_usee, val, step, add_idf, add_signed_constf))
+            if (binary_extractor<Ir::Val *, Ir::Const *, Ir::INSTR_ADD, true>(
+                    phi_usee, val, step, add_idf, add_signed_constf))
                 return false;
 
             auto step_as_int = step->v.imm_value().val.ival;
@@ -233,7 +253,8 @@ bool IndVarPruning_pass::is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir,
     Ir::Val *acc;
     Ir::Const *inc;
 
-    if (binary_exactor(val, acc, inc, add_tautof, add_signed_constf)) {
+    if (binary_extractor<Ir::Val *, Ir::Const *, Ir::INSTR_ADD, true>(
+            val, acc, inc, add_tautof, add_signed_constf)) {
         return is_Mono(val, loop_hdr, dir, depth - 1);
     }
     return false;
@@ -251,7 +272,7 @@ bool IndVarPruning_pass::is_pure(Ir::Block *arg_blk) {
                       "non void ret");
             auto callee = call_instr->operand(0)->usee;
             auto callee_func = dynamic_cast<Ir::FuncDefined *>(callee);
-            // function attribute predicate
+            // function attribute predicate d
             return false;
         }
         return true;
@@ -292,32 +313,120 @@ bool IndVarPruning_pass::is_closure_loop(Ir::Block *block, Ir::Block *exit) {
 }
 
 void IndVarPruning_pass::ap() {
+    std::function<bool(Ir::Val *, Ir::Val *&)> icmp_tautof =
+        [](Ir::Val *op_val, Ir::Val *&left_exactor) -> bool {
+        left_exactor = op_val;
+        return true;
+    };
+
     for (auto cur_blk : cur_func) {
+        auto back_instr = cur_blk->back();
+        if (back_instr->instr_type() != Ir::INSTR_BR_COND)
+            continue;
+
+        auto cur_cnd_br = dynamic_cast<Ir::BrCondInstr *>(back_instr.get());
+
+        Ir::CmpType cmp_op;
+        Ir::Val *lhs, *rhs, *ind_var;
+        auto icmp_usee = cur_cnd_br->operand(0)->usee;
+        if (!cmp_extractor<Ir::Val *, Ir::Val *, true>(
+                icmp_usee, cmp_op, lhs, rhs, icmp_tautof, icmp_tautof))
+            continue;
+
+        auto true_tar = true_label(cur_cnd_br);
+        if (true_tar == false_label(cur_cnd_br))
+            continue;
+
+        auto is_removable_cmp = [&true_tar, &cur_blk,
+                                 this](Ir::Val *v1, Ir::Val *v2) -> bool {
+            Ir::Block *hdr_blk;
+            if (v1->type() != Ir::VAL_CONST) {
+                auto v1_as_instr = dynamic_cast<Ir::Instr *>(v1);
+                hdr_blk = v1_as_instr->block();
+            } else {
+                hdr_blk = nullptr;
+            }
+
+            if (!hdr_blk || hdr_blk != true_tar->block())
+                return false;
+            if (hdr_blk == cur_blk.get())
+                return false;
+            if (!Alys::is_dom(cur_blk.get(), hdr_blk, dom_set))
+                return false;
+            if (!is_invariant(v2, hdr_blk))
+                return false;
+            return true;
+        };
+
+        if (is_removable_cmp(lhs, rhs)) {
+            ind_var = lhs;
+        } else if (is_removable_cmp(rhs, lhs)) {
+            ind_var = rhs;
+            alter_cmp(cmp_op);
+        } else {
+            continue;
+        }
+
+        auto ind_as_instr = dynamic_cast<Ir::Instr *>(ind_var);
+        const auto hdr_blk = ind_as_instr->block();
+
+        constexpr int depth = 1;
+
+        if (cmp_op == Ir::CMP_SGT || cmp_op == Ir::CMP_SGE) {
+            if (!is_Mono(ind_var, hdr_blk, true, depth))
+                continue;
+        } else if (cmp_op == Ir::CMP_SLT || cmp_op == Ir::CMP_SLE) {
+            if (!is_Mono(ind_var, hdr_blk, false, depth))
+                continue;
+        } else {
+            continue;
+        }
+
+        if (!(is_pure(hdr_blk) && is_pure(hdr_blk)))
+            continue;
+
+        const auto hdr_back = hdr_blk->back();
+
+        if (hdr_back->instr_type() != Ir::INSTR_BR_COND)
+            continue;
+
+        auto hdr_cnd_br = dynamic_cast<Ir::BrCondInstr *>(hdr_back.get());
+
+        if (true_label(hdr_cnd_br)->block() != cur_blk.get() &&
+            false_label(hdr_cnd_br)->block() != cur_blk.get())
+            continue;
+
+        auto exit = true_label(hdr_cnd_br)->block() == cur_blk.get()
+                        ? false_label(hdr_cnd_br)->block()
+                        : true_label(hdr_cnd_br)->block();
+
+        if (exit == cur_blk.get() || exit == hdr_blk ||
+            exit == false_label(cur_cnd_br)->block())
+            continue;
+
+        if (is_closure_loop(hdr_blk, exit) ||
+            is_closure_loop(cur_blk.get(), exit))
+            continue;
+
+        branch_label_replace(cur_cnd_br, hdr_blk->label().get(),
+                             exit->label().get());
+
+        auto phi_rewrite = [&cur_blk](Ir::Block *old_lb, Ir::Block *new_lb) {
+            for (auto instr : *cur_blk) {
+                if (instr->instr_type() == Ir::INSTR_PHI) {
+                    auto phi_instr = dynamic_cast<Ir::PhiInstr *>(instr.get());
+                    for (auto [blk_label, phi_usee] : *phi_instr) {
+                        if (blk_label == old_lb->label().get()) {
+                            phi_instr->change_phi_label(0,
+                                                        new_lb->label().get());
+                        }
+                    }
+                }
+            }
+        };
+
+        phi_rewrite(cur_blk.get(), hdr_blk);
     }
-}
-
-template <typename Tl, typename Tr, Ir::InstrType exactee>
-bool binary_exactor(Ir::Val *val, Tl &lhs, Tr &rhs,
-                    const std::function<bool(Ir::Val *, Tl &)> &lf,
-                    const std::function<bool(Ir::Val *, Tr &)> &rf) {
-    auto val_as_instr = dynamic_cast<Ir::Instr *>(val);
-
-    if (val_as_instr->instr_type() != Ir::INSTR_BINARY)
-        return false;
-    auto bin_instr = dynamic_cast<Ir::BinInstr *>(val_as_instr);
-    if (bin_instr->binType != Ir::INSTR_ADD)
-        return false;
-    auto fst_op = bin_instr->operand(0)->usee;
-    auto snd_op = bin_instr->operand(1)->usee;
-
-    if (lf(fst_op, lhs) && rf(snd_op, rhs)) {
-        return true;
-    }
-    if (lf(snd_op, lhs) && rf(fst_op, rhs)) {
-        return true;
-    }
-
-    return false;
 }
 
 } // namespace Optimize

@@ -4,29 +4,41 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
+#include "ir_val.h"
 namespace Alys {
 
-struct NaturalLoop {
+struct NaturalLoopBody {
     Ir::Block *header;
-    Ir::Block *latch;
     Set<Ir::Block *> loop_blocks;
-    NaturalLoop() = delete;
-    NaturalLoop(Ir::Block *header, Ir::Block *latch)
-        : header(header), latch(latch) {
-        complete_loop();
+    Ir::Val *ind;
+    NaturalLoopBody() = delete;
+    NaturalLoopBody(Ir::Block *header, Ir::Block *latch,
+                    const Map<Ir::Block *, Set<Ir::Block *>> &dom_set)
+        : header(header) {
+        complete_loop(latch, dom_set);
     }
-    void complete_loop();
+    void complete_loop(Ir::Block *latch,
+                       const Map<Ir::Block *, Set<Ir::Block *>> &dom_set);
+    void handle_indvar(const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) &;
 };
 
-using pNaturalLoop = std::shared_ptr<NaturalLoop>;
-[[nodiscard]] pNaturalLoop make_natural_loop(Ir::Block *header,
-                                             Ir::Block *latch);
+using pNaturalLoopBody = std::shared_ptr<NaturalLoopBody>;
+[[nodiscard]] pNaturalLoopBody
+make_natural_loop(Ir::Block *header, Ir::Block *latch,
+                  const Map<Ir::Block *, Set<Ir::Block *>> &dom_set);
 
 struct LoopInfo {
-    Vector<pNaturalLoop> loops;
+public:
+    Map<Ir::Block *, pNaturalLoopBody> loops;
 
     LoopInfo() = delete;
     LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx);
+
+    NaturalLoopBody *get_loop(Ir::Block *header) const {
+        if (loops.count(header) == 0)
+            return nullptr;
+        return loops.at(header).get();
+    }
     void print_loop() const;
 };
 
