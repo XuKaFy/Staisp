@@ -40,10 +40,11 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         // i->name().c_str(), cnt);
         func->p.re_generate();
     }
-    for (auto &&func : mod->funsDefined) {
-        reg2mem(func->p);
-        func->p.re_generate();
-    }
+    // postponed to backend
+    // for (auto &&func : mod->funsDefined) {
+    //     reg2mem(func->p);
+    //     func->p.re_generate();
+    // }
 }
 
 }

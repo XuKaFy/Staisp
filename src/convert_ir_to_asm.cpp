@@ -4,6 +4,7 @@
 #include <ir_call_instr.h>
 #include <ir_cast_instr.h>
 #include <ir_cmp_instr.h>
+#include <ir_phi_instr.h>
 #include <ir_ptr_instr.h>
 
 #include "bkd_global.h"
@@ -83,7 +84,7 @@ Block Func::translate(const Ir::pBlock &block)
         auto&& instr = *it;
         auto next = std::next(it);
         bool tail = false;
-        auto res = translate(block, instr, next == block->end() ? nullptr : *next, tail);
+        auto res = translate(instr, next == block->end() ? nullptr : *next, tail);
         bkd_block.body.insert(bkd_block.body.end(),
             std::move_iterator(res.begin()), std::move_iterator(res.end()));
         if (tail) break;
@@ -427,48 +428,52 @@ struct ConvertBulk {
                 auto branch = dynamic_cast<Ir::BrCondInstr*>(terminator.get());
                 auto rs1 = toReg(lhs);
                 auto rs2 = toReg(rhs);
-                auto label1 = func.name + "_" + branch->operand(1)->usee->name();
-                auto label2 = func.name + "_" + branch->operand(2)->usee->name();
+                auto label1 = branch->operand(1)->usee;
+                auto label2 = branch->operand(2)->usee;
+                submit_phi(label1, instr->block());
+                submit_phi(label2, instr->block());
+                auto label1name = func.name + "_" + label1->name();
+                auto label2name = func.name + "_" + label2->name();
                 switch (instr->cmp_type) {
                     case Ir::CMP_EQ:
                         add({ BranchInstr {
-                            BranchInstrType::BNE, rs1, rs2, label2
+                            BranchInstrType::BNE, rs1, rs2, label2name
                         } });
-                        add({ JInstr{ label1 } });
+                        add({ JInstr{ label1name } });
                         break;
                     case Ir::CMP_NE:
                         add({ BranchInstr {
-                            BranchInstrType::BEQ, rs1, rs2, label2
+                            BranchInstrType::BEQ, rs1, rs2, label2name
                         } });
-                        add({ JInstr{ label1 } });
+                        add({ JInstr{ label1name } });
                         break;
                     case Ir::CMP_ULT:
                     case Ir::CMP_SLT:
                         add({ BranchInstr {
-                            BranchInstrType::BGE, rs1, rs2, label2
+                            BranchInstrType::BGE, rs1, rs2, label2name
                         } });
-                        add({ JInstr{ label1 } });
+                        add({ JInstr{ label1name } });
                         break;
                     case Ir::CMP_UGE:
                     case Ir::CMP_SGE:
                         add({ BranchInstr {
-                            BranchInstrType::BLT, rs1, rs2, label2
+                            BranchInstrType::BLT, rs1, rs2, label2name
                         } });
-                        add({ JInstr{ label1 } });
+                        add({ JInstr{ label1name } });
                         break;
                     case Ir::CMP_UGT:
                     case Ir::CMP_SGT:
                         add({ BranchInstr {
-                              BranchInstrType::BLE, rs1, rs2, label2
+                              BranchInstrType::BLE, rs1, rs2, label2name
                         } });
-                        add({ JInstr{ label1 } });
+                        add({ JInstr{ label1name } });
                         break;
                     case Ir::CMP_ULE:
                     case Ir::CMP_SLE:
                         add({ BranchInstr {
-                              BranchInstrType::BGT, rs1, rs2, label2
+                              BranchInstrType::BGT, rs1, rs2, label2name
                         } });
-                        add({ JInstr{ label1 } });
+                        add({ JInstr{ label1name } });
                         break;
                     default:
                         unreachable();
@@ -518,12 +523,16 @@ struct ConvertBulk {
 
     void convert_branch_instr(const Pointer<Ir::BrCondInstr> &instr) {
         auto rs = toReg(instr->operand(0)->usee);
-        auto label1 = func.name + "_" + instr->operand(1)->usee->name();
-        auto label2 = func.name + "_" + instr->operand(2)->usee->name();
+        auto label1 = instr->operand(1)->usee;
+        auto label2 = instr->operand(2)->usee;
+        submit_phi(label1, instr->block());
+        submit_phi(label2, instr->block());
+        auto label1name = func.name + "_" + label1->name();
+        auto label2name = func.name + "_" + label2->name();
         // else branch: beqz rs label2, tend to be remote
-        add({ RegLabelInstr{RegLabelInstrType::BEQZ, rs,  label2 } });
+        add({ RegLabelInstr{RegLabelInstrType::BEQZ, rs, label2name } });
         // then branch: tend to follow current basic block
-        add({ JInstr{ label1 } });
+        add({ JInstr{ label1name } });
     }
 
     void convert_call_instr(bool& tail, const Pointer<Ir::CallInstr> &instr) {
@@ -715,18 +724,52 @@ struct ConvertBulk {
         func.localIndex[instr.get()] = index;
     }
 
+    void convert_jump_instr(const Pointer<Ir::BrInstr>& instr) {
+        auto label = instr->operand(0)->usee;
+        submit_phi(label, instr->block());
+        add({ JInstr{ func.name + "_" + label->name() } });
+    }
+
+    void submit_phi(Ir::Val* label, Ir::Block* block) {
+        for (auto&& head : *static_cast<Ir::LabelInstr*>(label)->block()) {
+            if (dynamic_cast<Ir::LabelInstr*>(head.get())) continue;
+            if (auto phi = dynamic_cast<Ir::PhiInstr*>(head.get())) {
+                auto flt = is_float(phi->ty);
+                auto rd = to_generic_reg(phi);
+                for (auto [label, val] : *phi) {
+                    if (label == block->label().get()) {
+                        auto rs = to_generic_reg(val);
+                        if (flt) {
+                            add({  FRegInstr{
+                                FRegInstrType::FMV_S, std::get<FReg>(rd), std::get<FReg>(rs)
+                            } });
+                        } else {
+                            add({  RegInstr{
+                                RegInstrType::MV, std::get<Reg>(rd), std::get<Reg>(rs)
+                            } });
+                        }
+                        break;
+                    }
+                }
+            } else {
+                break;
+            }
+        }
+    }
+
 };
 
-MachineInstrs Func::translate(const Ir::pBlock &block, const Ir::pInstr &instr, const Ir::pInstr &next, bool& tail)
+MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, bool& tail)
 {
     ConvertBulk bulk(*this);
+    auto block = instr->block();
     switch (instr->instr_type()) {
         case Ir::INSTR_RET:
-            bulk.convert_return_instr(std::dynamic_pointer_cast<Ir::RetInstr>(instr));
+            bulk.convert_return_instr(std::static_pointer_cast<Ir::RetInstr>(instr));
             tail = true;
             break;
         case Ir::INSTR_BR:
-            bulk.add({ JInstr{ name + "_" + instr->operand(0)->usee->name() } });
+            bulk.convert_jump_instr(std::static_pointer_cast<Ir::BrInstr>(instr));
             tail = true;
             break;
         case Ir::INSTR_BR_COND:

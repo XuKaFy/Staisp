@@ -71,7 +71,7 @@ struct Func {
 // passes:
     void translate();
     Block translate(const Ir::pBlock &block);
-    MachineInstrs translate(const Ir::pBlock &block, const Ir::pInstr &instr, const Ir::pInstr &next, bool& tail);
+    MachineInstrs translate(const Ir::pInstr &instr, const Ir::pInstr &next, bool& tail);
     Block generate_prolog_tail();
     void build_block_graph();
     void build_block_def_use();
