@@ -6,47 +6,93 @@
 #include "ir_mem_instr.h"
 #include "ir_phi_instr.h"
 #include "ir_val.h"
+#include "value.h"
 #include <memory>
+#include <optional>
 
 namespace OptConstPropagate {
 
-void BlockValue::cup(const BlockValue &v) {
-    Map<String, Val> copied_val;
-    for (const auto &i : v.val) {
-        if (val.count(i.first) == 0U) { // undef + constant = undef;
+void ConstantMap::cup(const ConstantMap &map)
+{
+    // 1. undef + const = const
+    // 2. undef + undef = undef
+    // 3. const + const = { same: const; else: NAC }
+    // 4. otherwise, NAC
+    for (const auto &i : map.val) {
+        if (!hasValue(i.first)) {
+            // undef + const = const
+            // undef + NAC = NAC
+            val[i.first] = i.second;
             continue;
         }
-        if (i.second.ty == Val::NAC || val[i.first].ty == Val::NAC) {
-            copied_val[i.first] = Val(); // one NAC, all NAC
+        if (isValueNac(i.first)) {
+            // NAC + * = NAC
             continue;
         }
-        if (i.second != val[i.first]) { // different constant
-            copied_val[i.first] = Val();
+        if (!i.second.has_value()) {
+            // const + NAC = NAC
+            val[i.first] = std::nullopt;
             continue;
         }
-        copied_val[i.first] = i.second;
+        if (value(i.first).value() != i.second.value()) {
+            // const + const = else: NAC
+            val[i.first] = std::nullopt;
+            continue;
+        }
+        // const + const = same: const
     }
-    val = copied_val;
+    /*
+    for (auto i = val.begin(); i != val.end(); ) {
+        if (i->second.has_value() && map.val.find(i->first) == map.val.end()) {
+            // undef + const = undef
+            i = val.erase(i);
+            continue;
+        }
+        ++i;
+    }
+    */
+}
+
+void BlockValue::cup(const BlockValue &v) {
+    val.cup(v.val);
 }
 
 void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+    printf("Analyzing Block %s\n", p->label()->name().c_str());
+#endif
     for (const auto &i : *p) {
         switch (i->instr_type()) {
         case Ir::INSTR_PHI: {
             auto r = std::dynamic_pointer_cast<Ir::PhiInstr>(i);
-            bool constant = true;
             for (size_t i=0; i<r->phi_pairs(); ++i) {
-                if (!v.val.count(r->phi_val(i)->name())) {
-                    constant = false;
+                switch (r->phi_val(i)->type()) {
+                case Ir::VAL_CONST: {
+                    auto constant = dynamic_cast<Ir::Const*>(r->phi_val(i));
+                    if (constant->v.type() == VALUE_IMM) {
+                        v.val.setValue(r.get(), constant->v.imm_value());
+                    } else {
+                        v.val.setValueNac(r.get());
+                        break;
+                    }
                     break;
                 }
-                if (i != 0 && v.val[r->phi_val(i)->name()].v != v.val[r->phi_val(i-1)->name()].v) {
-                    constant = false;
+                case Ir::VAL_INSTR: {
+                    auto oprd_instr = dynamic_cast<Ir::Instr*>(r->phi_val(i));
+                    if (!v.val.hasValue(oprd_instr)) {
+                        v.val.setValueNac(r.get());
+                        break;
+                    }
+                    v.val.transfer(r.get(), oprd_instr);
                     break;
                 }
-            }
-            if (constant) {
-                v.val[r->name()] = v.val[r->phi_val(0)->name()].v;
+                default: {
+                    v.val.setValueNac(r.get());
+                    break;
+                }
+                } // end of switch
+                if (v.val.isValueNac(r.get()))
+                    break;
             }
             break;
         }
@@ -54,27 +100,36 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);
             auto to = r->operand(0)->usee;
             auto val = r->operand(1)->usee;
-            if (to->type() == Ir::VAL_GLOBAL) {
-                // store to global val but we dont know its value after this
-                // store
-                v.val[to->name()] = Val();
+            if (to->type() != Ir::VAL_INSTR) {
+                // only for instr "alloca" or "gep"
                 continue;
+            }
+            auto to_instr = dynamic_cast<Ir::Instr*>(to);
+            if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
+                // GEP might cause error
+                break;
             }
             switch (val->type()) {
             case Ir::VAL_CONST: {
                 auto con = static_cast<Ir::Const *>(val);
                 if (con->v.type() == VALUE_IMM) {
-                    v.val[to->name()] = Val(con->v.imm_value());
+                    v.val.setValue(to_instr, con->v.imm_value());
                 } else {
-                    v.val[to->name()] = Val(); // NAC
+                    v.val.setValueNac(to_instr);
                 }
                 break;
             }
             case Ir::VAL_GLOBAL:
-                v.val[to->name()] = Val(); // NAC
+                v.val.setValueNac(to_instr);
                 break;
             case Ir::VAL_INSTR: {
-                v.val[to->name()] = v.val[val->name()];
+                auto val_instr = dynamic_cast<Ir::Instr*>(val);
+                if(val_instr->instr_type() == Ir::INSTR_SYM) {
+                    // all symbols are NAK
+                    v.val.setValueNac(to_instr);
+                } else if (v.val.hasValue(val_instr)) {
+                    v.val.transfer(to_instr, val_instr);
+                }
                 break;
             }
             case Ir::VAL_BLOCK:
@@ -89,15 +144,24 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             if (from->type() == Ir::VAL_GLOBAL) {
                 auto global = static_cast<Ir::Global*>(from);
                 if (global->is_effectively_final()) {
-                    v.val[i->name()] = Val(global->con.v.imm_value());
-                    v.val[i->name()].ir = i;
+                    v.val.setValue(r.get(), global->con.v.imm_value());
                 } else {
-                    v.val[i->name()] = Val();
+                    v.val.setValueNac(r.get());
                 }
-            } else {
-                v.val[i->name()] = v.val[from->name()];
-                v.val[i->name()].ir = i;
+                continue;
             }
+            if (from->type() == Ir::VAL_INSTR) {
+                auto from_instr = dynamic_cast<Ir::Instr*>(from);
+                if (from_instr->instr_type() == Ir::INSTR_ITEM) { // gep
+                    v.val.setValueNac(r.get());
+                } else if (v.val.hasValue(from_instr)) { // alloca
+                    v.val.transfer(r.get(), from_instr);
+                }
+            }
+            break;
+        }
+        case Ir::INSTR_CALL: {
+            v.val.setValueNac(i.get()); // all function regarded as NAK
             break;
         }
         case Ir::INSTR_ALLOCA:
@@ -110,20 +174,21 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             for (size_t c = 0; c < i->operand_size(); ++c) {
                 auto oprd = i->operand(c)->usee;
                 if (oprd->type() == Ir::VAL_GLOBAL) {
-                    v.val[i->name()] = Val();
+                    v.val.setValueNac(i.get());
                     goto End;
                 } else if (oprd->type() == Ir::VAL_INSTR) {
-                    if (v.val.count(oprd->name()) == 0U) { // undef
-                        v.val.erase(i->name());            // undef
+                    auto oprd_instr = dynamic_cast<Ir::Instr*>(oprd);
+                    if (!v.val.hasValue(oprd_instr)) {  // undef
+                        v.val.erase(i.get());
                         goto End;
                     }
-                    if (v.val[oprd->name()].ty == Val::NAC) {
-                        v.val[i->name()] = Val();
+                    if (v.val.isValueNac(oprd_instr)) { // not a constant
+                        v.val.setValueNac(i.get());
                         goto End;
                     }
                 } else {
                     if (static_cast<Ir::Const *>(oprd)->v.type() != VALUE_IMM) {
-                        v.val[i->name()] = Val();
+                        v.val.setValueNac(i.get());
                         goto End;
                     }
                 }
@@ -131,34 +196,47 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             for (size_t c = 0; c < i->operand_size(); ++c) {
                 auto oprd = i->operand(c)->usee;
                 if (oprd->type() == Ir::VAL_INSTR) {
-                    vv.push_back(v.val[oprd->name()].v);
+                    vv.push_back(v.val.value(dynamic_cast<Ir::Instr*>(oprd)).value());
                 } else {
                     vv.push_back(static_cast<Ir::Const *>(oprd)->v.imm_value());
                 }
             }
-            v.val[i->name()] = Val(
-                std::dynamic_pointer_cast<Ir::CalculatableInstr>(i)->calculate(
-                    vv));
-            v.val[i->name()].ir = i;
+            v.val.setValue(i.get(), std::dynamic_pointer_cast<Ir::CalculatableInstr>(i)->calculate(vv));
         End:
             break;
         }
         default:
             break;
         }
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+        if (v.val.hasValue(i.get())) {
+            if (v.val.isValueNac(i.get())) {
+                printf("        GET VALUE [%s] NAK\n", i->instr_print().c_str());
+            } else {
+                printf("        GET VALUE [%s] = %s\n", i->instr_print().c_str(), v.val.value(i.get())->print().c_str());
+            }
+        }
+#endif
     }
 }
 
 int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+    printf("TRANSFER FUNCTION IN BLOCK %s\n", p->label()->name().c_str());
+#endif
     int ans = 0;
-    for (const auto &i : OUT.val) {
-        if (i.second.ty == Val::VALUE && i.second.ir) {
-            auto imm = p->add_imm(i.second.v);
-            i.second.ir->replace_self(imm.get());
-            ++ans;
-        }
-    }
+    OUT.val.ergodic([p, &ans](Ir::Instr* instr, ImmValue v) {
+        if (instr->instr_type() == Ir::INSTR_ALLOCA)
+            return ;
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+        printf("    FOUND INSTR [%s] in Block %s\n", instr->name().c_str(), p->label()->name().c_str());
+        printf("        [%s] TO [%s]\n", instr->instr_print().c_str(), v.print().c_str());
+#endif
+        auto imm = p->add_imm(v);
+        instr->replace_self(imm.get());
+        ++ans;
+    });
     return ans;
 }
 
