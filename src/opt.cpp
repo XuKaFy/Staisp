@@ -1,5 +1,6 @@
 #include "opt.h"
 
+#include <cstdlib>
 #include <reg2mem.h>
 
 #include "alys_dom.h"
@@ -18,7 +19,9 @@ namespace Optimize {
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
 #ifndef OPT_CONST_PROPAGATE_DEBUG
-    inline_all_function(mod, convertor);
+    mod->remove_unused_function();
+    while (inline_all_function(mod, convertor));
+    mod->remove_unused_function();
 #endif
     for (auto &&func : mod->funsDefined) {
         from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
