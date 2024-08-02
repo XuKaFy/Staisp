@@ -15,7 +15,6 @@
 #include <bkd_regfreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
 #include <bkd_fcmpinstrtype.h>
-#include <bkd_reglabelinstrtype.h>
 #include <variant>
 
 namespace Backend {
@@ -271,21 +270,6 @@ struct StoreInstr {
     }
 };
 
-struct RegLabelInstr {
-    RegLabelInstrType type;
-    Reg rs; std::string label;
-
-    std::string stringify() const {
-        return format(type, rs, label);
-    }
-
-    std::vector<GReg> def() const { return {}; }
-    std::vector<GReg> use() const { return {rs}; }
-
-    void replace_def(GReg from, GReg to) {}
-    void replace_use(GReg from, GReg to) { if (GReg(rs) == from) rs = std::get<Reg>(to); }
-};
-
 struct JInstr {
     std::string label;
 
@@ -504,7 +488,6 @@ struct MachineInstr {
         FCMP,
         LOAD,
         STORE,
-        REGLABEL,
         J,
         CALL,
         RETURN,
@@ -545,7 +528,7 @@ struct MachineInstr {
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr, BranchInstr,
         FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
-        LoadInstr, StoreInstr, RegLabelInstr,
+        LoadInstr, StoreInstr,
         JInstr, CallInstr, ReturnInstr,
         LoadAddressInstr, LoadGlobalInstr, StoreGlobalInstr,
         LoadStackAddressInstr, LoadStackInstr, StoreStackInstr

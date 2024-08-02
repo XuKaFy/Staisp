@@ -26,7 +26,6 @@ void Func::build_block_graph() {
             Block* to = std::visit(overloaded {
                 [&](JInstr& j) { return name2block[j.label]; },
                 [&](BranchInstr& j) { return name2block[j.label]; },
-                [&](RegLabelInstr& j) { return name2block[j.label]; },
                 [](auto&) -> Block* { return nullptr; }
             }, instr.instr);
             if (to != nullptr) {

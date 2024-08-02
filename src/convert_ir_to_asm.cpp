@@ -64,6 +64,7 @@ void Func::translate()
     blocks.push_back(generate_prolog_tail());
     for (auto && block : ir_func->p) {
         blocks.push_back(translate(block));
+        block_map[block.get()] = &blocks.back();
     }
     blocks.emplace_back(name + "_epilog");
     blocks.front().body.push_back({ JInstr{ blocks[1].name } });
@@ -530,7 +531,7 @@ struct ConvertBulk {
         auto label1name = func.name + "_" + label1->name();
         auto label2name = func.name + "_" + label2->name();
         // else branch: beqz rs label2, tend to be remote
-        add({ RegLabelInstr{RegLabelInstrType::BEQZ, rs, label2name } });
+        add({ BranchInstr{BranchInstrType::BEQ, rs, Reg::ZERO, label2name } });
         // then branch: tend to follow current basic block
         add({ JInstr{ label1name } });
     }

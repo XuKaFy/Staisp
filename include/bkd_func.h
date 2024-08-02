@@ -98,7 +98,7 @@ struct Func {
         liveness_analysis();
         if (flag_O1) allocate_hint();
         allocate_init();
-        allocate_weight();
+        if (flag_O1) allocate_weight();
         allocate_register();
         rewrite_operands();
         generate_prolog();
@@ -179,6 +179,7 @@ struct Func {
     }
 
     Map<Block*, double> block_weight_map;
+    Map<Ir::Block*, Block*> block_map;
     double get_range_weight(const LiveRange& range);
     double get_spill_weight(int alloc_num);
 

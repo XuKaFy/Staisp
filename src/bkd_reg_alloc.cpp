@@ -1,5 +1,6 @@
 #include <bkd_reg_alloc.h>
 #include <bkd_func.h>
+#include <alys_loop.h>
 
 namespace Backend {
 
@@ -118,16 +119,22 @@ void Func::allocate_init() {
         occupied_map[reg] = {};
         occupied_range_map[reg] = {};
     }
-}
 
-void Func::allocate_weight() {
     for (auto&& block : blocks) {
         block_weight_map[&block] = 1.0;
     }
-    // DOM tree analysis needed here
-    // omitted for simplicity
 }
 
+void Func::allocate_weight() {
+    Alys::DomTree dom_ctx;
+    dom_ctx.build_dom(ir_func->p);
+    Alys::LoopInfo loop_info(ir_func->p, dom_ctx);
+    for (auto&& [_, loop] : loop_info.loops) {
+        for (auto block : loop->loop_blocks) {
+            block_weight_map[block_map[block]] *= 4.0;
+        }
+    }
+}
 
 double Func::get_range_weight(const LiveRange& range) {
     return range.instr_cnt * block_weight_map[range.block];
