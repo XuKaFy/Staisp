@@ -37,8 +37,14 @@ int from_top_analysis(Ir::BlockedProgram &p) {
         transfer(b, OUT); // transfer function
 
         if (old_OUT != OUT) {
-            auto out_block = b->in_blocks();
+            // printf("    BLOCK CHANGED\n");
+            auto out_block = b->out_blocks();
+            /*for (auto i : out_block) {
+                printf("        NEXT BLOCK: %s\n", i->label()->name().c_str());
+            }*/
             pending_blocks.insert(pending_blocks.end(), out_block.begin(), out_block.end());
+        } else {
+            // printf("    BLOCK UNCHANGED\n");
         }
     }
     for (const auto &i : p) {

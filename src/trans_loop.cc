@@ -278,7 +278,7 @@ bool IndVarPruning_pass::is_pure(Ir::Block *arg_blk) {
         return true;
     };
     for (const auto &instr : *arg_blk) {
-        if (instr->is_end_of_block())
+        if (instr->is_terminator())
             continue;
         if (!is_pure_instr(instr) || instr->instr_type() == Ir::INSTR_LOAD)
             return false;

@@ -17,15 +17,24 @@ extern int flag_O1;
 namespace Optimize {
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
+#ifndef OPT_CONST_PROPAGATE_DEBUG
     inline_all_function(mod, convertor);
+#endif
+    for (auto &&func : mod->funsDefined) {
+        from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
+        func->p.plain_opt_all();
+        my_assert(func->p.check_empty_use("CP") == 0, "CP Failed");
+    }
     global2local(mod);
     for (auto &&func : mod->funsDefined) {
-        func->p.check_empty_use();
         SSA_pass pass(func->p);
         pass.reconstruct();
         func->p.plain_opt_all();
         my_assert(func->p.check_empty_use("SSA") == 0, "SSA Failed");
-
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+        func->p.re_generate();
+        printf("BEFORE\n%s\n", func->print_func().c_str());
+#endif
         int cnt = 0;
         func->p.re_generate(); // must re-generate for DFA
         const int MAX_OPT_COUNT = flag_O1 ? 8 : 2;
@@ -39,6 +48,11 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
                                   OptConstPropagate::TransferFunction>(func->p);
             func->p.plain_opt_all();
             my_assert(func->p.check_empty_use("CP") == 0, "CP Failed");
+
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+            func->p.re_generate();
+            printf("AFTER %d\n%s\n", cnt, func->print_func().c_str());
+#endif
         }
 
         Alys::DomTree dom_ctx;
