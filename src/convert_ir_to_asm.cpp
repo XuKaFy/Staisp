@@ -610,11 +610,12 @@ struct ConvertBulk {
         if (auto alloc = dynamic_cast<Ir::AllocInstr*>(address)) {
             // local
             auto index = func.localIndex[alloc];
+            if (func.localAddress.count(index)) return func.localAddress[index];
             auto rd = allocate_reg();
             add({  LoadStackAddressInstr{
                 rd, index
             } });
-            return rd;
+            return func.localAddress[index] = rd;
         }
         // gep
         return toReg(address);
@@ -723,6 +724,13 @@ struct ConvertBulk {
         assert(size % 4 == 0);
         auto index = func.frame.push(size);
         func.localIndex[instr.get()] = index;
+        if (is_array(type)) {
+            auto rd = allocate_reg();
+            add({  LoadStackAddressInstr{
+                rd, index
+            } });
+            func.localAddress[index] = rd;
+        }
     }
 
     void convert_jump_instr(const Pointer<Ir::BrInstr>& instr) {
