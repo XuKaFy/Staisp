@@ -7,7 +7,11 @@
 
 namespace fs = std::filesystem;
 
+#ifdef ONLY_TEST_FRONTEND
+const bool interpret = true;
+#else
 const bool interpret = false;
+#endif
 
 void judge(const std::string &id, const std::string& ll, const std::string &in, const std::string &out) {
     ASSERT_FALSE(
@@ -46,10 +50,12 @@ void judge(const std::string &id, const std::string& ll, const std::string &in, 
 
     // remove if success
     remove((id + ".out").c_str());
+#ifndef ONLY_TEST_FRONTEND
     remove((id + ".sy.ll").c_str());
+    remove((id + ".final.ll").c_str());
+#endif
     if (!interpret)
         remove((id + ".s").c_str());
-    remove((id + ".final.ll").c_str());
     remove((id).c_str());
 }
 
@@ -62,17 +68,20 @@ void test_sysy_frontend(const std::string &filename) {
     double t1 = stopwatch.timeit([&] {
         std::string format = "../frontend/SysYFrontend -S ";
         if (path.find("performance") != std::string::npos) format += "-O1 ";
-        format = format + " -o " + path + ".sy.s";
+        // format = format + " -o " + path + ".sy.s";
         format = format + " -ll " + path + ".sy.ll";
         format = format + " " + path + ".sy";
         printf("%s\n", format.c_str());
         ASSERT_FALSE(system(format.c_str()));
     });
 
+#ifdef ONLY_TEST_FRONTEND
+    double t2 = stopwatch.timeit([&] {
+        judge(id, path + ".sy.ll", path + ".in", path + ".out");
+    });
+#else
     double t2 = 0; // NO JUDGEMENT FOR FRONTEND NOW
-    // double t2 = stopwatch.timeit([&] {
-    //     judge(id, path + ".sy.ll", path + ".in", path + ".out");
-    // });
+#endif
 
     // if you hope to watch detailed time info, use following command:
     // ctest -R frontend -V | grep sysy_tests

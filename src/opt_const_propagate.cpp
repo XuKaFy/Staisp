@@ -152,7 +152,11 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             }
             if (from->type() == Ir::VAL_INSTR) {
                 auto from_instr = dynamic_cast<Ir::Instr*>(from);
-                if (from_instr->instr_type() == Ir::INSTR_ITEM) { // gep
+                if (from_instr->instr_type() == Ir::INSTR_ITEM
+#ifdef USING_MINI_GEP
+                    || from_instr->instr_type() == Ir::INSTR_MINI_GEP
+#endif
+                ) { // gep
                     v.val.setValueNac(r.get());
                 } else if (v.val.hasValue(from_instr)) { // alloca
                     v.val.transfer(r.get(), from_instr);

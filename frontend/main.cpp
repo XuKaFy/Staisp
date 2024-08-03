@@ -12,6 +12,7 @@ extern void setFileName(const char *name);
 extern void yyparse();
 extern Vector<pNode> root;
 bool flag_O1 = false;
+bool flag_no_backend;
 
 int main(int argc, char *argv[]) {
     if (argc == 1) {
@@ -69,11 +70,15 @@ int main(int argc, char *argv[]) {
         puts("Run in Optimization 1...");
     }
     
+    flag_no_backend = out_file_o.empty();
+
     yyparse();
 
     AstProg ast_root(root.begin(), root.end());
 
+#ifdef CATCHING_EXCEPTION
     try {
+#endif
         std::ofstream out;
         AstToIr::Convertor convertor;
         Ir::pModule mod = convertor.generate(ast_root);
@@ -94,10 +99,12 @@ int main(int argc, char *argv[]) {
             out << bkd_mod.print_module();
             out.close();
         }
+#ifdef CATCHING_EXCEPTION
     } catch (Exception e) {
         printf("Exception Catched: [%s] error %lu: %s\n", e.object.c_str(),
                e.id, e.message.c_str());
         return 1;
     }
+#endif
     return 0;
 }

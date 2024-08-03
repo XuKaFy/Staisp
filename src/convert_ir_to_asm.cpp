@@ -680,6 +680,48 @@ struct ConvertBulk {
         } });
     }
 
+#ifdef USING_MINI_GEP
+    // TODO TODO TODO
+    // TODO TODO
+    // TODO
+    // ssg 你带我走吧！！！
+    void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
+        auto base = instr->operand(0)->usee;
+        auto type = base->ty;
+        type = to_pointed_type(type);
+        
+        auto rs = load_address(base);
+        auto rd = toReg(instr.get());
+        
+        type = to_elem_type(type);
+        int step = type->length();
+        auto index = toReg(instr->operand(1)->usee);
+        if (index == Reg::ZERO) {
+            return ;
+        }
+            
+        auto forward  = allocate_reg();
+        auto forwarded  = allocate_reg();
+        if ((step & (step - 1)) == 0) {
+            add({ RegImmInstr {
+                RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+            } });
+        } else {
+            add({ RegRegInstr {
+                RegRegInstrType::MUL, forward, li(step), index
+            } });
+        }
+        add({ RegRegInstr {
+            RegRegInstrType::ADD, forwarded, rs, forward
+        } });
+        rs = forwarded;
+        
+        add({  RegInstr{
+            RegInstrType::MV, rd, rs
+        } });
+    }
+#endif
+
     void convert_gep_instr(const Pointer<Ir::ItemInstr> &instr) {
         auto base = instr->operand(0)->usee;
         auto type = base->ty;
@@ -809,6 +851,11 @@ MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, b
         case Ir::INSTR_ITEM:
             bulk.convert_gep_instr(std::static_pointer_cast<Ir::ItemInstr>(instr));
             break;
+#ifdef USING_MINI_GEP
+        case Ir::INSTR_MINI_GEP:
+            bulk.convert_mini_gep_instr(std::static_pointer_cast<Ir::MiniGepInstr>(instr));
+            break;
+#endif
         case Ir::INSTR_ALLOCA:
             bulk.convert_alloca_instr(std::static_pointer_cast<Ir::AllocInstr>(instr));
             break;
@@ -918,6 +965,8 @@ int Func::translate(StackObjectType type, size_t index) const {
         case StackObjectType::CHILD_ARG:
             return (int)index * 8;
     }
+    unreachable();
+    return -1;
 }
 
 void Func::remove_pseudo() {

@@ -14,6 +14,7 @@
 #include "trans_loop.h"
 
 extern int flag_O1;
+extern int flag_no_backend;
 
 namespace Optimize {
 
@@ -70,11 +71,15 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         // i->name().c_str(), cnt);
         func->p.re_generate();
     }
+
     // postponed to backend
-    // for (auto &&func : mod->funsDefined) {
-    //     reg2mem(func->p);
-    //     func->p.re_generate();
-    // }
+    if (flag_no_backend) {
+        for (auto &&func : mod->funsDefined) {
+            reg2mem(func->p);
+            func->p.plain_opt_all();
+            func->p.re_generate();
+        }
+    }
 }
 
 } // namespace Optimize

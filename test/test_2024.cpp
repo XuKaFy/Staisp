@@ -2,12 +2,16 @@
 #include <gtest/gtest.h>
 #include <string>
 
+#include "test_lib.hpp"
+
 void test_sysy_frontend(const std::string &filename);
 void test_sysy_backend(const std::string &filename);
 
 void run_sysy(const std::string &filename) {
     test_sysy_frontend(filename);
+#ifndef ONLY_TEST_FRONTEND
     test_sysy_backend(filename);
+#endif
 }
 
 GTEST_TEST(test_sysy_functional, 00_main) {                 

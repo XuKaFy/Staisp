@@ -26,6 +26,9 @@ enum InstrType {
     INSTR_UNARY,
     INSTR_BINARY,
     INSTR_ITEM,
+#ifdef USING_MINI_GEP
+    INSTR_MINI_GEP,
+#endif
     INSTR_PHI,
     INSTR_UNREACHABLE,
 };

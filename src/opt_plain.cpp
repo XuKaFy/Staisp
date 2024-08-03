@@ -210,6 +210,21 @@ void BlockedProgram::opt_remove_dead_code() {
                 it = block->erase(it);
             }
         }
+        bool terminated = false;
+        for (auto it = block->begin(); it != block->end(); ) {
+            if ((*it)->is_terminator()) {
+                if (!terminated) {
+                    terminated = true;
+                } else {
+                    it = block->erase(it);
+                    continue;
+                }
+            } else if(terminated) {
+                it = block->erase(it);
+                continue;
+            }
+            ++it;
+        }
     }
 }
 

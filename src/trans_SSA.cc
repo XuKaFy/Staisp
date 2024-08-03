@@ -252,8 +252,12 @@ void SSA_pass::reconstruct() {
         [this, &promotable_filter](Ir::Val *arg_non_alloca) -> bool {
         return !promotable_filter(arg_non_alloca) ||
                (is_pointer(arg_non_alloca->ty) &&
-                dynamic_cast<Ir::ItemInstr *>(arg_non_alloca)) ||
-               (function_args.count(arg_non_alloca) > 0);
+                (dynamic_cast<Ir::ItemInstr *>(arg_non_alloca)
+#ifdef USING_MINI_GEP
+                || dynamic_cast<Ir::MiniGepInstr *>(arg_non_alloca)
+#endif
+                )
+               ) || (function_args.count(arg_non_alloca) > 0);
     };
 
     Set<vrtl_reg *> alloca_vars;

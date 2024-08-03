@@ -54,6 +54,13 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
             // printf("    LOCAL def = %s\n", r->operand(0)->usee->name());
             break;
         }
+#ifdef USING_MINI_GEP
+        case Ir::INSTR_MINI_GEP: {
+            auto r = std::dynamic_pointer_cast<Ir::MiniGepInstr>(cur_instr);
+            v.uses.insert(r->operand(0)->usee->name());
+            break;
+        }
+#endif
         case Ir::INSTR_ITEM: {
             auto r = std::dynamic_pointer_cast<Ir::ItemInstr>(cur_instr);
             v.uses.insert(r->operand(0)->usee->name());
