@@ -689,33 +689,32 @@ struct ConvertBulk {
         auto base = instr->operand(0)->usee;
         auto type = base->ty;
         type = to_pointed_type(type);
-        
+
         auto rs = load_address(base);
         auto rd = toReg(instr.get());
-        
+        if (instr->in_this_dim) {
+            type = make_array_type(type, 0);
+        }
         type = to_elem_type(type);
         int step = type->length();
         auto index = toReg(instr->operand(1)->usee);
-        if (index == Reg::ZERO) {
-            return ;
-        }
-            
-        auto forward  = allocate_reg();
-        auto forwarded  = allocate_reg();
-        if ((step & (step - 1)) == 0) {
-            add({ RegImmInstr {
-                RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
-            } });
-        } else {
+        if (index != Reg::ZERO) {
+            auto forward  = allocate_reg();
+            auto forwarded  = allocate_reg();
+            if ((step & (step - 1)) == 0) {
+                add({ RegImmInstr {
+                    RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+                } });
+            } else {
+                add({ RegRegInstr {
+                    RegRegInstrType::MUL, forward, li(step), index
+                } });
+            }
             add({ RegRegInstr {
-                RegRegInstrType::MUL, forward, li(step), index
+                RegRegInstrType::ADD, forwarded, rs, forward
             } });
+            rs = forwarded;
         }
-        add({ RegRegInstr {
-            RegRegInstrType::ADD, forwarded, rs, forward
-        } });
-        rs = forwarded;
-        
         add({  RegInstr{
             RegInstrType::MV, rd, rs
         } });
