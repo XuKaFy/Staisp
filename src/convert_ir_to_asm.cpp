@@ -695,20 +695,32 @@ struct ConvertBulk {
             int step = type->length();
             auto index = toReg(instr->operand(dim)->usee);
             if (index != Reg::ZERO) {
-                auto forward  = allocate_reg();
                 auto forwarded  = allocate_reg();
                 if ((step & (step - 1)) == 0) {
-                    add({ RegImmInstr {
-                        RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
-                    } });
+                    int bits = __builtin_ctz(step);
+                    if (bits <= 3) {
+                        auto instr_type = (int)RegRegInstrType::SH1ADD + bits - 1;
+                        add({ RegRegInstr {
+                            (RegRegInstrType)instr_type, forwarded, index, rs
+                        } });
+                    } else {
+                        auto forward  = allocate_reg();
+                        add({ RegImmInstr {
+                            RegImmInstrType::SLLI, forward, index, bits
+                        } });
+                        add({ RegRegInstr {
+                            RegRegInstrType::ADD, forwarded, rs, forward
+                        } });
+                    }
                 } else {
+                    auto forward  = allocate_reg();
                     add({ RegRegInstr {
                         RegRegInstrType::MUL, forward, li(step), index
                     } });
+                    add({ RegRegInstr {
+                        RegRegInstrType::ADD, forwarded, rs, forward
+                    } });
                 }
-                add({ RegRegInstr {
-                    RegRegInstrType::ADD, forwarded, rs, forward
-                } });
                 rs = forwarded;
             }
         }
