@@ -10,7 +10,11 @@
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
 #include "ir_ptr_instr.h"
+#include "ir_phi_instr.h"
+#include "ir_ptr_instr.h"
 #include "ir_val.h"
+#include <functional>
+#include <set>
 #include <functional>
 #include <set>
 namespace Optimize {

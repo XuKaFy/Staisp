@@ -10,17 +10,24 @@
 #include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
+#include "ir_mem_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
 #include "ir_ptr_instr.h"
+#include "ir_ptr_instr.h"
 #include "ir_val.h"
+#include "trans_SSA.h"
 #include "trans_SSA.h"
 #include "type.h"
 #include <algorithm>
 #include <cstddef>
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstdio>
 #include <functional>
+#include <set>
 #include <set>
 
 namespace Optimize {
