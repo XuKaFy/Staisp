@@ -68,7 +68,9 @@ void test_sysy_frontend(const std::string &filename) {
     double t1 = stopwatch.timeit([&] {
         std::string format = "../frontend/SysYFrontend -S ";
         if (path.find("performance") != std::string::npos) format += "-O1 ";
-        // format = format + " -o " + path + ".sy.s";
+#ifndef ONLY_TEST_FRONTEND
+        format = format + " -o " + path + ".sy.s";
+#endif
         format = format + " -ll " + path + ".sy.ll";
         format = format + " " + path + ".sy";
         printf("%s\n", format.c_str());

@@ -126,10 +126,8 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &fun
     }
 
     if (calls.size() == 1 && !func->ast_root) { // __buildin_initializer has no ast_root
-        // printf("%s move codes\n", func->name().c_str());
-        func_inline_from_bp(calls.front(), func->p); // delete self
-        func_should_be_removed = true;
-        return true;
+        // 不内联它是为了日后删掉它
+        return false;
     }
 
     bool has_inlined = false;

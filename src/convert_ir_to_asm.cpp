@@ -14,8 +14,10 @@
 #include "bkd_func.h"
 #include "def.h"
 #include "imm.h"
+#include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_opr_instr.h"
+#include "ir_val.h"
 #include "type.h"
 #include "value.h"
 #include <iterator>
@@ -29,8 +31,31 @@ namespace Backend {
     my_assert(false, "unreachable");
 }
 
+void remove_unused_initialization(const Ir::pModule &mod)
+{
+    Ir::pFuncDefined unused;
+    for (const auto &i : mod->funsDefined) {
+        if (!(*i).ast_root) { // __buildin_initialization
+            unused = i;
+            break;
+        }
+    }
+    if (!unused) return ;
+    for (const auto &i : unused->users) {
+        my_assert(i->user->type() == Ir::VAL_INSTR, "?");
+        auto instr = dynamic_cast<Ir::Instr*>(i->user);
+        my_assert(instr->instr_type(), Ir::INSTR_CALL);
+        instr->block()->erase(instr);
+        break;
+    }
+    mod->remove_unused_function();
+}
+
 Module Convertor::convert(const Ir::pModule &mod)
 {
+    remove_unused_initialization(mod);
+    mod->remove_unused_function();
+
     Module module;
 
     for (auto && global : mod->globs) {
