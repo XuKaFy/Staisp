@@ -147,6 +147,8 @@ struct BlockedProgram {
 
     void initialize(String name, Instrs instrs, Vector<pVal> args, ConstPool cpool);
 
+    // 是否存在 call 指令
+    bool has_calls() const;
     // 重新生成行号信息
     void re_generate() const;
     // 加入一个立即数

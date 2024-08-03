@@ -204,6 +204,17 @@ void Block::replace_out(Block *before, Block *out) {
     }
 }
 
+bool BlockedProgram::has_calls() const
+{
+    for (auto i = cbegin(); i != cend(); ++i) {
+        for (auto instr : *(*i)) {
+            if (instr->instr_type() == INSTR_CALL)
+                return true;
+        }
+    }
+    return false;
+}
+
 void BlockedProgram::initialize(String name, Instrs instrs, Vector<pVal> args, ConstPool cpool) {
     name_ = name;
     

@@ -107,9 +107,13 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     new_p.clear();
 }
 
-bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
+bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &func_should_be_removed)
 {
+    func_should_be_removed = false;
     // printf("try to inline %s\n", func->name().c_str());
+    if (func->p.has_calls())
+        return false; // shouldn't inline function that has calls
+
     Vector<Ir::CallInstr*> calls;
     for(const auto &use : func->users) {
         auto user = use->user;
@@ -124,38 +128,46 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor)
     if (calls.size() == 1 && !func->ast_root) { // __buildin_initializer has no ast_root
         // printf("%s move codes\n", func->name().c_str());
         func_inline_from_bp(calls.front(), func->p); // delete self
+        func_should_be_removed = true;
         return true;
     }
 
+    bool has_inlined = false;
     for(auto call_instr : calls) {
         Ir::BlockedProgram* fun = call_instr->block()->program();
         if (&func->p == fun) // don't inline self
             continue;
 
+        // printf("SWAP [%s] inlined\n", call_instr->instr_print().c_str());
+
         Ir::pFuncDefined new_fun = convertor.generate_inline_function(func->ast_root);
         Ir::BlockedProgram new_p = new_fun->p;
 
         func_inline_from_bp(call_instr, new_p);
+        has_inlined = true;
     }
-    return false;
+    return has_inlined;
 }
 
-void inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
+bool inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
 {
-    // remove functions that be all inlined
-    mod->remove_unused_function();
+    bool has_inlined = false;
+
     // inline all function that can be inlined
     for (auto i = mod->funsDefined.begin(); i != mod->funsDefined.end();) {
-        if (func_inline(*i, convertor)) {
+        bool func_should_be_removed;
+        has_inlined |= func_inline(*i, convertor, func_should_be_removed);
+        if (func_should_be_removed) {
+            // printf("erase function %s\n", (*i)->name().c_str());
             i = mod->funsDefined.erase(i);
         } else ++i;
     }
-    // remove functions that be all inlined
-    mod->remove_unused_function();
     // might be inlined so re_generate
     for (auto &&i : mod->funsDefined) {
         i->p.plain_opt_all();
     }
+
+    return has_inlined;
 }
 
 void global2local(const Ir::pModule &mod)
