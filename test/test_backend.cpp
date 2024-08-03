@@ -11,8 +11,8 @@ namespace fs = std::filesystem;
 void test_sysy_backend(const std::string &filename) {
     auto id = get_id(filename);
     auto path = get_path(filename);
-    const std::string gcc = "riscv64-linux-gnu-gcc-12 -static ";
-    const std::string qemu = "qemu-riscv64 ";
+    const std::string gcc = "riscv64-linux-gnu-gcc-12 -static -march=rv64gc_zba ";
+    const std::string qemu = "qemu-riscv64 -cpu rv64,x-zba=true ";
 
     std::string sys = path + ".sy.s";
     std::string in = path + ".in";

@@ -9,12 +9,19 @@
 #include "ir_control_instr.h"
 #include "ir_func_defined.h"
 #include "ir_instr.h"
+#include "ir_mem_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
+#include "ir_ptr_instr.h"
 #include "ir_val.h"
+#include "trans_SSA.h"
 #include "type.h"
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <functional>
+#include <set>
 
 namespace Optimize {
 
@@ -429,4 +436,221 @@ void IndVarPruning_pass::ap() {
     }
 }
 
+LoopGEPMotion_pass::LoopGEPMotion_pass(Ir::BlockedProgram &arg_func,
+                                       Alys::DomTree &arg_dom)
+    : dom_ctx(arg_dom), cur_func(arg_func), loop_ctx(cur_func, dom_ctx) {
+    dom_set = Alys::build_dom_set(dom_ctx);
+    for (auto [loop_hdr, _] : loop_ctx.loops) {
+        auto prehdr_blk = Ir::make_block();
+
+        prehdr_blk->push_back(Ir::make_label_instr());
+
+        auto in_blks = loop_hdr->in_blocks();
+        for (auto in_it = in_blks.begin(); in_it != in_blks.end();) {
+            if (Alys::is_dom(*in_it, loop_hdr, dom_set)) {
+                in_it = in_blks.erase(in_it);
+            } else {
+                in_it++;
+            }
+        }
+
+        for (auto &hdr_instr : *loop_hdr) {
+            if (hdr_instr->instr_type() == Ir::INSTR_PHI) {
+                auto cur_phi = dynamic_cast<Ir::PhiInstr *>(hdr_instr.get());
+                auto pre_clone_instr = Ir::make_phi_instr(cur_phi->ty);
+                prehdr_blk->push_after_label(pre_clone_instr);
+                auto pre_clone_phi =
+                    dynamic_cast<Ir::PhiInstr *>(pre_clone_instr.get());
+                new_phi_instrs.push_back(pre_clone_phi);
+                // transfer phi incoming
+                for (auto [lb, val] : *cur_phi) {
+                    if (in_blks.count(lb->block()) > 0) {
+                        pre_clone_phi->add_incoming(lb, val);
+                    }
+                }
+                // remove old labels
+                cur_phi->add_incoming(prehdr_blk->label().get(), pre_clone_phi);
+                for (auto in_blk : in_blks) {
+                    cur_phi->remove(in_blk->label().get());
+                }
+            }
+        }
+
+        prehdr_blk->push_back(Ir::make_br_instr(loop_hdr->label().get()));
+        for (auto in_blk : in_blks) {
+            auto bk_instr = in_blk->back();
+            if (bk_instr->instr_type() == Ir::INSTR_BR_COND) {
+                auto br_cond = dynamic_cast<Ir::BrCondInstr *>(bk_instr.get());
+                if (true_label(br_cond) == loop_hdr->label().get()) {
+                    branch_label_replace(br_cond, loop_hdr->label().get(),
+                                         prehdr_blk->label().get());
+                } else if (false_label(br_cond) == loop_hdr->label().get()) {
+                    branch_label_replace(br_cond, loop_hdr->label().get(),
+                                         prehdr_blk->label().get());
+                }
+            } else {
+                my_assert(bk_instr->instr_type() == Ir::INSTR_BR, "no ret");
+                bk_instr->change_operand(0, prehdr_blk->label().get());
+            }
+        }
+        for (auto blk_it = cur_func.begin(); blk_it != cur_func.end();
+             ++blk_it) {
+            if ((*blk_it).get() == loop_hdr) {
+                cur_func.insert(blk_it, prehdr_blk);
+                break;
+            }
+        }
+    }
+    dom_ctx = Alys::DomTree();
+    dom_ctx.build_dom(cur_func);
+    dom_set = Alys::build_dom_set(dom_ctx);
+}
+
+void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
+                                         Ir::Block *loop_hdr) {
+
+#ifdef USING_MINI_GEP
+    auto is_gep_invariant = [this, &loop_hdr](Ir::MiniGepInstr *cur_item) -> bool {
+#else
+    auto is_gep_invariant = [this, &loop_hdr](Ir::ItemInstr *cur_item) -> bool {
+#endif
+        // base address must be invariant;
+
+        auto is_parameter = [this](Ir::Val *arg_val) -> auto {
+            for (auto para : cur_func.params()) {
+                if (para.get() == arg_val) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        auto base_val = cur_item->operand(0)->usee;
+        if (!(dynamic_cast<Ir::AllocInstr *>(base_val) ||
+              base_val->type() == Ir::VAL_CONST ||
+              (base_val->type() == Ir::VAL_GLOBAL && is_array(base_val->ty)) ||
+              is_parameter(base_val)))
+            return false;
+        for (size_t i = 1; i < cur_item->operand_size(); ++i) {
+            auto cur_offset = cur_item->operand(i)->usee;
+            if (!LoopGEPMotion_pass::is_invariant(cur_offset, loop_hdr,
+                                                  dom_set))
+                return false;
+        }
+        return true;
+    };
+    for (auto cur_instr : *arg_blk) {
+#ifdef USING_MINI_GEP
+        if (cur_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+            auto cur_item = dynamic_cast<Ir::MiniGepInstr *>(cur_instr.get());
+#else
+        if (cur_instr->instr_type() == Ir::INSTR_ITEM) {
+            auto cur_item = dynamic_cast<Ir::ItemInstr *>(cur_instr.get());
+#endif
+            if (!is_gep_invariant(cur_item))
+                continue;
+            auto cur_base = cur_item->operand(0)->usee;
+
+            if (aliases.count(cur_base) == 0) {
+#ifdef USING_MINI_GEP
+                auto cur_val = aliases[cur_base] =
+                    std::set<Ir::MiniGepInstr *, decltype(item_cmp)>(item_cmp);
+#else
+                auto cur_val = aliases[cur_base] =
+                    std::set<Ir::ItemInstr *, decltype(item_cmp)>(item_cmp);
+
+#endif
+                cur_val.insert(cur_item);
+                hoistable_gep.insert(cur_item);
+            } else {
+                if (auto [real_gep_it, result] =
+                        aliases[cur_base].insert(cur_item);
+                    !result) {
+                    hoistable_gep.erase(*real_gep_it);
+                } else {
+                    hoistable_gep.insert(cur_item);
+                }
+            }
+        }
+    }
+}
+
+void LoopGEPMotion_pass::ap() {
+
+    auto is_in_cur_loop =
+        [](Ir::Block *arg_blk,
+           const Set<Ir::Block *> &loop_blks_predicate) -> bool {
+        return loop_blks_predicate.find(arg_blk) != loop_blks_predicate.end();
+    };
+    for (auto &&[cur_hdr, cur_body] : loop_ctx.loops) {
+        auto cur_blk = cur_hdr;
+        auto loop_predicate = cur_body->loop_blocks;
+        Vector<Ir::Block *> blk_stack;
+        blk_stack.push_back(cur_blk);
+        while (!blk_stack.empty()) {
+            cur_blk = blk_stack.back();
+            blk_stack.pop_back();
+            if (!is_in_cur_loop(cur_blk, loop_predicate))
+                continue;
+            process_cur_blk(cur_blk, cur_hdr);
+            for (auto dom_succs : dom_ctx.dom_map[cur_blk]->out_block) {
+                blk_stack.push_back(dom_succs->basic_block);
+            }
+        }
+
+        auto pred_blk = dom_ctx.dom_map[cur_hdr]->idom->basic_block;
+#ifdef USING_MINI_GEP
+        auto gep_tobe_moved =
+            Vector<Ir::MiniGepInstr *>{hoistable_gep.begin(), hoistable_gep.end()};
+        std::sort(gep_tobe_moved.begin(), gep_tobe_moved.end(),
+                  [](Ir::MiniGepInstr *lhs, Ir::MiniGepInstr *rhs) -> bool {
+                      return lhs->instr_print() < rhs->instr_print();
+                  });
+#else
+        auto gep_tobe_moved =
+            Vector<Ir::ItemInstr *>{hoistable_gep.begin(), hoistable_gep.end()};
+        std::sort(gep_tobe_moved.begin(), gep_tobe_moved.end(),
+                  [](Ir::ItemInstr *lhs, Ir::ItemInstr *rhs) -> bool {
+                      return lhs->instr_print() < rhs->instr_print();
+                  });
+#endif
+        for (auto item : gep_tobe_moved) {
+            // printf("%s \t use cnt: %zu\n", item->instr_print().c_str(),
+            //        item->users.size());
+            instr_move(item, pred_blk);
+            if (item->users.size() == 1) {
+                auto cur_user = item->users.front()->user;
+                if (auto store = dynamic_cast<Ir::StoreInstr *>((cur_user));
+                    store) {
+                    auto store_val_src = store->operand(1)->usee;
+                    if (LoopGEPMotion_pass::is_invariant(store_val_src, cur_hdr,
+                                                         dom_set))
+                        instr_move(store, pred_blk);
+                }
+            }
+        }
+        hoistable_gep.clear();
+    }
+
+    clean_up();
+}
+
+void instr_move(Ir::Instr *cur_instr, Ir::Block *new_blk) {
+    bool succ = false;
+    auto old_blk = cur_instr->block();
+    for (const auto &instr : *old_blk) {
+        if (instr.get() == cur_instr) {
+            new_blk->push_behind_end(instr);
+            old_blk->erase(instr.get());
+            succ = true;
+            break;
+        }
+    }
+    my_assert(succ, "move successfully");
+}
+
+void LoopGEPMotion_pass::clean_up() {
+    for (auto &&phi : new_phi_instrs) {
+        SSA_pass::tryRemoveTrivialPhi(phi);
+    }
+}
 } // namespace Optimize

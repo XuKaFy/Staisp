@@ -108,7 +108,8 @@ struct Func {
     }
 
     // for translate
-    Map<Ir::Instr*, size_t> localIndex;
+    Map<Ir::Instr*, size_t> localIndex; // alloca instr -> local index
+    Map<size_t, Reg> localAddress; // local index -> register where its address is stored
     Map<int, int> llvmRegToAsmReg;
     int next_reg_{0};
     int convert_reg(int x) {
