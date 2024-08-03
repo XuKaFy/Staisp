@@ -8,7 +8,11 @@
 #include "ir_cmp_instr.h"
 #include "ir_instr.h"
 #include "ir_opr_instr.h"
+#include "ir_phi_instr.h"
+#include "ir_ptr_instr.h"
 #include "ir_val.h"
+#include <functional>
+#include <set>
 namespace Optimize {
 class Canonicalizer_pass {
     Ir::BlockedProgram &cur_func;
@@ -97,4 +101,50 @@ bool cmp_extractor(Ir::Val *val, Ir::CmpType &instr_cmp_op, Tl &lhs, Tr &rhs,
 
     return false;
 }
+
+class LoopGEPMotion_pass {
+
+    Alys::DomTree &dom_ctx;
+    Ir::BlockedProgram &cur_func;
+    Alys::LoopInfo loop_ctx;
+    Map<Ir::Block *, Set<Ir::Block *>> dom_set;
+    Vector<Ir::PhiInstr *> new_phi_instrs;
+
+    Set<Ir::ItemInstr *> hoistable_gep;
+    struct item_eq {
+        bool operator()(const Ir::ItemInstr *lhs,
+                        const Ir::ItemInstr *rhs) const {
+            if (lhs->operand(0)->usee != rhs->operand(0)->usee)
+                return true;
+            if (lhs->operand_size() != rhs->operand_size())
+                return true;
+            for (size_t i = 1; i < lhs->operand_size(); ++i) {
+                if (lhs->operand(i)->usee != rhs->operand(i)->usee)
+                    return true;
+            }
+            return false;
+        }
+    } item_cmp;
+    Map<Ir::Val *, std::set<Ir::ItemInstr *, decltype(item_cmp)>> aliases;
+
+public:
+    void clean_up();
+    static bool
+    is_invariant(Ir::Val *val, Ir::Block *loop_hdr,
+                 const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
+        if (val->type() == Ir::VAL_CONST)
+            return true;
+        my_assert(val->type() == Ir::VAL_INSTR, "instruction as value");
+        auto val_as_instr = dynamic_cast<Ir::Instr *>(val);
+        return val_as_instr->block() != loop_hdr &&
+               Alys::is_dom(loop_hdr, val_as_instr->block(), dom_set);
+    }
+
+    LoopGEPMotion_pass(Ir::BlockedProgram &arg_func, Alys::DomTree &arg_dom);
+    void process_cur_blk(Ir::Block *arg_blk, Ir::Block *loop_hdr);
+
+    void ap();
+};
+
+void instr_move(Ir::Instr *cur_instr, Ir::Block *new_blk);
 } // namespace Optimize

@@ -6,8 +6,8 @@
 #include "ir_constant.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
-#include "ir_ptr_instr.h"
 #include "ir_phi_instr.h"
+#include "ir_ptr_instr.h"
 #include "ir_val.h"
 #include "type.h"
 #include <algorithm>
@@ -16,7 +16,6 @@
 #include <iterator>
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 /*
 This algorithem is based on the paper "Simple and Efficient Construction of
 Static Single Assignment Form" by Braun, M., Buchwald, S., Hack, S., Leißa, R.,
@@ -26,8 +25,7 @@ https:doi.org/10.1007/978-3-642-37051-9_6
 
 namespace Optimize {
 
-SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function)
-    : cur_func(arg_function) {
+SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function) : cur_func(arg_function) {
     arg_function.plain_opt_all();
     dom_ctx.build_dom(arg_function);
 #ifdef ssa_debug
@@ -202,9 +200,9 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     my_assert(same, "nullptr to some val in phi incoming tuples");
     Vector<Ir::PhiInstr *> phiUsers;
 
-    for (auto&& use : phi->users) {
+    for (auto &&use : phi->users) {
         my_assert(use->usee == phi,
-                      "the source of such use-def edge must be phi instr");
+                  "the source of such use-def edge must be phi instr");
         auto user = use->user;
         if (user != phi && is_phi(user)) {
             my_assert(dynamic_cast<Ir::PhiInstr *>(user), "must be phi instr");
@@ -224,7 +222,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
 
 void SSA_pass::sealBlock(Ir::Block *block) {
     if (incompletePhis.find(block) != incompletePhis.end()) {
-        for (auto&& [variable, phi] : incompletePhis[block]) {
+        for (auto &&[variable, phi] : incompletePhis[block]) {
             addPhiOperands(variable, phi.get(), block);
         }
         incompletePhis.erase(block);
@@ -335,6 +333,15 @@ void SSA_pass::reconstruct() {
     }
 
     my_assert(sealedBlocks.size() == cur_func.size(), "all blocks are sealed");
+}
+
+SSA_pass::~SSA_pass() {
+
+    auto const promotable_filter = [](Ir::Val *arg_alloca_instr) -> bool {
+        auto pointee_ty = to_pointed_type(arg_alloca_instr->ty);
+        return !is_array(pointee_ty) && !is_struct(pointee_ty) &&
+               !(arg_alloca_instr->type() == Ir::VAL_GLOBAL);
+    };
 
     for (auto ent_instr_it = ++entry_blk()->begin();
          ent_instr_it != entry_blk()->end();) {
@@ -353,7 +360,7 @@ void SSA_pass::reconstruct() {
         ent_instr_it++;
     }
 
-    for (auto&& [_, def_map] : current_def) {
+    for (auto &&[_, def_map] : current_def) {
         for (auto [_, blk_def_use] : def_map) {
             erase_blk_def(blk_def_use);
         }
