@@ -36,7 +36,7 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
         switch (cur_instr->instr_type()) {
         case Ir::INSTR_LOAD: {
             auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(cur_instr);
-            v.uses.insert(r->operand(0)->usee->name());
+            v.uses.insert(r->operand(0)->usee);
             // printf("    LOCAL use = %s\n", r->operand(0)->usee->name());
             break;
         }
@@ -50,20 +50,20 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
                     continue; // shouldn't be killed
                 }
             }
-            v.uses.erase(to->name());
+            v.uses.erase(to);
             // printf("    LOCAL def = %s\n", r->operand(0)->usee->name());
             break;
         }
 #ifdef USING_MINI_GEP
         case Ir::INSTR_MINI_GEP: {
             auto r = std::dynamic_pointer_cast<Ir::MiniGepInstr>(cur_instr);
-            v.uses.insert(r->operand(0)->usee->name());
+            v.uses.insert(r->operand(0)->usee);
             break;
         }
 #endif
         case Ir::INSTR_ITEM: {
             auto r = std::dynamic_pointer_cast<Ir::ItemInstr>(cur_instr);
-            v.uses.insert(r->operand(0)->usee->name());
+            v.uses.insert(r->operand(0)->usee);
             break;
         }
         default:
@@ -74,16 +74,10 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
 
 int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
                       const BlockValue &OUT) {
-    Set<String> uses = OUT.uses;
+    Set<Ir::Val*> uses = OUT.uses;
     int ans = 0;
-    /* printf("In block %s\n", p->name());
-    for(auto i : uses) {
-        printf("    current use: %s\n", i.c_str());
-    } */
-    p->reverse();
-    for (auto j = p->begin(); j != p->end();) {
+    for (auto j = p->rbegin(); j != p->rend();) {
         auto cur_instr = *j;
-        // printf("    at %s\n", cur_instr->instr_print());
         /*
             1. %n = load %k -> use
             2. store %n, %k -> def
@@ -91,14 +85,11 @@ int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
         switch (cur_instr->instr_type()) {
         case Ir::INSTR_LOAD: {
             auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(cur_instr);
-            auto name = r->operand(0)->usee->name();
-            uses.insert(name);
-            // printf("    LOCAL use = %s\n", r->instr_print());
+            uses.insert(r->operand(0)->usee);
             break;
         }
         case Ir::INSTR_STORE: {
             auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(cur_instr);
-            auto name = r->operand(0)->usee->name();
             auto to = r->operand(0)->usee;
             if (to->type() == Ir::VAL_INSTR) {
                 auto to_instr = static_cast<Ir::Instr *>(to);
@@ -109,14 +100,12 @@ int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
             if (to->type() == Ir::VAL_GLOBAL) {
                 goto Ignore;
             }
-            if (uses.count(name) == 0U) { // this def is useless
-                // printf("    Not used def %s\n", r->instr_print());
-                j = p->erase(j);
+            if (uses.count(to) == 0U) {
+                j = decltype(j)(p->erase(std::next(j).base()));
                 ++ans;
                 goto End;
             } else {
-                // printf("    Def %s is used\n", r->instr_print());
-                uses.erase(name);
+                uses.erase(to);
             }
             break;
         }
@@ -128,7 +117,6 @@ int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
     End:
         continue;
     }
-    p->reverse();
     return ans;
 }
 

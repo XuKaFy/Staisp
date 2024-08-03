@@ -40,7 +40,6 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         printf("BEFORE\n%s\n", func->print_func().c_str());
 #endif
         int cnt = 0;
-        func->p.re_generate(); // must re-generate for DFA
         const int MAX_OPT_COUNT = flag_O1 ? 8 : 2;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_bottom_analysis<OptDSE::BlockValue,
@@ -65,7 +64,6 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         Optimize::Canonicalizer_pass(func->p, dom_ctx).ap();
         my_assert(func->p.check_empty_use("Canonicalizer") == 0,
                   "Canonicalizer Failed");
-        // printf("%s\n", i->print_func().c_str());
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",
         // i->name().c_str(), cnt);
