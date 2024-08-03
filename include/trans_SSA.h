@@ -23,6 +23,7 @@ class SSA_pass {
 
 public:
     SSA_pass(Ir::BlockedProgram &arg_function);
+    ~SSA_pass();
 
     auto entry_blk() -> Ir::Block *;
 
@@ -37,7 +38,7 @@ public:
     vrtl_reg *addPhiOperands(vrtl_reg *variable, Ir::Instr *phi,
                              Ir::Block *phi_blk);
 
-    auto tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg *;
+    static auto tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg *;
 
     void sealBlock(Ir::Block *block);
     void reconstruct();

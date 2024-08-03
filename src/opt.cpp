@@ -24,7 +24,8 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     mod->remove_unused_function();
 #endif
     for (auto &&func : mod->funsDefined) {
-        from_top_analysis<OptConstPropagate::BlockValue, OptConstPropagate::TransferFunction>(func->p);
+        from_top_analysis<OptConstPropagate::BlockValue,
+                          OptConstPropagate::TransferFunction>(func->p);
         func->p.plain_opt_all();
         my_assert(func->p.check_empty_use("CP") == 0, "CP Failed");
     }
@@ -64,6 +65,11 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         Optimize::Canonicalizer_pass(func->p, dom_ctx).ap();
         my_assert(func->p.check_empty_use("Canonicalizer") == 0,
                   "Canonicalizer Failed");
+
+        func->p.re_generate();
+        Optimize::LoopGEPMotion_pass(func->p, dom_ctx).ap();
+        my_assert(func->p.check_empty_use("LoopGEPMotion") == 0,
+                  "LoopGEPMotion Failed");
         // printf("%s\n", i->print_func().c_str());
 
         // // printf("Optimization loop count of function \"%s\": %lu\n",

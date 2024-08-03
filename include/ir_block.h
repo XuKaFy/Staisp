@@ -17,8 +17,7 @@ using pBlock = Pointer<Block>;
 using Blocks = List<pBlock>;
 
 struct Block : public Val {
-    Block()
-        : Val(make_void_type()) {}
+    Block() : Val(make_void_type()) {}
 
     void erase_from_phi();
 
@@ -53,33 +52,19 @@ struct Block : public Val {
 
     ValType type() const override { return VAL_BLOCK; }
 
-    BlockedProgram *program() {
-        return program_;
-    }
+    BlockedProgram *program() { return program_; }
 
-    pInstr front() const {
-        return body.front();
-    }
+    pInstr front() const { return body.front(); }
 
-    pInstr back() const {
-        return body.back();
-    }
+    pInstr back() const { return body.back(); }
 
-    Instrs::iterator begin() {
-        return body.begin();
-    }
+    Instrs::iterator begin() { return body.begin(); }
 
-    Instrs::iterator end() {
-        return body.end();
-    }
+    Instrs::iterator end() { return body.end(); }
 
-    Instrs::reverse_iterator rbegin() {
-        return body.rbegin();
-    }
+    Instrs::reverse_iterator rbegin() { return body.rbegin(); }
 
-    Instrs::reverse_iterator rend() {
-        return body.rend();
-    }
+    Instrs::reverse_iterator rend() { return body.rend(); }
 
     Instrs::iterator insert(const Instrs::iterator &i, const pInstr &instr) {
         instr->set_block(this);
@@ -91,15 +76,11 @@ struct Block : public Val {
         body.push_back(instr);
     }
 
-    void pop_back() {
-        body.pop_back();
-    }
+    void pop_back() { body.pop_back(); }
 
-    Instrs::iterator erase(const Instrs::iterator &i) {
-        return body.erase(i);
-    }
+    Instrs::iterator erase(const Instrs::iterator &i) { return body.erase(i); }
 
-    void erase(Instr* instr) {
+    void erase(Instr *instr) {
         for (auto i = body.begin(); i != body.end(); ++i) {
             if ((*i).get() == instr) {
                 erase(i);
@@ -112,40 +93,33 @@ struct Block : public Val {
         body.erase(i, j);
     }
 
-    void reverse() {
-        std::reverse(body.begin(), body.end());
-    }
+    void reverse() { std::reverse(body.begin(), body.end()); }
 
     // 在 Ret 或者 Br 前面插入指令，即倒数第二条
     void push_behind_end(const pInstr &instr);
     // 在 Label 后面插入指令，即正数第二条
     void push_after_label(const pInstr &instr);
 
-    bool empty() const {
-        return body.empty();
-    }
+    bool empty() const { return body.empty(); }
 
-    size_t size() const {
-        return body.size();
-    }
+    size_t size() const { return body.size(); }
 
 private:
     friend struct BlockedProgram;
 
-    void set_program(BlockedProgram* program) {
-        program_ = program;
-    }
+    void set_program(BlockedProgram *program) { program_ = program; }
 
     Instrs body;
 
-    BlockedProgram* program_ {nullptr};
+    BlockedProgram *program_{nullptr};
 };
 
 pBlock make_block();
 
 struct BlockedProgram {
 
-    void initialize(String name, Instrs instrs, Vector<pVal> args, ConstPool cpool);
+    void initialize(String name, Instrs instrs, Vector<pVal> args,
+                    ConstPool cpool);
 
     // 是否存在 call 指令
     bool has_calls() const;
@@ -163,36 +137,31 @@ struct BlockedProgram {
 
     bool opt_join_blocks();              // 连接可连接的块
     bool opt_remove_unreachable_block(); // 去除无用 basic block
-    bool opt_remove_only_jump_block();   // 连接只有强制跳转的 basic block
-    bool opt_simplify_branch();          // 简化分支
+    bool opt_remove_only_jump_block(); // 连接只有强制跳转的 basic block
+    bool opt_simplify_branch();        // 简化分支
 
-    void opt_remove_dead_code();    // 消除死代码
-    void opt_trivial();             // 针对个别指令的优化
+    void opt_remove_dead_code(); // 消除死代码
+    void opt_trivial();          // 针对个别指令的优化
 
     // 检查是否存在空的 Use 链
     bool check_empty_use(String state = {});
     // 检查是否有非法的 Phi
     bool check_invalid_phi(String state = {});
 
-    String name() const {
-        return name_;
+    String name() const { return name_; }
+
+    Blocks::iterator begin() { return blocks.begin(); }
+
+    Blocks::iterator insert(const Blocks::iterator &i, const pBlock &block) {
+        block->set_program(this);
+        return blocks.insert(i, block);
     }
 
-    Blocks::iterator begin() {
-        return blocks.begin();
-    }
+    Blocks::iterator end() { return blocks.end(); }
 
-    Blocks::iterator end() {
-        return blocks.end();
-    }
+    Blocks::const_iterator cbegin() const { return blocks.cbegin(); }
 
-    Blocks::const_iterator cbegin() const {
-        return blocks.cbegin();
-    }
-
-    Blocks::const_iterator cend() const {
-        return blocks.cend();
-    }
+    Blocks::const_iterator cend() const { return blocks.cend(); }
 
     void push_back(const pBlock &block) {
         block->set_program(this);
@@ -204,13 +173,9 @@ struct BlockedProgram {
         return blocks.erase(i);
     }
 
-    pBlock front() const {
-        return blocks.front();
-    }
+    pBlock front() const { return blocks.front(); }
 
-    pBlock back() const {
-        return blocks.back();
-    }
+    pBlock back() const { return blocks.back(); }
 
     void clear() {
         blocks.clear();
@@ -218,24 +183,17 @@ struct BlockedProgram {
         params_.clear();
     }
 
-    bool empty() const {
-        return blocks.empty();
-    }
+    bool empty() const { return blocks.empty(); }
 
-    size_t size() const {
-        return blocks.size();
-    }
+    size_t size() const { return blocks.size(); }
 
-    const Vector<pVal> &params() const {
-        return params_;
-    }
+    const Vector<pVal> &params() const { return params_; }
 
     ConstPool cpool;
+
 private:
     // 在最后一个块上加入最后一条语句
-    void push_back(const pInstr &instr) {
-        back()->push_back(instr);
-    }
+    void push_back(const pInstr &instr) { back()->push_back(instr); }
 
     Vector<pVal> params_;
 
