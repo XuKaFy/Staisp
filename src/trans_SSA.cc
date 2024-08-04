@@ -100,8 +100,8 @@ auto SSA_pass::def_val(vrtl_reg *variable, Ir::Block *block,
 auto SSA_pass::is_phi(Ir::User *user) -> bool {
     if (user->type() == Ir::VAL_INSTR) {
         auto *cur_instr = dynamic_cast<Ir::Instr *>(user);
-        return my_assert(cur_instr, "must be Instr *"),
-               cur_instr->instr_type() == Ir::INSTR_PHI;
+        my_assert(cur_instr, "must be Instr *");
+        return cur_instr->instr_type() == Ir::INSTR_PHI;
     }
     return false;
 }
@@ -298,7 +298,8 @@ void SSA_pass::reconstruct() {
 
     for (auto *cur_block : order) {
         auto it = cur_block->begin();
-        my_assert((*it)->instr_type() == Ir::INSTR_LABEL, "label begin"), it++;
+        my_assert((*it)->instr_type() == Ir::INSTR_LABEL, "label begin");
+        it++;
         for (; it != cur_block->end();
              /* next perform increment*/) {
             auto succ_instr = std::next(it);

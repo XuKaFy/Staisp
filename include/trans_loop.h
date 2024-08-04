@@ -125,8 +125,6 @@ class LoopGEPMotion_pass {
                         const Ir::MiniGepInstr *rhs) const {
             if (lhs->operand(0)->usee != rhs->operand(0)->usee)
                 return true;
-            if (lhs->in_this_dim != rhs->in_this_dim)
-                return true;
             if (lhs->operand(1)->usee != rhs->operand(1)->usee)
                 return true;
             return false;

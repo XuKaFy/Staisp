@@ -718,9 +718,7 @@ struct ConvertBulk {
 
         auto rs = load_address(base);
         auto rd = toReg(instr.get());
-        if (instr->in_this_dim) {
-            type = make_array_type(type, 0);
-        }
+        type = make_array_type(type, 0); // all in this dim
         type = to_elem_type(type);
         int step = type->length();
         auto index = toReg(instr->operand(1)->usee);

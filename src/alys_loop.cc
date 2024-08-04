@@ -58,10 +58,11 @@ void NaturalLoopBody::handle_indvar(
             [&dom_set, this](Ir::Val *cur_val, Ir::Val *&checker_val) -> bool {
             auto cur_val_instr = dynamic_cast<Ir::Instr *>(cur_val);
             checker_val = cur_val;
-            if (!cur_val_instr)
-                return my_assert(cur_val->type() == Ir::VAL_CONST,
-                                 "Const as value"),
-                       true;
+            if (!cur_val_instr) {
+                my_assert(cur_val->type() == Ir::VAL_CONST,
+                                 "Const as value");
+                return true;
+            }
             if (cur_val_instr->block() != header &&
                 is_dom(header, cur_val_instr->block(), dom_set)) {
                 return true;

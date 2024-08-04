@@ -22,7 +22,7 @@
 
 // 带有错误信息的 assert 宏包装
 // 注意，理论上所有使用 my_assert 的地方都应该改为 Exception
-#define my_assert(x, y) assert(x)
+#define my_assert(x, y) if (!(x)) { throw 12345678; }
 
 // 一些模板类型的别名，便于更换为其他数据类型
 

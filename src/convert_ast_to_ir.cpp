@@ -395,14 +395,13 @@ Ir::pVal Convertor::analyze_left_value(const pNode &root,
         // 他们嵌套层数一样，但是最外围都要去除
         // 不过，去除的方式不一样
         if (is_array(to_pointed_type(item_instr->ty))) {
-            // 若是 int*[] 形式，则抛弃最外层
-            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, analyze_value(*r->index.begin())));
+            // 若是 int*[] 形式，则利用 bitcast 抛弃最外层
+            item_instr = add_instr(Ir::make_cast_instr(Ir::ex_shell_1(item_instr->ty), item_instr));
         } else {
-            // 若是 int** 形式，则直接在最外层寻址
+            // 若是 int** 形式，则直接 load 抛弃外层
             item_instr = add_instr(Ir::make_load_instr(item_instr));
-            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, analyze_value(*r->index.begin()), true));
         }
-        for (auto i = std::next(r->index.begin()); i != r->index.end(); ++i) {
+        for (auto i = r->index.begin(); i != r->index.end(); ++i) {
             auto index = analyze_value(*i);
             if (!is_integer(index->ty)) {
                 throw_error(*i, 14, "type of index should be integer");
@@ -521,7 +520,12 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
             throw_error(root, 8, "wrong count of arguments");
         }
         for (size_t i = 0; i < r->ch.size(); ++i) {
-            Ir::pVal cur_arg = analyze_value(r->ch[i]);
+            Ir::pVal cur_arg;
+            if (is_pointer(func->function_type()->arg_type[i])) {
+                cur_arg = analyze_left_value(r->ch[i]);
+            } else {
+                cur_arg = analyze_value(r->ch[i]);
+            }
             if (i < length) {
                 args.push_back(cast_to_type(
                     r->ch[i], cur_arg, func->function_type()->arg_type[i]));
