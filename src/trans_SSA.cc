@@ -122,9 +122,10 @@ SSA_pass::vrtl_reg *SSA_pass::use_val(vrtl_reg *variable, Ir::Block *block) {
 SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
                                                 Ir::Block *block) {
     vrtl_reg *val = nullptr;
+    auto operand_ty = to_pointed_type(variable->ty);
     if (sealedBlocks.find(block) == sealedBlocks.end()) {
         // Incomplete CFG.
-        auto phi = Ir::make_phi_instr(variable->ty);
+        auto phi = Ir::make_phi_instr(operand_ty);
         val = phi.get();
         block->push_after_label(phi);
         // block->body.insert(std::next(block()->begin()), phi);
@@ -137,7 +138,7 @@ SSA_pass::vrtl_reg *SSA_pass::use_val_recursive(vrtl_reg *variable,
         my_assert(!block->in_blocks().empty(),
                   "every block in such function must have predecessor");
         // Break potential cycles with operandless phi
-        auto phi = Ir::make_phi_instr(variable->ty);
+        auto phi = Ir::make_phi_instr(operand_ty);
         block->push_after_label(phi);
         // block->insert(std::next(block()->begin()), phi);
         // my_assert(block->body.at(1) == phi, "head insertion");
@@ -252,10 +253,10 @@ void SSA_pass::reconstruct() {
                (is_pointer(arg_non_alloca->ty) &&
                 (dynamic_cast<Ir::ItemInstr *>(arg_non_alloca)
 #ifdef USING_MINI_GEP
-                || dynamic_cast<Ir::MiniGepInstr *>(arg_non_alloca)
+                 || dynamic_cast<Ir::MiniGepInstr *>(arg_non_alloca)
 #endif
-                )
-               ) || (function_args.count(arg_non_alloca) > 0);
+                     )) ||
+               (function_args.count(arg_non_alloca) > 0);
     };
 
     Set<vrtl_reg *> alloca_vars;
