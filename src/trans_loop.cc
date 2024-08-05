@@ -10,24 +10,17 @@
 #include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
-#include "ir_mem_instr.h"
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
 #include "ir_ptr_instr.h"
-#include "ir_ptr_instr.h"
 #include "ir_val.h"
-#include "trans_SSA.h"
 #include "trans_SSA.h"
 #include "type.h"
 #include <algorithm>
 #include <cstddef>
-#include <algorithm>
-#include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <cstdio>
 #include <functional>
-#include <set>
 #include <set>
 
 namespace Optimize {
@@ -517,7 +510,8 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
                                          Ir::Block *loop_hdr) {
 
 #ifdef USING_MINI_GEP
-    auto is_gep_invariant = [this, &loop_hdr](Ir::MiniGepInstr *cur_item) -> bool {
+    auto is_gep_invariant = [this,
+                             &loop_hdr](Ir::MiniGepInstr *cur_item) -> bool {
 #else
     auto is_gep_invariant = [this, &loop_hdr](Ir::ItemInstr *cur_item) -> bool {
 #endif
@@ -532,10 +526,9 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
             return false;
         };
         auto base_val = cur_item->operand(0)->usee;
-        if (!(dynamic_cast<Ir::AllocInstr *>(base_val) ||
-              base_val->type() == Ir::VAL_CONST ||
-              (base_val->type() == Ir::VAL_GLOBAL && is_array(base_val->ty)) ||
-              is_parameter(base_val)))
+        if (!((base_val->type() == Ir::VAL_GLOBAL && is_array(base_val->ty)) ||
+              is_parameter(base_val) ||
+              is_invariant(base_val, loop_hdr, dom_set)))
             return false;
         for (size_t i = 1; i < cur_item->operand_size(); ++i) {
             auto cur_offset = cur_item->operand(i)->usee;
@@ -545,7 +538,12 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
         }
         return true;
     };
-    for (auto cur_instr : *arg_blk) {
+
+    Vector<Ir::pInstr> arg_blk_instrs;
+    for (auto instr : *arg_blk) {
+        arg_blk_instrs.push_back(instr);
+    }
+    for (auto cur_instr : arg_blk_instrs) {
 #ifdef USING_MINI_GEP
         if (cur_instr->instr_type() == Ir::INSTR_MINI_GEP) {
             auto cur_item = dynamic_cast<Ir::MiniGepInstr *>(cur_instr.get());
@@ -577,6 +575,49 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
                     hoistable_gep.insert(cur_item);
                 }
             }
+        } else {
+            switch (cur_instr->instr_type()) {
+
+            case Ir::INSTR_CAST:
+            case Ir::INSTR_CMP:
+            case Ir::INSTR_BINARY:
+            case Ir::INSTR_UNARY:
+                arithmetic_ap(cur_instr.get(), [&loop_hdr, this, &arg_blk](
+                                                   Ir::Instr *cur_instr) {
+                    auto flag = true;
+                    for (size_t i = 0; i < cur_instr->operand_size(); i++) {
+                        auto cur_op = cur_instr->operand(i)->usee;
+                        if (!is_invariant(cur_op, loop_hdr, dom_set)) {
+                            flag = false;
+                            break;
+                        }
+                    }
+                    if (flag) {
+                        auto pred_blk =
+                            dom_ctx.dom_map[loop_hdr]->idom->basic_block;
+                        instr_move(cur_instr, pred_blk);
+                    }
+                });
+
+            // item and ctrl instrs
+            case Ir::INSTR_ITEM:
+            case Ir::INSTR_MINI_GEP:
+
+            case Ir::INSTR_LOAD:
+
+            case Ir::INSTR_SYM:
+            case Ir::INSTR_LABEL:
+            case Ir::INSTR_BR:
+            case Ir::INSTR_BR_COND:
+            case Ir::INSTR_FUNC:
+            case Ir::INSTR_CALL:
+            case Ir::INSTR_RET:
+            case Ir::INSTR_ALLOCA:
+            case Ir::INSTR_STORE:
+            case Ir::INSTR_PHI:
+            case Ir::INSTR_UNREACHABLE:
+                break;
+            }
         }
     }
 }
@@ -606,8 +647,8 @@ void LoopGEPMotion_pass::ap() {
 
         auto pred_blk = dom_ctx.dom_map[cur_hdr]->idom->basic_block;
 #ifdef USING_MINI_GEP
-        auto gep_tobe_moved =
-            Vector<Ir::MiniGepInstr *>{hoistable_gep.begin(), hoistable_gep.end()};
+        auto gep_tobe_moved = Vector<Ir::MiniGepInstr *>{hoistable_gep.begin(),
+                                                         hoistable_gep.end()};
         std::sort(gep_tobe_moved.begin(), gep_tobe_moved.end(),
                   [](Ir::MiniGepInstr *lhs, Ir::MiniGepInstr *rhs) -> bool {
                       return lhs->instr_print() < rhs->instr_print();
