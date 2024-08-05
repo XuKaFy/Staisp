@@ -10,11 +10,7 @@
 #include "ir_opr_instr.h"
 #include "ir_phi_instr.h"
 #include "ir_ptr_instr.h"
-#include "ir_phi_instr.h"
-#include "ir_ptr_instr.h"
 #include "ir_val.h"
-#include <functional>
-#include <set>
 #include <functional>
 #include <set>
 namespace Optimize {
@@ -113,6 +109,7 @@ class LoopGEPMotion_pass {
     Alys::LoopInfo loop_ctx;
     Map<Ir::Block *, Set<Ir::Block *>> dom_set;
     Vector<Ir::PhiInstr *> new_phi_instrs;
+    Vector<Ir::Instr *> movable_instrs;
 
 #ifdef USING_MINI_GEP
     Set<Ir::MiniGepInstr *> hoistable_gep;
@@ -170,4 +167,19 @@ public:
 };
 
 void instr_move(Ir::Instr *cur_instr, Ir::Block *new_blk);
+// manipulate calculatable(arithmeic)
+inline void arithmetic_ap(Ir::Instr *cur_instr,
+                          std::function<void(Ir::Instr *)> f) {
+    switch (cur_instr->instr_type()) {
+    case Ir::INSTR_BINARY:
+    case Ir::INSTR_UNARY:
+    case Ir::INSTR_CMP:
+    case Ir::INSTR_CAST:
+        f(cur_instr);
+        break;
+    default:
+        my_assert(false, "unexpected instruction type");
+        break;
+    }
+};
 } // namespace Optimize
