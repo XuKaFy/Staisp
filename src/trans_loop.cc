@@ -508,29 +508,25 @@ LoopGEPMotion_pass::LoopGEPMotion_pass(Ir::BlockedProgram &arg_func,
 void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
                                          Ir::Block *loop_hdr) {
 
+    auto pred_blk_move = [&loop_hdr, this](Ir::Instr *arg_instr) {
+        auto pred_blk = dom_ctx.dom_map[loop_hdr]->idom->basic_block;
+        instr_move(arg_instr, pred_blk);
+    };
 #ifdef USING_MINI_GEP
     auto is_gep_invariant = [this,
                              &loop_hdr](Ir::MiniGepInstr *cur_item) -> bool {
 #else
     auto is_gep_invariant = [this, &loop_hdr](Ir::ItemInstr *cur_item) -> bool {
 #endif
-        // base address must be invariant;
-
-        auto is_parameter = [this](Ir::Val *arg_val) -> auto {
-            for (auto para : cur_func.params()) {
-                if (para.get() == arg_val) {
-                    return true;
-                }
-            }
-            return false;
-        };
         auto base_val = cur_item->operand(0)->usee;
         if (!((base_val->type() == Ir::VAL_GLOBAL && is_array(base_val->ty)) ||
-              is_parameter(base_val) ||
+              is_func_parameter(base_val, cur_func) ||
               is_invariant(base_val, loop_hdr, dom_set)))
             return false;
         for (size_t i = 1; i < cur_item->operand_size(); ++i) {
             auto cur_offset = cur_item->operand(i)->usee;
+            if (is_func_parameter(cur_offset, cur_func))
+                continue;
             if (!LoopGEPMotion_pass::is_invariant(cur_offset, loop_hdr,
                                                   dom_set))
                 return false;
@@ -565,14 +561,26 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
 #endif
                 cur_val.insert(cur_item);
                 hoistable_gep.insert(cur_item);
+                pred_blk_move(cur_item);
             } else {
                 if (auto [real_gep_it, result] =
                         aliases[cur_base].insert(cur_item);
                     !result) {
-                    cur_item->replace_self(*real_gep_it);
-                    cur_item->block()->erase(cur_item);
+                    auto real_gep = *real_gep_it;
+                    if (Alys::is_dom(real_gep->block(), cur_item->block(),
+                                     dom_set)) {
+                        hoistable_gep.erase(*real_gep_it);
+                        hoistable_gep.insert(cur_item);
+                        real_gep->replace_self(cur_item);
+                        real_gep->block()->erase(real_gep);
+                    } else if (Alys::is_dom(cur_item->block(),
+                                            real_gep->block(), dom_set)) {
+                        cur_item->replace_self(*real_gep_it);
+                        cur_item->block()->erase(cur_item);
+                    }
                 } else {
                     hoistable_gep.insert(cur_item);
+                    pred_blk_move(cur_item);
                 }
             }
         } else {
@@ -585,22 +593,21 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
             case Ir::INSTR_ITEM:
             case Ir::INSTR_MINI_GEP:
 
-                arithmetic_ap(cur_instr.get(), [&loop_hdr, this, &arg_blk](
-                                                   Ir::Instr *cur_instr) {
-                    auto flag = true;
-                    for (size_t i = 0; i < cur_instr->operand_size(); i++) {
-                        auto cur_op = cur_instr->operand(i)->usee;
-                        if (!is_invariant(cur_op, loop_hdr, dom_set)) {
-                            flag = false;
-                            break;
+                arithmetic_ap(
+                    cur_instr.get(),
+                    [&loop_hdr, this, &pred_blk_move](Ir::Instr *cur_instr) {
+                        auto flag = true;
+                        for (size_t i = 0; i < cur_instr->operand_size(); i++) {
+                            auto cur_op = cur_instr->operand(i)->usee;
+                            if (!is_invariant(cur_op, loop_hdr, dom_set)) {
+                                flag = false;
+                                break;
+                            }
                         }
-                    }
-                    if (flag) {
-                        auto pred_blk =
-                            dom_ctx.dom_map[loop_hdr]->idom->basic_block;
-                        instr_move(cur_instr, pred_blk);
-                    }
-                });
+                        if (flag) {
+                            pred_blk_move(cur_instr);
+                        }
+                    });
 
             // item and ctrl instrs
             case Ir::INSTR_LOAD:
@@ -664,7 +671,7 @@ void LoopGEPMotion_pass::ap() {
         for (auto item : gep_tobe_moved) {
             // printf("%s \t use cnt: %zu\n", item->instr_print().c_str(),
             //        item->users.size());
-            instr_move(item, pred_blk);
+            // instr_move(item, pred_blk);
             if (item->users.size() == 1) {
                 auto cur_user = item->users.front()->user;
                 if (auto store = dynamic_cast<Ir::StoreInstr *>((cur_user));

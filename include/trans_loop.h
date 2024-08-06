@@ -162,6 +162,16 @@ public:
                Alys::is_dom(loop_hdr, val_as_instr->block(), dom_set);
     }
 
+    static auto is_func_parameter(Ir::Val *arg_val,
+                                  const Ir::BlockedProgram &cur_func) {
+        for (auto para : cur_func.params()) {
+            if (para.get() == arg_val) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     LoopGEPMotion_pass(Ir::BlockedProgram &arg_func, Alys::DomTree &arg_dom);
     void process_cur_blk(Ir::Block *arg_blk, Ir::Block *loop_hdr);
 
