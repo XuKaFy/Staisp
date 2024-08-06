@@ -7,8 +7,16 @@ bool peephole_mv_self(std::deque<Block>& blocks) {
     for (auto&& block : blocks) {
         for (auto it = block.body.begin(); it != block.body.end(); ) {
             if (it->instr_type() == MachineInstr::Type::REG) {
-                auto& instr = it->as<RegInstr>();
-                if (instr.type == RegInstrType::MV && instr.rd == instr.rs) {
+                auto [type, rd, rs] = it->as<RegInstr>();
+                if (type == RegInstrType::MV && rd == rs) {
+                    it = block.body.erase(it);
+                    changed = true;
+                    continue; // skip ++it
+                }
+            }
+            if (it->instr_type() == MachineInstr::Type::FREG) {
+                auto [type, rd, rs] = it->as<FRegInstr>();
+                if (type == FRegInstrType::FMV_S && rd == rs) {
                     it = block.body.erase(it);
                     changed = true;
                     continue; // skip ++it
