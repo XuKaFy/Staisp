@@ -707,10 +707,6 @@ struct ConvertBulk {
     }
 
 #ifdef USING_MINI_GEP
-    // TODO TODO TODO
-    // TODO TODO
-    // TODO
-    // ssg 你带我走吧！！！
     void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
         auto base = instr->operand(0)->usee;
         auto type = base->ty;
@@ -723,8 +719,25 @@ struct ConvertBulk {
         }
         type = to_elem_type(type);
         int step = type->length();
-        auto index = toReg(instr->operand(1)->usee);
-        if (index != Reg::ZERO) {
+        auto access = instr->operand(1)->usee;
+        if (auto con = dynamic_cast<Ir::Const*>(access)) {
+            int imm = std::stoi(con->name());
+            if (imm != 0) {
+                int forward = imm * step;
+                auto forwarded  = allocate_reg();
+                if (check_itype_immediate(forward)) {
+                    add({ RegImmInstr {
+                        RegImmInstrType::ADDI, forwarded, rs, forward
+                    } });
+                } else {
+                    add({ RegRegInstr {
+                        RegRegInstrType::ADD, forwarded, rs, li(forward)
+                    } });
+                }
+                rs = forwarded;
+            }
+        } else {
+            auto index = toReg(access);
             auto forward  = allocate_reg();
             auto forwarded  = allocate_reg();
             if ((step & (step - 1)) == 0) {

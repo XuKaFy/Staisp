@@ -70,6 +70,9 @@ std::optional<IterationInfo> detect_iteration(Alys::pNaturalLoopBody loop) {
                 // }
             }
             if (step == nullptr) return {};
+            if (val->users.size() != 1 || val->users[0]->user != phi) {
+                return {};
+            }
             iterations.emplace(val, IterationInfo::SelfIncrement {step, label, negative});
         }
     }
@@ -81,7 +84,14 @@ std::optional<IterationInfo> detect_iteration(Alys::pNaturalLoopBody loop) {
         auto user = use->user;
         if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(user)) {
             // OK if used by GEP
-            geps[gep->operand(0)->usee].push_back(gep);
+            auto array = gep->operand(0)->usee;
+            if (auto instr = dynamic_cast<Ir::Instr*>(array)) {
+                for (auto&& block : loop->loop_blocks) {
+                    // but reject array generated inside loop
+                    if (instr->block() == block) return {};
+                }
+            }
+            geps[array].push_back(gep);
         } else if (iterations.count(user)) {
             // OK if used by iteration (as increment only, see above)
         } else if (auto instr = dynamic_cast<Ir::Instr*>(user); instr && instr->block() == loop->header) {
@@ -132,8 +142,8 @@ void transform(const IterationInfo& info) {
         info.loop->loop_cnd_instr->replace_self(cmp.get());
         block->erase(original_phi);
         block->erase(info.loop->loop_cnd_instr);
-        Ir::Block* pred_blk =nullptr;
-        for ( auto in_blk : block->in_blocks()) {
+        Ir::Block* pred_blk = nullptr;
+        for (auto in_blk : block->in_blocks()) {
             if (info.loop->loop_blocks.count(in_blk) == 0) {
                 pred_blk = in_blk;
                 break;
@@ -153,8 +163,7 @@ void transform(const IterationInfo& info) {
     }
     for (auto&& [original, increment]: info.iterations) {
         auto [step, from, neg/* no negative support now */ ] = increment;
-        auto block = from->block();
-        block->erase(dynamic_cast<Ir::Instr*>(original));
+        from->block()->erase(dynamic_cast<Ir::Instr*>(original));
     }
 }
 
@@ -162,7 +171,6 @@ void pointer_iteration(Ir::BlockedProgram &func, Alys::DomTree &dom) {
     Alys::LoopInfo loop_info(func, dom);
     for (auto&& [_, loop] : loop_info.loops) {
         if (auto info = detect_iteration(loop)) {
-            info->print();
             transform(info.value());
         }
     }

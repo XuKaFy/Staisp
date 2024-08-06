@@ -14,9 +14,6 @@
 #include "trans_SSA.h"
 #include "trans_loop.h"
 
-extern int flag_O1;
-extern int flag_no_backend;
-
 namespace Optimize {
 
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
@@ -42,7 +39,7 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         printf("BEFORE\n%s\n", func->print_func().c_str());
 #endif
         int cnt = 0;
-        const int MAX_OPT_COUNT = flag_O1 ? 8 : 2;
+        const int MAX_OPT_COUNT = 8;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
             opt_cnt = from_bottom_analysis<OptDSE::BlockValue,
                                            OptDSE::TransferFunction>(func->p);
@@ -77,14 +74,6 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         func->p.re_generate();
     }
 
-    // postponed to backend
-    if (flag_no_backend) {
-        for (auto &&func : mod->funsDefined) {
-            reg2mem(func->p);
-            func->p.plain_opt_all();
-            func->p.re_generate();
-        }
-    }
 }
 
 } // namespace Optimize
