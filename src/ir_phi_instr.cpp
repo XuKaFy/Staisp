@@ -63,7 +63,7 @@ void PhiInstr::add_incoming(LabelInstr *blk, Val *val) {
     add_operand(blk);
 }
 
-pInstr make_phi_instr(const pType &type) {
+std::shared_ptr<PhiInstr> make_phi_instr(const pType &type) {
     return std::make_shared<PhiInstr>(type);
 }
 

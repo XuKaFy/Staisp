@@ -14,7 +14,6 @@
 #include "type.h"
 
 namespace Ir {
-
 FuncDefined::FuncDefined(const TypedSym &var, Vector<pType> arg_types,
                          Vector<String> arg_name)
     : Func(var, arg_types), arg_name(arg_name) {
@@ -73,6 +72,43 @@ String FuncDefined::print_func() const {
     whole_function += "}\n";
 
     return whole_function;
+}
+
+
+bool FuncDefined::is_pure() {
+    // if (function_type()->ret_type->type_type() == TYPE_VOID_TYPE || function_type()->arg_type.empty()) return false;
+    for (auto&& arg_type : function_type()->arg_type) {
+        if (!is_basic_type(arg_type)) return false;
+    }
+    for (auto&& block : p) {
+        for (auto&& instr : *block) {
+            switch (instr->instr_type()) {
+                case INSTR_CALL: {
+                    auto call = static_cast<CallInstr*>(instr.get());
+                    auto func = call->operand(0)->usee;
+                    if (func != this) { // recursion do not cancel purity
+                        auto callee = dynamic_cast<FuncDefined*>(func);
+                        if (callee && callee->is_pure()) {
+                            break;
+                        }
+                        return false;
+                    }
+                    break;
+                }
+                case INSTR_LOAD:
+                case INSTR_ITEM:
+                case INSTR_STORE:
+                case INSTR_CAST:
+                case INSTR_MINI_GEP: {
+                    if (instr->operand(0)->usee->name()[0] == '@') {
+                        return false;
+                    }
+                    break;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 pFuncDefined make_func_defined(const TypedSym &var, Vector<pType> arg_types,

@@ -2,7 +2,7 @@
 
 #include <chrono>
 
-// #define ONLY_TEST_FRONTEND
+#define ONLY_TEST_FRONTEND
 
 class Stopwatch {
     std::chrono::time_point<std::chrono::steady_clock> start_time;

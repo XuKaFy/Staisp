@@ -184,4 +184,7 @@ inline void arithmetic_ap(Ir::Instr *cur_instr,
         break;
     }
 };
+
+void pointer_iteration(Ir::BlockedProgram &func, Alys::DomTree &dom);
+
 } // namespace Optimize

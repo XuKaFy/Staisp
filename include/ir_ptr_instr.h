@@ -7,7 +7,7 @@ namespace Ir {
 
 #ifdef USING_MINI_GEP
 struct MiniGepInstr : public Instr {
-    MiniGepInstr(const pVal &val, const pVal &index, bool in_this_dim = false);
+    MiniGepInstr(Val* val, Val* index, bool in_this_dim = false);
 
     String instr_print() const override;
 
@@ -20,6 +20,7 @@ struct MiniGepInstr : public Instr {
 };
 
 pInstr make_mini_gep_instr(const pVal &val, const pVal &index, bool in_this_dim = false);
+pInstr make_mini_gep_instr(Val* val, Val* index, bool in_this_dim = false);
 #endif
 
 struct ItemInstr : public Instr {

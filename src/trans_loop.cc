@@ -279,8 +279,7 @@ bool IndVarPruning_pass::is_pure(Ir::Block *arg_blk) {
                       "non void ret");
             auto callee = call_instr->operand(0)->usee;
             auto callee_func = dynamic_cast<Ir::FuncDefined *>(callee);
-            // function attribute predicate d
-            return false;
+            return callee_func && callee_func->is_pure();
         }
         return true;
     };
@@ -582,6 +581,9 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
             case Ir::INSTR_CMP:
             case Ir::INSTR_BINARY:
             case Ir::INSTR_UNARY:
+            case Ir::INSTR_ITEM:
+            case Ir::INSTR_MINI_GEP:
+
                 arithmetic_ap(cur_instr.get(), [&loop_hdr, this, &arg_blk](
                                                    Ir::Instr *cur_instr) {
                     auto flag = true;
@@ -600,9 +602,6 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
                 });
 
             // item and ctrl instrs
-            case Ir::INSTR_ITEM:
-            case Ir::INSTR_MINI_GEP:
-
             case Ir::INSTR_LOAD:
 
             case Ir::INSTR_SYM:

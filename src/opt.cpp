@@ -61,7 +61,6 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
 
         Alys::DomTree dom_ctx;
         dom_ctx.build_dom(func->p);
-        Alys::LoopInfo loop_info(func->p, dom_ctx);
         Optimize::Canonicalizer_pass(func->p, dom_ctx).ap();
         my_assert(func->p.check_empty_use("Canonicalizer") == 0,
                   "Canonicalizer Failed");
@@ -70,10 +69,10 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
         Optimize::LoopGEPMotion_pass(func->p, dom_ctx).ap();
         my_assert(func->p.check_empty_use("LoopGEPMotion") == 0,
                   "LoopGEPMotion Failed");
-        // printf("%s\n", i->print_func().c_str());
+        func->p.re_generate();
 
-        // // printf("Optimization loop count of function \"%s\": %lu\n",
-        // i->name().c_str(), cnt);
+        pointer_iteration(func->p, dom_ctx);
+
         func->p.re_generate();
     }
 
