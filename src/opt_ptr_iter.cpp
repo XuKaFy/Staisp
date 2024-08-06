@@ -1,3 +1,5 @@
+#include "def.h"
+#include "ir_block.h"
 #include <iostream>
 #include <trans_loop.h>
 
@@ -130,11 +132,19 @@ void transform(const IterationInfo& info) {
         info.loop->loop_cnd_instr->replace_self(cmp.get());
         block->erase(original_phi);
         block->erase(info.loop->loop_cnd_instr);
+        Ir::Block* pred_blk =nullptr;
+        for ( auto in_blk : block->in_blocks()) {
+            if (info.loop->loop_blocks.count(in_blk) == 0) {
+                pred_blk = in_blk;
+                break;
+            }
+        }
+        my_assert(pred_blk, "must exists");
         for (auto&& base : bases) {
-            block->push_behind_end(base);
+            pred_blk->push_behind_end(base);
         }
         for (auto&& bound : bounds) {
-            block->push_behind_end(bound);
+            pred_blk->push_behind_end(bound);
         }
         for (auto&& phi : phis) {
             block->push_behind_end(phi);

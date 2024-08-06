@@ -154,7 +154,7 @@ public:
     static bool
     is_invariant(Ir::Val *val, Ir::Block *loop_hdr,
                  const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
-        if (val->type() == Ir::VAL_CONST)
+        if (val->type() == Ir::VAL_CONST || val->type() == Ir::VAL_GLOBAL)
             return true;
         my_assert(val->type() == Ir::VAL_INSTR, "instruction as value");
         auto val_as_instr = dynamic_cast<Ir::Instr *>(val);

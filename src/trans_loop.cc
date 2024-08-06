@@ -569,7 +569,8 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
                 if (auto [real_gep_it, result] =
                         aliases[cur_base].insert(cur_item);
                     !result) {
-                    hoistable_gep.erase(*real_gep_it);
+                    cur_item->replace_self(*real_gep_it);
+                    cur_item->block()->erase(cur_item);
                 } else {
                     hoistable_gep.insert(cur_item);
                 }

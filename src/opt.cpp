@@ -1,5 +1,6 @@
 #include "opt.h"
 
+#include <cstdio>
 #include <cstdlib>
 #include <reg2mem.h>
 
@@ -21,7 +22,8 @@ namespace Optimize {
 void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
 #ifndef OPT_CONST_PROPAGATE_DEBUG
     mod->remove_unused_function();
-    while (inline_all_function(mod, convertor));
+    while (inline_all_function(mod, convertor))
+        ;
     mod->remove_unused_function();
 #endif
     for (auto &&func : mod->funsDefined) {
@@ -32,8 +34,7 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
     }
     global2local(mod);
     for (auto &&func : mod->funsDefined) {
-        SSA_pass pass(func->p);
-        pass.reconstruct();
+        SSA_pass(func->p).reconstruct();
         func->p.plain_opt_all();
         my_assert(func->p.check_empty_use("SSA") == 0, "SSA Failed");
 #ifdef OPT_CONST_PROPAGATE_DEBUG
