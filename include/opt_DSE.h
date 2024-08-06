@@ -12,7 +12,7 @@ struct BlockValue {
 
     void clear();
 
-    Set<String> uses;
+    Set<Ir::Val*> uses;
 };
 
 struct TransferFunction {

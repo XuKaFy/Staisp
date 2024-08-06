@@ -70,3 +70,7 @@ struct Exception {
     String object;
     String message;
 };
+
+#define USING_MINI_GEP
+
+// #define CATCHING_EXCEPTION

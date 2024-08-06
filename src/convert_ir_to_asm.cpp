@@ -14,8 +14,10 @@
 #include "bkd_func.h"
 #include "def.h"
 #include "imm.h"
+#include "ir_func_defined.h"
 #include "ir_instr.h"
 #include "ir_opr_instr.h"
+#include "ir_val.h"
 #include "type.h"
 #include "value.h"
 #include <iterator>
@@ -29,8 +31,31 @@ namespace Backend {
     my_assert(false, "unreachable");
 }
 
+void remove_unused_initialization(const Ir::pModule &mod)
+{
+    Ir::pFuncDefined unused;
+    for (const auto &i : mod->funsDefined) {
+        if (!(*i).ast_root) { // __buildin_initialization
+            unused = i;
+            break;
+        }
+    }
+    if (!unused) return ;
+    for (const auto &i : unused->users) {
+        my_assert(i->user->type() == Ir::VAL_INSTR, "?");
+        auto instr = dynamic_cast<Ir::Instr*>(i->user);
+        my_assert(instr->instr_type(), Ir::INSTR_CALL);
+        instr->block()->erase(instr);
+        break;
+    }
+    mod->remove_unused_function();
+}
+
 Module Convertor::convert(const Ir::pModule &mod)
 {
+    remove_unused_initialization(mod);
+    mod->remove_unused_function();
+
     Module module;
 
     for (auto && global : mod->globs) {
@@ -681,6 +706,60 @@ struct ConvertBulk {
         } });
     }
 
+#ifdef USING_MINI_GEP
+    void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
+        auto base = instr->operand(0)->usee;
+        auto type = base->ty;
+        type = to_pointed_type(type);
+
+        auto rs = load_address(base);
+        auto rd = toReg(instr.get());
+        if (instr->in_this_dim) {
+            type = make_array_type(type, 0);
+        }
+        type = to_elem_type(type);
+        int step = type->length();
+        auto access = instr->operand(1)->usee;
+        if (auto con = dynamic_cast<Ir::Const*>(access)) {
+            int imm = std::stoi(con->name());
+            if (imm != 0) {
+                int forward = imm * step;
+                auto forwarded  = allocate_reg();
+                if (check_itype_immediate(forward)) {
+                    add({ RegImmInstr {
+                        RegImmInstrType::ADDI, forwarded, rs, forward
+                    } });
+                } else {
+                    add({ RegRegInstr {
+                        RegRegInstrType::ADD, forwarded, rs, li(forward)
+                    } });
+                }
+                rs = forwarded;
+            }
+        } else {
+            auto index = toReg(access);
+            auto forward  = allocate_reg();
+            auto forwarded  = allocate_reg();
+            if ((step & (step - 1)) == 0) {
+                add({ RegImmInstr {
+                    RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+                } });
+            } else {
+                add({ RegRegInstr {
+                    RegRegInstrType::MUL, forward, li(step), index
+                } });
+            }
+            add({ RegRegInstr {
+                RegRegInstrType::ADD, forwarded, rs, forward
+            } });
+            rs = forwarded;
+        }
+        add({  RegInstr{
+            RegInstrType::MV, rd, rs
+        } });
+    }
+#endif
+
     void convert_gep_instr(const Pointer<Ir::ItemInstr> &instr) {
         auto base = instr->operand(0)->usee;
         auto type = base->ty;
@@ -817,6 +896,11 @@ MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, b
         case Ir::INSTR_ITEM:
             bulk.convert_gep_instr(std::static_pointer_cast<Ir::ItemInstr>(instr));
             break;
+#ifdef USING_MINI_GEP
+        case Ir::INSTR_MINI_GEP:
+            bulk.convert_mini_gep_instr(std::static_pointer_cast<Ir::MiniGepInstr>(instr));
+            break;
+#endif
         case Ir::INSTR_ALLOCA:
             bulk.convert_alloca_instr(std::static_pointer_cast<Ir::AllocInstr>(instr));
             break;
@@ -926,6 +1010,8 @@ int Func::translate(StackObjectType type, size_t index) const {
         case StackObjectType::CHILD_ARG:
             return (int)index * 8;
     }
+    unreachable();
+    return -1;
 }
 
 void Func::remove_pseudo() {

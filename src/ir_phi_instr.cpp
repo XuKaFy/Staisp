@@ -2,19 +2,19 @@
 
 namespace Ir {
 
-PhiInstr::PhiInstr(const pType &type)
-    : Instr(is_pointer(type) ? to_pointed_type(type) : type) {};
+PhiInstr::PhiInstr(const pType &type) : Instr(type) {};
 
 void PhiInstr::remove(LabelInstr *label) {
     my_assert(operand_size() % 2 == 0, "?");
-    // printf("PHI BEFORE REMOVE: %s, %lu\n", instr_print().c_str(), operand_size());
-    for (size_t i=0; i<operand_size();) {
+    // printf("PHI BEFORE REMOVE: %s, %lu\n", instr_print().c_str(),
+    // operand_size());
+    for (size_t i = 0; i < operand_size();) {
         if (!operand(i + 1)) {
             printf("EMPTY OPERAND\n");
             i += 2;
             continue;
         }
-        LabelInstr *j = dynamic_cast<LabelInstr*>((operand(i + 1))->usee);
+        LabelInstr *j = dynamic_cast<LabelInstr *>((operand(i + 1))->usee);
         if (j == label) {
             release_operand(i);
             release_operand(i);
@@ -63,7 +63,7 @@ void PhiInstr::add_incoming(LabelInstr *blk, Val *val) {
     add_operand(blk);
 }
 
-pInstr make_phi_instr(const pType &type) {
+std::shared_ptr<PhiInstr> make_phi_instr(const pType &type) {
     return std::make_shared<PhiInstr>(type);
 }
 

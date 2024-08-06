@@ -4,6 +4,45 @@
 
 namespace Ir {
 
+#ifdef USING_MINI_GEP
+// i32* -> IMPOSSIPLE
+// [2 x i32]* -> i32*
+// [2 x [2 x i32]]* -> [2 x i32]*
+pType ex_shell_1(pType ty)
+{
+    return make_pointer_type(to_elem_type(to_pointed_type(ty)));
+}
+
+MiniGepInstr::MiniGepInstr(Val* val, Val* index, bool in_this_dim)
+    : Instr(in_this_dim ? val->ty : ex_shell_1(val->ty)), in_this_dim(in_this_dim)
+{
+    add_operand(val);
+    add_operand(index);
+}
+
+String MiniGepInstr::instr_print() const {
+    String ans = name() + " = getelementptr " +
+                 to_pointed_type(operand(0)->usee->ty)->type_name() + ", " +
+                 operand(0)->usee->ty->type_name() + " " +
+                 operand(0)->usee->name();
+
+    if (!in_this_dim)
+        ans += ", i32 0";
+    ans += String(", ") + operand(1)->usee->ty->type_name() + " " +
+        operand(1)->usee->name();
+    return ans;
+}
+
+pInstr make_mini_gep_instr(const pVal &val, const pVal &index, bool in_this_dim)
+{
+    return make_mini_gep_instr(val.get(), index.get(), in_this_dim);
+}
+pInstr make_mini_gep_instr(Val* val, Val* index, bool in_this_dim)
+{
+    return pInstr(new MiniGepInstr(val, index, in_this_dim));
+}
+#endif
+
 String ItemInstr::instr_print() const {
     String ans = name() + " = getelementptr " +
                  to_pointed_type(operand(0)->usee->ty)->type_name() + ", " +

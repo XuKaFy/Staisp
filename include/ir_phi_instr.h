@@ -61,5 +61,5 @@ struct PhiInstr final : Instr {
 };
 
 // make_phi_instr: create a new PhiInstr with the given type
-[[nodiscard]] pInstr make_phi_instr(const pType &type);
+[[nodiscard]] std::shared_ptr<PhiInstr> make_phi_instr(const pType &type);
 }; // namespace Ir

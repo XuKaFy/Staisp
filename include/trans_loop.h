@@ -109,9 +109,26 @@ class LoopGEPMotion_pass {
     Alys::LoopInfo loop_ctx;
     Map<Ir::Block *, Set<Ir::Block *>> dom_set;
     Vector<Ir::PhiInstr *> new_phi_instrs;
+    Vector<Ir::Instr *> movable_instrs;
 
+#ifdef USING_MINI_GEP
+    Set<Ir::MiniGepInstr *> hoistable_gep;
+#else
     Set<Ir::ItemInstr *> hoistable_gep;
+#endif
     struct item_eq {
+#ifdef USING_MINI_GEP
+        bool operator()(const Ir::MiniGepInstr *lhs,
+                        const Ir::MiniGepInstr *rhs) const {
+            if (lhs->operand(0)->usee != rhs->operand(0)->usee)
+                return true;
+            if (lhs->in_this_dim != rhs->in_this_dim)
+                return true;
+            if (lhs->operand(1)->usee != rhs->operand(1)->usee)
+                return true;
+            return false;
+        }
+#else
         bool operator()(const Ir::ItemInstr *lhs,
                         const Ir::ItemInstr *rhs) const {
             if (lhs->operand(0)->usee != rhs->operand(0)->usee)
@@ -124,21 +141,36 @@ class LoopGEPMotion_pass {
             }
             return false;
         }
+#endif
     } item_cmp;
+#ifdef USING_MINI_GEP
+    Map<Ir::Val *, std::set<Ir::MiniGepInstr *, decltype(item_cmp)>> aliases;
+#else
     Map<Ir::Val *, std::set<Ir::ItemInstr *, decltype(item_cmp)>> aliases;
+#endif
 
 public:
     void clean_up();
     static bool
     is_invariant(Ir::Val *val, Ir::Block *loop_hdr,
                  const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
-        if (val->type() == Ir::VAL_CONST)
+        if (val->type() == Ir::VAL_CONST || val->type() == Ir::VAL_GLOBAL)
             return true;
         my_assert(val->type() == Ir::VAL_INSTR, "instruction as value");
         auto val_as_instr = dynamic_cast<Ir::Instr *>(val);
         return val_as_instr->block() != loop_hdr &&
                Alys::is_dom(loop_hdr, val_as_instr->block(), dom_set);
     }
+
+    static auto is_func_parameter(Ir::Val *arg_val,
+                                  const Ir::BlockedProgram &cur_func) {
+        for (auto para : cur_func.params()) {
+            if (para.get() == arg_val) {
+                return true;
+            }
+        }
+        return false;
+    };
 
     LoopGEPMotion_pass(Ir::BlockedProgram &arg_func, Alys::DomTree &arg_dom);
     void process_cur_blk(Ir::Block *arg_blk, Ir::Block *loop_hdr);
@@ -147,4 +179,22 @@ public:
 };
 
 void instr_move(Ir::Instr *cur_instr, Ir::Block *new_blk);
+// manipulate calculatable(arithmeic)
+inline void arithmetic_ap(Ir::Instr *cur_instr,
+                          std::function<void(Ir::Instr *)> f) {
+    switch (cur_instr->instr_type()) {
+    case Ir::INSTR_BINARY:
+    case Ir::INSTR_UNARY:
+    case Ir::INSTR_CMP:
+    case Ir::INSTR_CAST:
+        f(cur_instr);
+        break;
+    default:
+        my_assert(false, "unexpected instruction type");
+        break;
+    }
+};
+
+void pointer_iteration(Ir::BlockedProgram &func, Alys::DomTree &dom);
+
 } // namespace Optimize

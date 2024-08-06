@@ -81,19 +81,29 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
     if (is_same_type(val->ty, ty)) {
         return val;
     }
-    // decay
-    if (is_pointer(ty) && is_pointer(val->ty) &&
-        is_same_type(to_pointed_type(ty),
-                     to_elem_type(to_pointed_type(val->ty)))) {
-        // printf("found %s decay from %s to %s\n", val->name(),
-        // val->ty->type_name(), ty->type_name());
-        auto imm = _cur_ctx.cpool.add(ImmValue(0));
-        auto r = Ir::make_item_instr(val, {imm});
-        if (!is_same_type(ty, r->ty)) {
-            throw_error(root, -1, "decay error?");
+    if (is_pointer(ty) && is_pointer(val->ty)) {
+        // decay for i32** -> i32*
+        if (is_pointer(to_pointed_type(val->ty)) && 
+            is_same_type(to_pointed_type(ty), to_pointed_type(to_pointed_type(val->ty)))) {
+            return add_instr(Ir::make_load_instr(val));
         }
-        add_instr(r);
-        return r;
+        // decay for [10 x i32]* -> i32*
+        if (is_array(to_pointed_type(val->ty)) && 
+            is_same_type(to_pointed_type(ty), to_elem_type(to_pointed_type(val->ty)))) {
+            // printf("found %s decay from %s to %s\n", val->name(),
+            // val->ty->type_name(), ty->type_name());
+            auto imm = _cur_ctx.cpool.add(ImmValue(0));
+    #ifdef USING_MINI_GEP
+            auto r = Ir::make_mini_gep_instr(val, imm);
+    #else
+            auto r = Ir::make_item_instr(val, {imm});
+    #endif
+            if (!is_same_type(ty, r->ty)) {
+                throw_error(root, -1, "decay error?");
+            }
+            add_instr(r);
+            return r;
+        }
     }
     if (!is_castable(val->ty, ty)) {
         printf("Message: not castable from %s to %s\n",
@@ -365,8 +375,9 @@ Ir::pVal Convertor::analyze_left_value(const pNode &root,
             int b[2] = {0};
             // %1 = alloca [2 x i32]        | %1 -> [2 x i32]*
             a[1]:   %2 = load i32*, i32** %0
-                    %3 = gep i32, i32* %1, i64 1
-            b[1]:   %2 = gep [2 x i32], [2 x i32]* %1, i64 0, i64 1
+                    %3 = gep i32, i32* %2, i64 1
+            b[1]:   %2 = gep [2 x i32], [2 x i32]* %1, i64 0, i64 0
+                    %3 = gep i32, i32* %2, i64 1
         }
         */
         auto r = std::dynamic_pointer_cast<Ast::ItemNode>(root);
@@ -376,6 +387,30 @@ Ir::pVal Convertor::analyze_left_value(const pNode &root,
             throw_error(r->v, 25, "not an array");
         }
         // printf("Array Type: %s\n", array->ty->type_name());
+#ifdef USING_MINI_GEP
+        Ir::pVal item_instr = array;
+        // 这里分两种清空
+        // 一种是 int [][10]，传进来应该要是 [10 x i32]**
+        // 一种是 int [10][10]，传进来是 [10 x [10 x i32]]*
+        // 他们嵌套层数一样，但是最外围都要去除
+        // 不过，去除的方式不一样
+        if (is_array(to_pointed_type(item_instr->ty))) {
+            // 若是 int*[] 形式，则抛弃最外层
+            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, analyze_value(*r->index.begin())));
+        } else {
+            // 若是 int** 形式，则直接在最外层寻址
+            item_instr = add_instr(Ir::make_load_instr(item_instr));
+            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, analyze_value(*r->index.begin()), true));
+        }
+        for (auto i = std::next(r->index.begin()); i != r->index.end(); ++i) {
+            auto index = analyze_value(*i);
+            if (!is_integer(index->ty)) {
+                throw_error(*i, 14, "type of index should be integer");
+            }
+            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, index));
+        }
+        return item_instr;
+#else
         Vector<Ir::pVal> indexs;
         for (const auto &i : r->index) {
             indexs.push_back(analyze_value(i));
@@ -386,6 +421,7 @@ Ir::pVal Convertor::analyze_left_value(const pNode &root,
         auto itemptr = Ir::make_item_instr(array, indexs);
         add_instr(itemptr);
         return itemptr;
+#endif
     }
     case NODE_SYM: {
         auto r = std::dynamic_pointer_cast<Ast::SymNode>(root);
@@ -414,8 +450,11 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
     case NODE_ITEM:
     case NODE_SYM: {
         auto lv = analyze_left_value(root, request_not_const);
-        // printf("analyze value: from lv %s\n", lv->ty->type_name());
-        if (is_array(to_pointed_type(lv->ty))) { // 数组不能解引用传递
+        // 不能解引用传递的有：
+        // 1. 数组指针，即 int[][10] -> [10 x i32]**，int[] -> i32** 
+        // 2. 数组，即 int[10][10] -> [10 x [10 x i32]]*，int[10] -> [10 x i32]*
+        // 规律是都是指向非 basic type
+        if (!is_basic_type(to_pointed_type(lv->ty))) {
             return lv;
         }
         return add_instr(Ir::make_load_instr(lv));
@@ -768,7 +807,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         Ir::pInstr tmp;
         auto ty = analyze_type(r->var.n);
         if (is_array(ty)) {
-            add_instr(tmp = Ir::make_alloc_instr(ty));
+            tmp = add_instr(Ir::make_alloc_instr(ty));
             _env.env()->set(r->var.name, {tmp, r->is_const});
             if (r->val) {
                 if (r->val->type != NODE_ARRAY_VAL) {

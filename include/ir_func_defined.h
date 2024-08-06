@@ -23,6 +23,8 @@ struct FuncDefined : public Func {
     Pointer<Ast::FuncDefNode> ast_root;
 
     Vector<String> arg_name;
+
+    bool is_pure();
 };
 
 using pFuncDefined = Pointer<FuncDefined>;

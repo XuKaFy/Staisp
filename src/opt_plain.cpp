@@ -1,4 +1,6 @@
+#include <ir_call_instr.h>
 #include <ir_cast_instr.h>
+#include <ir_func_defined.h>
 
 #include "alys_dom.h"
 #include "ir_block.h"
@@ -202,13 +204,35 @@ bool can_be_removed(Ir::InstrType t) {
     return true;
 }
 
+bool is_pure_function(const Ir::pInstr& instr) {
+    auto call_instr = dynamic_cast<Ir::CallInstr *>(instr.get());
+    auto callee = call_instr ? call_instr->operand(0)->usee : nullptr;
+    auto callee_func = dynamic_cast<Ir::FuncDefined *>(callee);
+    return callee_func && callee_func->is_pure();
+}
+
 void BlockedProgram::opt_remove_dead_code() {
     my_assert(!blocks.empty(), "?");
     for (const auto &block : blocks) {
         for (auto it = --block->end(); it != block->begin(); --it) {
-            if ((*it)->users.empty() && can_be_removed((*it)->instr_type())) {
+            if ((*it)->users.empty() && (can_be_removed((*it)->instr_type()) || is_pure_function(*it))) {
                 it = block->erase(it);
             }
+        }
+        bool terminated = false;
+        for (auto it = block->begin(); it != block->end(); ) {
+            if ((*it)->is_terminator()) {
+                if (!terminated) {
+                    terminated = true;
+                } else {
+                    it = block->erase(it);
+                    continue;
+                }
+            } else if(terminated) {
+                it = block->erase(it);
+                continue;
+            }
+            ++it;
         }
     }
 }

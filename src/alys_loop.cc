@@ -48,13 +48,12 @@ void NaturalLoopBody::handle_indvar(
 
         auto loop_cnd =
             dynamic_cast<Ir::BrCondInstr *>(back_instr)->operand(0)->usee;
-        auto loop_cnd_instr = dynamic_cast<Ir::CmpInstr *>(loop_cnd);
+        loop_cnd_instr = dynamic_cast<Ir::CmpInstr *>(loop_cnd);
 
         Ir::Val *lhs;
         Ir::Val *rhs;
-        Ir::CmpType cmp_op;
 
-        std::function<bool(Ir::Val *, Ir::Val *&)> is_invariant =
+        auto is_invariant =
             [&dom_set, this](Ir::Val *cur_val, Ir::Val *&checker_val) -> bool {
             auto cur_val_instr = dynamic_cast<Ir::Instr *>(cur_val);
             checker_val = cur_val;
@@ -69,7 +68,7 @@ void NaturalLoopBody::handle_indvar(
             return false;
         };
 
-        std::function<bool(Ir::Val *, Ir::Val *&)> is_not_invariant =
+        auto is_not_invariant =
             [&is_invariant](Ir::Val *cur_val, Ir::Val *&checker_val) -> bool {
             return !is_invariant(cur_val, checker_val);
         };
@@ -79,24 +78,28 @@ void NaturalLoopBody::handle_indvar(
                     loop_cnd_instr, cmp_op, lhs, rhs, is_not_invariant,
                     is_invariant)) {
                 ind = lhs;
+                bound = rhs;
             } else if (Optimize::cmp_extractor<Ir::Val *, Ir::Val *, true>(
                            loop_cnd_instr, cmp_op, lhs, rhs, is_invariant,
                            is_not_invariant)) {
                 ind = rhs;
+                bound = lhs;
             } else {
-                ind = nullptr;
+                ind = bound = nullptr;
             }
         } else {
             if (Optimize::cmp_extractor<Ir::Val *, Ir::Val *, false>(
                     loop_cnd_instr, cmp_op, lhs, rhs, is_not_invariant,
                     is_invariant)) {
                 ind = lhs;
+                bound = rhs;
             } else if (Optimize::cmp_extractor<Ir::Val *, Ir::Val *, false>(
                            loop_cnd_instr, cmp_op, lhs, rhs, is_invariant,
                            is_not_invariant)) {
                 ind = rhs;
+                bound = lhs;
             } else {
-                ind = nullptr;
+                ind = bound = nullptr;
             }
         }
     }
@@ -129,24 +132,35 @@ LoopInfo::LoopInfo(Ir::BlockedProgram &p, const DomTree &dom_ctx) {
     // print_loop();
 }
 
+
+std::string NaturalLoopBody::print() {
+    std::string ret;
+    ret += "loop header: ";
+    ret += header->label()->name();
+    if (ind) {
+        ret += "\ninduction var: ";
+        ret += dynamic_cast<Ir::Instr *>(ind)->instr_print();
+        ret += "\nbounding val: ";
+        ret += bound->name();
+        ret += "\nrange operator: ";
+        ret += Ir::gCmpInstrName[cmp_op];
+    }
+    ret += "\nloop blks: ";
+    for (auto blk : loop_blocks) {
+        ret += blk->label()->name() += " ";
+    }
+    ret += "\n";
+    return ret;
+}
+
+
 void LoopInfo::print_loop() const {
     printf("%zu: Total NaturalLoop cnts\n", loops.size());
     std::string ret;
-    for (auto [loop_hdr, loop_body] : loops) {
-        ret += "loop header: ";
-        ret += loop_hdr->label()->name();
-        ret += "induction var: ";
-        ret += loop_body->ind
-                   ? dynamic_cast<Ir::Instr *>(loop_body->ind)->instr_print()
-                   : "null";
-        ret += "\n\tloop blks: ";
-        for (auto blk : loop_body->loop_blocks) {
-            ret += blk->label()->name() += " ";
-        }
-        ret += "\n";
+    for (auto&& [loop_hdr, loop_body] : loops) {
+        ret += loop_body->print();
     }
-
-    std::cerr << ret;
+    std::cerr << ret << std::flush;
 }
 
 auto build_dom_set(const DomTree &dom_ctx)
