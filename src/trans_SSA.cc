@@ -44,10 +44,7 @@ SSA_pass::SSA_pass(Ir::BlockedProgram &arg_function) : cur_func(arg_function) {
 auto SSA_pass::entry_blk() -> Ir::Block * { return cur_func.front().get(); }
 
 auto SSA_pass::blk_def(Ir::Block *block, vrtl_reg *blk_def_val) -> Ir::pUse {
-    Ir::pUse blk_use =
-        std::make_shared<Ir::Use>(block->label().get(), blk_def_val);
-    blk_def_val->users.push_back(blk_use);
-    return blk_use;
+    return blk_def_val->add_use(block->label().get());
 }
 
 auto SSA_pass::undef_val(vrtl_reg *variable) -> Ir::Const * {
@@ -71,13 +68,7 @@ auto SSA_pass::undef_val(vrtl_reg *variable) -> Ir::Const * {
 
 auto SSA_pass::erase_blk_def(Ir::pUse &blk_def_use) -> void {
     auto *blk_def_val = blk_def_use->usee;
-    for (auto it = blk_def_val->users.begin(); blk_def_val->users.end() != it;
-         it++) {
-        if (*it == blk_def_use) {
-            blk_def_val->users.erase(it);
-            break;
-        }
-    }
+    blk_def_val->remove_use(blk_def_use);
 }
 
 // the defintion of $variable in $block is $blk_def_val
@@ -181,7 +172,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
             same = *trivial_phi_ops.begin();
             // my_assert(same != phi, "none of operands can be phi itself");
             if (same == phi) {
-                my_assert(phi->users.empty(), "trivial phi can not be used");
+                my_assert(phi->users().empty(), "trivial phi can not be used");
             }
             return true;
         }
@@ -201,7 +192,7 @@ auto SSA_pass::tryRemoveTrivialPhi(Ir::PhiInstr *phi) -> vrtl_reg * {
     my_assert(same, "nullptr to some val in phi incoming tuples");
     Vector<Ir::PhiInstr *> phiUsers;
 
-    for (auto &&use : phi->users) {
+    for (auto &&use : phi->users()) {
         my_assert(use->usee == phi,
                   "the source of such use-def edge must be phi instr");
         auto user = use->user;
@@ -321,7 +312,7 @@ void SSA_pass::reconstruct() {
                 auto src_ptr = load->operand(0);
                 if (alloca_vars.count(src_ptr->usee) > 0) {
                     load->replace_self(use_val(src_ptr->usee, cur_block));
-                    my_assert(load->users.empty(), "removable load instr");
+                    my_assert(load->users().empty(), "removable load instr");
                     cur_block->erase(it);
                 } else {
                     my_assert(pointer_verifier(src_ptr->usee),
@@ -356,7 +347,7 @@ SSA_pass::~SSA_pass() {
             if (promotable_filter(ent_instr)) {
                 // my_assert(ent_instr->users.empty(), "single value is
                 // removable");
-                if (ent_instr->users.empty()) {
+                if (ent_instr->users().empty()) {
                     ent_instr_it = entry_blk()->erase(ent_instr_it);
                     continue;
                 }

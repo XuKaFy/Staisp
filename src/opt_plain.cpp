@@ -215,7 +215,7 @@ void BlockedProgram::opt_remove_dead_code() {
     my_assert(!blocks.empty(), "?");
     for (const auto &block : blocks) {
         for (auto it = --block->end(); it != block->begin(); --it) {
-            if ((*it)->users.empty() && (can_be_removed((*it)->instr_type()) || is_pure_function(*it))) {
+            if ((*it)->users().empty() && (can_be_removed((*it)->instr_type()) || is_pure_function(*it))) {
                 it = block->erase(it);
             }
         }
@@ -377,13 +377,13 @@ void optimize_accumulate(const pBlock &block) {
             auto rhs0 = bin->operand(1)->usee;
             auto acc = bin;
             int cnt = 0;
-            while (bin && bin->binType == INSTR_ADD && bin->users.size() == 1) {
+            while (bin && bin->binType == INSTR_ADD && bin->users().size() == 1) {
                 auto rhs = bin->operand(1)->usee;
                 if (rhs != rhs0) break;
                 ++cnt;
                 merged.insert(bin);
                 acc = bin;
-                bin = dynamic_cast<Ir::BinInstr*>(bin->users[0]->user);
+                bin = dynamic_cast<Ir::BinInstr*>(bin->users().front()->user);
             }
             if (cnt <= 1) continue;
             if (lhs == rhs0) {

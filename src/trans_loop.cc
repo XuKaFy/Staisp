@@ -190,7 +190,7 @@ void Canonicalizer_pass::ap() {
         auto r_label =
             dynamic_cast<Ir::LabelInstr *>(back_instr->operand(2)->usee);
 
-        if (l_label != r_label && loop_comparator->users.size() == 1 &&
+        if (l_label != r_label && loop_comparator->users().size() == 1 &&
             Alys::is_dom(r_label->block(), cur_bb.get(), dom_set) &&
             !Alys::is_dom(l_label->block(), cur_bb.get(), dom_set)) {
             back_instr->release_operand(1);
@@ -269,7 +269,7 @@ bool IndVarPruning_pass::is_Mono(Ir::Val *val, Ir::Block *loop_hdr, bool dir,
 
 bool IndVarPruning_pass::is_pure(Ir::Block *arg_blk) {
     auto is_pure_instr = [](const Ir::pInstr &arg_instr) -> bool {
-        if (arg_instr->users.empty())
+        if (arg_instr->users().empty())
             return false;
 
         my_assert(arg_instr->instr_type() != Ir::INSTR_STORE, "non-store");
@@ -294,7 +294,7 @@ bool IndVarPruning_pass::is_pure(Ir::Block *arg_blk) {
 
 bool IndVarPruning_pass::is_closure_loop(Ir::Block *block, Ir::Block *exit) {
     for (auto cur_instr : *block) {
-        for (auto instr_Use : cur_instr->users) {
+        for (auto &&instr_Use : cur_instr->users()) {
             auto cur_user = instr_Use->user;
             if (auto usr_instr = dynamic_cast<Ir::Instr *>(cur_user);
                 usr_instr) {
@@ -672,8 +672,8 @@ void LoopGEPMotion_pass::ap() {
             // printf("%s \t use cnt: %zu\n", item->instr_print().c_str(),
             //        item->users.size());
             // instr_move(item, pred_blk);
-            if (item->users.size() == 1) {
-                auto cur_user = item->users.front()->user;
+            if (item->users().size() == 1) {
+                auto cur_user = item->users().front()->user;
                 if (auto store = dynamic_cast<Ir::StoreInstr *>((cur_user));
                     store) {
                     auto store_val_src = store->operand(1)->usee;

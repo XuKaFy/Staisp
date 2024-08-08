@@ -41,7 +41,7 @@ void remove_unused_initialization(const Ir::pModule &mod)
         }
     }
     if (!unused) return ;
-    for (const auto &i : unused->users) {
+    for (const auto &i : unused->users()) {
         my_assert(i->user->type() == Ir::VAL_INSTR, "?");
         auto instr = dynamic_cast<Ir::Instr*>(i->user);
         my_assert(instr->instr_type(), Ir::INSTR_CALL);
@@ -867,7 +867,7 @@ MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, b
         case Ir::INSTR_CALL: {
             auto terminator = *block->rbegin();
             tail = terminator->instr_type() == Ir::INSTR_RET && next == terminator
-                    && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+                    && instr->users().size() == 1 && instr->users().front()->user == terminator.get();
             bulk.convert_call_instr(tail, std::static_pointer_cast<Ir::CallInstr>(instr));
             break;
         }
@@ -883,7 +883,7 @@ MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, b
         case Ir::INSTR_CMP: {
             auto terminator = *block->rbegin();
             tail = terminator->instr_type() == Ir::INSTR_BR_COND && next == terminator
-                    && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+                    && instr->users().size() == 1 && instr->users().front()->user == terminator.get();
             bulk.convert_cmp_instr(tail, terminator, std::static_pointer_cast<Ir::CmpInstr>(instr));
             break;
         }

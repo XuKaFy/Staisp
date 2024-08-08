@@ -17,7 +17,7 @@
 namespace Ir {
 
 void Block::erase_from_phi() {
-    for (auto& use : label()->users) {
+    for (auto& use : label()->users()) {
         if (!use) {
             printf("Warning [erase from phi] Label %s has empty use\n", label()->name().c_str());
             continue;
@@ -88,7 +88,7 @@ bool BlockedProgram::check_empty_use(String state)
 {
     for (auto i : *this) {
         for (auto j : *i) {
-            for (auto k : j->users) {
+            for (auto k : j->users()) {
                 if(!k) {
                     printf("IN STATE %s\n", state.c_str());
                     printf("    EMPTY USE CHECKED in %s\n", j->name().c_str());
@@ -107,8 +107,7 @@ void Block::squeeze_out(bool selected) {
     // because of phi will remove itself from the use-def chain
     // so label()->users will be modified
     // we SHOULD copy users
-    auto users = label()->users;
-    for (auto i : users) {
+    for (auto i : label()->users()) {
         auto phi = dynamic_cast<Ir::PhiInstr*>(i->user);
         if (phi && phi->block() == label_will_remove->block()) {
             // printf("SELECT BRANCH WITH PHI [%s]\n", phi->instr_print().c_str());
@@ -262,7 +261,7 @@ void BlockedProgram::re_generate() const {
 
 Set<Block *> Block::in_blocks() const {
     Set<Block *> ans;
-    for (auto &&i : label()->users) {
+    for (auto &&i : label()->users()) {
         auto user = static_cast<Instr *>(i->user);
         if (user->instr_type() != INSTR_BR && user->instr_type() != INSTR_BR_COND)
             continue;
