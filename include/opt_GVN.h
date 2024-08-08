@@ -5,13 +5,11 @@
 #include "ir_block.h"
 #include "ir_constant.h"
 #include "ir_instr.h"
-#include "ir_opr_instr.h"
 #include "ir_val.h"
 #include <cstddef>
 #include <cstdio>
 #include <deque>
 #include <functional>
-#include <memory>
 #include <set>
 #include <utility>
 
@@ -68,6 +66,11 @@ struct TransferFunction {
     void operator()(Ir::Block *p, const BlockValue &IN, const BlockValue &OUT);
 };
 using DomPredicate = Map<Ir::Block *, Set<Ir::Block *>>;
+
+struct exp_eq {
+    bool operator()(const Exp &a, const Exp &b) const;
+};
+
 class GVN_pass {
 
     using Edge = Pair<Ir::Block *, Ir::Block *>;
@@ -89,71 +92,12 @@ public:
     void handle_cur_instr(Ir::pInstr cur_instr, Ir::Block *cur_blk,
                           std::function<void(Ir::Instr *)> symbolic_evaluation);
     static Vector<Ir::Val *> collect_usees(Ir::Instr *instr);
-    struct exp_eq {
-        bool operator()(const Exp &a, const Exp &b) const {
-            auto lhs_instr = a.instr;
-            auto rhs_instr = b.instr;
-            if (lhs_instr->instr_type() < rhs_instr->instr_type())
-                return true;
-            if (lhs_instr->operand_size() < rhs_instr->operand_size())
-                return true;
-            if (lhs_instr->instr_type() == Ir::INSTR_BINARY) {
-                auto bin_lhs = static_cast<Ir::BinInstr *>(lhs_instr);
-                auto bin_rhs = static_cast<Ir::BinInstr *>(rhs_instr);
-                if (bin_lhs->binType < bin_rhs->binType)
-                    return true;
-                else {
-                    switch (bin_lhs->binType) {
-                    // abelian operation
-                    case Ir::INSTR_ADD:
-                    case Ir::INSTR_XOR:
-                    case Ir::INSTR_AND:
-                    case Ir::INSTR_OR:
-                    case Ir::INSTR_MUL:
-                    case Ir::INSTR_FADD:
-                    case Ir::INSTR_FMUL: {
-                        auto lhs_usees = collect_usees(lhs_instr);
-                        auto rhs_usees = collect_usees(rhs_instr);
-                        if (lhs_usees[0] == rhs_usees[0] &&
-                            lhs_usees[1] == rhs_usees[1])
-                            return false;
-                        else if (lhs_usees[0] == rhs_usees[1] &&
-                                 lhs_usees[1] == rhs_usees[0])
-                            return false;
-                        else
-                            return true;
-                        break;
-                    }
-
-                    case Ir::INSTR_SUB:
-                    case Ir::INSTR_FSUB:
-                    case Ir::INSTR_SDIV:
-                    case Ir::INSTR_SREM:
-                    case Ir::INSTR_UDIV:
-                    case Ir::INSTR_UREM:
-                    case Ir::INSTR_FDIV:
-                    case Ir::INSTR_FREM:
-                    case Ir::INSTR_ASHR:
-                    case Ir::INSTR_LSHR:
-                    case Ir::INSTR_SHL:
-                    case Ir::INSTR_SLT:
-                        break;
-                    }
-                }
-            }
-            for (size_t i = 0; i < lhs_instr->operand_size(); ++i) {
-                if (lhs_instr->operand(i)->usee < rhs_instr->operand(i)->usee)
-                    return true;
-            }
-
-            return false;
-        }
-
-    } exp_predicate;
+    exp_eq exp_predicate;
 
     std::set<Exp, decltype(exp_predicate)> exp_pool{exp_predicate};
     static bool is_block_definable(Ir::Block *arg_blk, Ir::Instr *arg_instr,
-                                   DomPredicate dom_set);
+                                   DomPredicate dom_set,
+                                   Ir::BlockedProgram &cur_func);
     void ap();
     GVN_pass(Ir::BlockedProgram &arg_func, Alys::DomTree &dom_ctx);
     Exp perform_symbolic_evaluation(Ir::Instr *arg_instr, Ir::Block *arg_blk);

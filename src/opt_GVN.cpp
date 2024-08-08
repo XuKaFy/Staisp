@@ -17,7 +17,6 @@ namespace OptGVN {
 
 GVN_pass::GVN_pass(Ir::BlockedProgram &arg_func, Alys::DomTree &dom_ctx)
     : dom_ctx(dom_ctx), cur_func(arg_func) {
-    dom_ctx.print_dom_tree();
     dom_set = Alys::build_dom_set(dom_ctx);
     auto rpo_builder = [this]() -> auto {
         auto rpo = std::deque<Ir::Block *>{};
@@ -99,9 +98,10 @@ void GVN_pass::perform_congruence_finding(Ir::Instr *arg_instr, Exp *exp) {
             real_instr->block()->erase(real_instr);
         } else {
             auto target = dom_lca(arg_instr->block(), real_instr->block());
-            my_assert(is_block_definable(target, real_instr, dom_set) &&
-                          is_block_definable(target, arg_instr, dom_set),
-                      "semantics of usee");
+            my_assert(
+                is_block_definable(target, real_instr, dom_set, cur_func) &&
+                    is_block_definable(target, arg_instr, dom_set, cur_func),
+                "semantics of usee");
             Optimize::instr_move(real_instr, target);
             arg_instr->replace_self(real_instr);
             arg_instr->block()->erase(arg_instr);
@@ -216,7 +216,8 @@ void GVN_pass::process_out_blks(Ir::Block *arg_blk) {
 }
 
 bool GVN_pass::is_block_definable(Ir::Block *arg_blk, Ir::Instr *arg_instr,
-                                  DomPredicate dom_set) {
+                                  DomPredicate dom_set,
+                                  Ir::BlockedProgram &cur_func) {
     for (auto usee : collect_usees(arg_instr)) {
         switch (usee->type()) {
         case Ir::VAL_CONST:
@@ -227,6 +228,8 @@ bool GVN_pass::is_block_definable(Ir::Block *arg_blk, Ir::Instr *arg_instr,
         case Ir::VAL_FUNC:
             break;
         case Ir::VAL_INSTR: {
+            if (Optimize::LoopGEPMotion_pass::is_func_parameter(usee, cur_func))
+                continue;
             auto cur_usee_instr = static_cast<Ir::Instr *>(usee);
             if (!Alys::is_dom(arg_blk, cur_usee_instr->block(), dom_set))
                 return false;
@@ -243,5 +246,88 @@ Vector<Ir::Val *> GVN_pass::collect_usees(Ir::Instr *instr) {
         usees.push_back(instr->operand(i)->usee);
     }
     return usees;
+}
+
+bool exp_eq::operator()(const Exp &a, const Exp &b) const {
+
+    auto lhs_instr = a.instr;
+    auto rhs_instr = b.instr;
+    if (lhs_instr->instr_type() < rhs_instr->instr_type())
+        return true;
+    if (lhs_instr->operand_size() < rhs_instr->operand_size())
+        return true;
+    else if (lhs_instr->operand_size() > rhs_instr->operand_size())
+        return false;
+    if (lhs_instr->instr_type() == Ir::INSTR_BINARY) {
+        auto bin_lhs = static_cast<Ir::BinInstr *>(lhs_instr);
+        auto bin_rhs = static_cast<Ir::BinInstr *>(rhs_instr);
+        if (bin_lhs->binType < bin_rhs->binType)
+            return true;
+        else if (bin_lhs->binType > bin_rhs->binType)
+            return false;
+        else {
+            switch (bin_lhs->binType) {
+            // abelian operation
+            case Ir::INSTR_ADD:
+            case Ir::INSTR_XOR:
+            case Ir::INSTR_AND:
+            case Ir::INSTR_OR:
+            case Ir::INSTR_MUL:
+            case Ir::INSTR_FADD:
+            case Ir::INSTR_FMUL: {
+                auto lhs_usees = GVN_pass::collect_usees(lhs_instr);
+                auto rhs_usees = GVN_pass::collect_usees(rhs_instr);
+                if (lhs_usees[0] == rhs_usees[0] &&
+                    lhs_usees[1] == rhs_usees[1])
+                    return false;
+                else if (lhs_usees[0] == rhs_usees[1] &&
+                         lhs_usees[1] == rhs_usees[0])
+                    return false;
+                else
+                    return true;
+                break;
+            }
+
+            case Ir::INSTR_SUB:
+            case Ir::INSTR_FSUB:
+            case Ir::INSTR_SDIV:
+            case Ir::INSTR_SREM:
+            case Ir::INSTR_UDIV:
+            case Ir::INSTR_UREM:
+            case Ir::INSTR_FDIV:
+            case Ir::INSTR_FREM:
+            case Ir::INSTR_ASHR:
+            case Ir::INSTR_LSHR:
+            case Ir::INSTR_SHL:
+            case Ir::INSTR_SLT:
+                break;
+            }
+        }
+    }
+
+    if (lhs_instr->instr_type() == Ir::INSTR_CMP) {
+        auto cmp_lhs = static_cast<Ir::CmpInstr *>(lhs_instr);
+        auto cmp_rhs = static_cast<Ir::CmpInstr *>(rhs_instr);
+        if (cmp_lhs->cmp_type < cmp_rhs->cmp_type)
+            return true;
+        else if (cmp_lhs->cmp_type > cmp_rhs->cmp_type)
+            return false;
+    }
+
+    if (lhs_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+        auto gep_lhs = static_cast<Ir::MiniGepInstr *>(lhs_instr);
+        auto gep_rhs = static_cast<Ir::MiniGepInstr *>(rhs_instr);
+        if (gep_lhs->in_this_dim < gep_rhs->in_this_dim)
+            return true;
+        else if (gep_lhs->in_this_dim > gep_rhs->in_this_dim)
+            return false;
+    }
+
+    for (size_t i = 0; i < lhs_instr->operand_size(); ++i) {
+        if (lhs_instr->operand(i)->usee < rhs_instr->operand(i)->usee)
+            return true;
+    }
+
+    return false;
 }
 } // namespace OptGVN
