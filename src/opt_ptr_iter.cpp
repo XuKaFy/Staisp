@@ -70,7 +70,7 @@ std::optional<IterationInfo> detect_iteration(Alys::pNaturalLoopBody loop) {
                 // }
             }
             if (step == nullptr) return {};
-            if (val->users.size() != 1 || val->users[0]->user != phi) {
+            if (val->users().size() != 1 || val->users().at(0)->user != phi) {
                 return {};
             }
             iterations.emplace(val, IterationInfo::SelfIncrement {step, label, negative});
@@ -80,7 +80,7 @@ std::optional<IterationInfo> detect_iteration(Alys::pNaturalLoopBody loop) {
     assert (from);
     assert (!iterations.empty()); // no iteration? fancy case!
     std::unordered_map<Ir::Val*, std::vector<Ir::MiniGepInstr*>> geps;
-    for (auto&& use : phi->users) {
+    for (auto&& use : phi->users()) {
         auto user = use->user;
         if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(user)) {
             // OK if used by GEP

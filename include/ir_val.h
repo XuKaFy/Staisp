@@ -36,14 +36,30 @@ struct Val {
     void set_name(String name);
     String name() const;
 
-    Vector<pUse> users;
+    const Vector<pUse>& users() const { return _users; }
+
     pType ty;
 
     void replace_self(Val *val);
 
     virtual ValType type() const = 0;
 
+    // add a pure use
+    // DONT use this except you know what you are doing
+    pUse add_use(User* user);
+
+    // remove a pure use
+    // DONT use this except you know what you are doing
+    bool remove_use(pUse use);
+
 private:
+    friend struct User;
+    friend void val_release(Val *val);
+    friend void user_release(User *user);
+    friend void val_release_use(Val *usee, const pUse &i);
+    friend void user_release_use(User *user, const pUse &i);
+
+    Vector<pUse> _users;
     String _name;
 };
 using pVal = Pointer<Val>;
@@ -59,6 +75,8 @@ struct User : public Val {
     void change_operand(size_t index, const pVal &val);
     void release_operand(size_t index);
 
+    const Vector<pUse>& operands() const { return _operands; }
+
     pUse operand(size_t index) const;
     size_t operand_size() const;
 
@@ -68,7 +86,7 @@ private:
     friend void val_release_use(Val *usee, const pUse &i);
     friend void user_release_use(User *user, const pUse &i);
     
-    Vector<pUse> operands;
+    Vector<pUse> _operands;
 };
 using pUser = Pointer<User>;
 
