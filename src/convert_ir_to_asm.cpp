@@ -671,7 +671,7 @@ struct ConvertBulk {
             return;
         }
         if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(address);
-                gep && gep->users.size() == 1 && gep->users[0]->user == instr.get()) {
+                gep && gep->users().size() == 1 && gep->users()[0]->user == instr.get()) {
             auto [reg, offset] = parse_mini_gep(gep);
             add({ StoreInstr{
                 type, rs, offset, reg
@@ -705,7 +705,7 @@ struct ConvertBulk {
             return;
         }
         if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(address);
-                gep && gep->users.size() == 1 && gep->users[0]->user == instr.get()) {
+                gep && gep->users().size() == 1 && gep->users()[0]->user == instr.get()) {
             auto [reg, offset] = parse_mini_gep(gep);
             add({ LoadInstr{
                 type, rd, offset, reg
@@ -759,8 +759,8 @@ struct ConvertBulk {
     }
 
     void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
-        if (instr->users.size() == 1) {
-            if (auto user = dynamic_cast<Ir::Instr*>(instr->users[0]->user)) {
+        if (instr->users().size() == 1) {
+            if (auto user = dynamic_cast<Ir::Instr*>(instr->users()[0]->user)) {
                 if (user->instr_type() == Ir::INSTR_LOAD || user->instr_type() == Ir::INSTR_STORE) {
                     return;
                 }
