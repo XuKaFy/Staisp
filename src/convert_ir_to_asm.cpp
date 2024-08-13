@@ -137,11 +137,6 @@ struct ConvertBulk {
         return (FReg) ~func.next_reg();
     }
 
-    static bool is_immediate(Ir::Val* val) {
-        auto name = val->name();
-        return name[0] != '%' && name[0] != '@';
-    }
-
     static std::optional<int> to_itype_immediate(Ir::Val* val, bool negative = false) {
         auto name = val->name();
         if (name[0] != '%' && name[0] != '@') {
@@ -675,6 +670,14 @@ struct ConvertBulk {
             } });
             return;
         }
+        if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(address);
+                gep && gep->users.size() == 1 && gep->users[0]->user == instr.get()) {
+            auto [reg, offset] = parse_mini_gep(gep);
+            add({ StoreInstr{
+                type, rs, offset, reg
+            } });
+            return;
+        }
         add({ StoreInstr{
             type, rs, 0, toReg(address)
         } });
@@ -701,62 +704,80 @@ struct ConvertBulk {
             } });
             return;
         }
+        if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(address);
+                gep && gep->users.size() == 1 && gep->users[0]->user == instr.get()) {
+            auto [reg, offset] = parse_mini_gep(gep);
+            add({ LoadInstr{
+                type, rd, offset, reg
+            } });
+            return;
+        }
         add({ LoadInstr{
             type, rd, 0, toReg(address)
         } });
     }
 
 #ifdef USING_MINI_GEP
-    void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
+    std::pair<Reg, int> parse_mini_gep(Ir::MiniGepInstr* instr) {
         auto base = instr->operand(0)->usee;
         auto type = base->ty;
         type = to_pointed_type(type);
-
         auto rs = load_address(base);
-        auto rd = toReg(instr.get());
-        if (instr->in_this_dim) {
-            type = make_array_type(type, 0);
+        if (!instr->in_this_dim) {
+            type = to_elem_type(type);
         }
-        type = to_elem_type(type);
         int step = type->length();
         auto access = instr->operand(1)->usee;
         if (auto con = dynamic_cast<Ir::Const*>(access)) {
             int imm = std::stoi(con->name());
-            if (imm != 0) {
-                int forward = imm * step;
-                auto forwarded  = allocate_reg();
-                if (check_itype_immediate(forward)) {
-                    add({ RegImmInstr {
-                        RegImmInstrType::ADDI, forwarded, rs, forward
-                    } });
-                } else {
-                    add({ RegRegInstr {
-                        RegRegInstrType::ADD, forwarded, rs, li(forward)
-                    } });
-                }
-                rs = forwarded;
+            int forward = imm * step;
+            if (check_itype_immediate(forward)) {
+                return {rs, forward};
             }
-        } else {
-            auto index = toReg(access);
-            auto forward  = allocate_reg();
-            auto forwarded  = allocate_reg();
-            if ((step & (step - 1)) == 0) {
-                add({ RegImmInstr {
-                    RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
-                } });
-            } else {
-                add({ RegRegInstr {
-                    RegRegInstrType::MUL, forward, li(step), index
-                } });
-            }
+            auto forwarded = allocate_reg();
             add({ RegRegInstr {
-                RegRegInstrType::ADD, forwarded, rs, forward
+                RegRegInstrType::ADD, forwarded, rs, li(forward)
             } });
-            rs = forwarded;
+            return {forwarded, 0};
         }
-        add({  RegInstr{
-            RegInstrType::MV, rd, rs
+        auto index = toReg(access);
+        auto forward  = allocate_reg();
+        auto forwarded  = allocate_reg();
+        if ((step & (step - 1)) == 0) {
+            add({ RegImmInstr {
+                RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+            } });
+        } else {
+            add({ RegRegInstr {
+                RegRegInstrType::MUL, forward, li(step), index
+            } });
+        }
+        add({ RegRegInstr {
+            RegRegInstrType::ADD, forwarded, rs, forward
         } });
+        return {forwarded, 0};
+    }
+
+    void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
+        if (instr->users.size() == 1) {
+            if (auto user = dynamic_cast<Ir::Instr*>(instr->users[0]->user)) {
+                if (user->instr_type() == Ir::INSTR_LOAD || user->instr_type() == Ir::INSTR_STORE) {
+                    return;
+                }
+            }
+        }
+        auto rd = toReg(instr.get());
+        auto [reg, offset] = parse_mini_gep(instr.get());
+        if (offset == 0) {
+            // a hint for register allocator
+            add({  RegInstr{
+                RegInstrType::MV, rd, reg
+            } });
+        } else {
+            add({ RegImmInstr {
+                RegImmInstrType::ADDI, rd, reg, offset,
+            } });
+        }
     }
 #endif
 
