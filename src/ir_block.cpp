@@ -176,14 +176,14 @@ void Block::replace_out(Block *before, Block *out) {
     auto bk = back();
     switch (bk->instr_type()) {
     case INSTR_BR: {
-        bk->change_operand(0, out->label());
+        bk->change_operand(0, out->label().get());
         break;
     }
     case INSTR_BR_COND: {
         bool flag = false;
         for (size_t i = 1; i <= 2; ++i) {
             if (bk->operand(i)->usee == before->label().get()) {
-                bk->change_operand(i, out->label());
+                bk->change_operand(i, out->label().get());
                 flag = true;
             }
         }

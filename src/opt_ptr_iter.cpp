@@ -125,7 +125,7 @@ void transform(const IterationInfo& info) {
             block->push_behind_end(iter);
         }
         if (cmp == nullptr)
-            cmp = Ir::make_cmp_instr(info.loop->cmp_op, phi, bound);
+            cmp = Ir::make_cmp_instr(info.loop->cmp_op, phi.get(), bound.get());
         for (auto& gep : geps) {
             gep->replace_self(phi.get());
             gep->block()->erase(gep);

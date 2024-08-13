@@ -12,15 +12,20 @@ struct AllocInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_ALLOCA; }
 
+    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+        return new AllocInstr(ty);
+    }
+
     String instr_print() const override;
 };
 
 struct LoadInstr : public Instr {
-    LoadInstr(const pVal &from) : Instr(to_pointed_type(from->ty)) {
-        add_operand(from);
-    }
     LoadInstr(Val* from) : Instr(to_pointed_type(from->ty)) {
         add_operand(from);
+    }
+
+    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+        return new LoadInstr(new_operands.front());
     }
 
     InstrType instr_type() const override { return INSTR_LOAD; }
@@ -29,11 +34,6 @@ struct LoadInstr : public Instr {
 };
 
 struct StoreInstr : public Instr {
-    StoreInstr(const pVal &to, const pVal &val)
-        : Instr(make_ir_type(IR_STORE)) {
-        add_operand(to);
-        add_operand(val);
-    }
     StoreInstr(Val *to, Val *val)
         : Instr(make_ir_type(IR_STORE)) {
         add_operand(to);
@@ -42,13 +42,15 @@ struct StoreInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_STORE; }
 
+    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+        return new StoreInstr(new_operands.front(), new_operands.back());
+    }
+
     String instr_print() const override;
 };
 
 pInstr make_alloc_instr(pType tr);
 pInstr make_load_instr(Val* from);
 pInstr make_store_instr(Val *to, Val *val);
-pInstr make_load_instr(const pVal &from);
-pInstr make_store_instr(const pVal &to, const pVal &val);
 
 } // namespace Ir

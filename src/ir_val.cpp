@@ -49,8 +49,6 @@ void User::add_operand(Val *val) {
     val->_users.push_back(use);
 }
 
-void User::add_operand(const pVal &val) { add_operand(val.get()); }
-
 void User::change_operand(size_t index, Val *val) {
     val_release_use(_operands[index]->usee, _operands[index]);
     _operands[index]->usee = val;
@@ -61,10 +59,6 @@ void User::release_operand(size_t index)
 {
     val_release_use(_operands[index]->usee, _operands[index]);
     _operands.erase(_operands.begin() + index);
-}
-
-void User::change_operand(size_t index, const pVal &val) {
-    change_operand(index, val.get());
 }
 
 size_t User::operand_size() const { return _operands.size(); }

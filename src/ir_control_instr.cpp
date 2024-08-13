@@ -32,12 +32,9 @@ pInstr BrCondInstr::select(bool cond) {
 
 pInstr make_label_instr() { return pInstr(new LabelInstr()); }
 
-pInstr make_br_instr(const pInstr &to) { return pInstr(new BrInstr(to)); }
-
 pInstr make_br_instr(Instr *to) { return pInstr(new BrInstr(to)); }
 
-pInstr make_br_cond_instr(const pVal &cond, const pInstr &trueTo,
-                          const pInstr &falseTo) {
+pInstr make_br_cond_instr(Val* cond, Instr* trueTo, Instr* falseTo) {
     return pInstr(new BrCondInstr(cond, trueTo, falseTo));
 }
 

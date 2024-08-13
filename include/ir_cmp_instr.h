@@ -37,7 +37,7 @@ const String gCmpInstrName[] = {CMP_INSTR_TABLE};
 
 // 默认所有的操作数的类型都一致
 struct CmpInstr : public CalculatableInstr {
-    CmpInstr(CmpType cmp_type, const pVal &a1, const pVal &a2)
+    CmpInstr(CmpType cmp_type, Val* a1, Val* a2)
         : CalculatableInstr(make_basic_type(IMM_I1)), cmp_type(cmp_type) {
         add_operand(a1);
         add_operand(a2);
@@ -49,11 +49,15 @@ struct CmpInstr : public CalculatableInstr {
 
     ImmValue calculate(Vector<ImmValue> v) const override;
 
+    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+        return new CmpInstr(cmp_type, new_operands[0], new_operands[1]);
+    }
+
     CmpType cmp_type;
 };
 
 using pCmpInstr = Pointer<CmpInstr>;
 
-pInstr make_cmp_instr(CmpType cmp_type, const pVal &a1, const pVal &a2);
+pInstr make_cmp_instr(CmpType cmp_type, Val* a1, Val* a2);
 
 } // namespace Ir

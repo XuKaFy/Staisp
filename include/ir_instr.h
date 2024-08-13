@@ -34,6 +34,23 @@ enum InstrType {
 };
 
 struct Block;
+struct Instr;
+using pInstr = Pointer<Instr>;
+
+struct CloneContext {
+public:
+    Ir::Val* lookup(Ir::Val* v) const {
+        if (auto i = map_.find(v); i != map_.end()) {
+            return i->second;
+        }
+        return v;
+    }
+    void map(const Ir::Val* f, Ir::Val* s) {
+        map_[f] = s;
+    }
+private:
+    Map<const Ir::Val*, Ir::Val*> map_;
+};
 
 struct Instr : public User {
     Instr(pType ty) : User(std::move(ty)) {}
@@ -61,6 +78,20 @@ struct Instr : public User {
         return block_;
     }
 
+    Instr* clone(CloneContext &ctx) const {
+        Vector<Val*> new_operand;
+        for (auto &&i : operands())
+            new_operand.push_back(i->usee);
+        auto ret = clone_internal(new_operand);
+        ctx.map(this, ret);
+        return ret;
+    }
+
+protected:
+    virtual Instr* clone_internal(const Vector<Val*> new_operands) const {
+        return new Instr(ty);
+    }
+
 private:
     friend struct Block;
 
@@ -79,7 +110,6 @@ struct CalculatableInstr : public Instr {
     virtual ImmValue calculate(Vector<ImmValue> v) const = 0;
 };
 
-using pInstr = Pointer<Instr>;
 using Instrs = List<pInstr>;
 
 pInstr make_empty_instr();

@@ -66,7 +66,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     // Step 3: change call to br
     if (alloca_instr)
         fun->front()->push_behind_end(alloca_instr);
-    frontBlock->push_back(make_br_instr(new_p.front()->label()));
+    frontBlock->push_back(make_br_instr(new_p.front()->label().get()));
     // Step 4: replace all ret in copied program to two statement:
     // 1. (if not void) store my value to
     // 2. jump to BackBlock
@@ -80,7 +80,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
                                   ret_instr->operand(0)->usee));
                 // printf("generated store: %s\n", i->body.back()->instr_print().c_str());
             }
-            i->push_back(make_br_instr(backBlock->label()));
+            i->push_back(make_br_instr(backBlock->label().get()));
         }
     }
     // Step 5: load ret value (if exists)
@@ -207,8 +207,8 @@ void global2local(const Ir::pModule &mod)
         // so just replace it will make sense
         (*i)->replace_self(alloca_instr.get());
         // Step 3: for imm value, store the value
-        auto store_instr = Ir::make_store_instr(alloca_instr,
-                           func->cpool.add((*i)->con.v));
+        auto store_instr = Ir::make_store_instr(alloca_instr.get(),
+                           func->cpool.add((*i)->con.v).get());
         // Step 4: insert
         func->front()->push_after_label(alloca_instr);
         if (store_instr) {

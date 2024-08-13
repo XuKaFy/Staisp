@@ -354,7 +354,7 @@ void optimize_bitwise_boolean(const pBlock &block) {
                                 && is_integer(bool1->ty) && to_basic_type(bool1->ty)->ty == IMM_I1
                                 && is_integer(cast1->ty) && to_basic_type(cast1->ty)->ty == IMM_I32) {
                             auto bitwise = std::make_shared<BinInstr>(bin->binType, bool1, bool2);
-                            auto cast = std::make_shared<CastInstr>(bin->ty, bitwise);
+                            auto cast = std::make_shared<CastInstr>(bin->ty, bitwise.get());
                             it = block->insert(it, cast);
                             it = block->insert(it, bitwise);
                             bin->replace_self(cast.get());

@@ -36,7 +36,7 @@ void FuncDefined::end_function(FunctionContext& context) {
             final.push_back(i);
         }
     }
-    final.push_back(Ir::make_br_instr(body.front()));
+    final.push_back(Ir::make_br_instr(body.front().get()));
     for (const auto &i : body) {
         if (i->instr_type() != INSTR_ALLOCA) {
             final.push_back(i);
@@ -137,7 +137,7 @@ void FunctionContext::init(Ir::pFuncDefined func) {
         auto sym_node =
             make_sym_instr(TypedSym("%" + func->arg_name[i], arg_types[i]));
         pInstr alloced = make_alloc_instr(arg_types[i]);
-        pInstr stored = make_store_instr(alloced, sym_node);
+        pInstr stored = make_store_instr(alloced.get(), sym_node.get());
         body.push_back(alloced);
         body.push_back(stored);
         params.push_back(sym_node);

@@ -79,13 +79,12 @@ ImmValue UnaryInstr::calculate(Vector<ImmValue> v) const {
     return ans;
 }
 
-pInstr make_unary_instr(const pVal &oprd) {
+pInstr make_unary_instr(Val* oprd) {
     return pInstr(new UnaryInstr(oprd));
 }
 
-pInstr make_binary_instr(BinInstrType type, const pVal &oprd1,
-                         const pVal &oprd2) {
-    return pInstr(new BinInstr(type, oprd1.get(), oprd2.get()));
+pInstr make_binary_instr(BinInstrType type, Val* oprd1, Val* oprd2) {
+    return pInstr(new BinInstr(type, oprd1, oprd2));
 }
 
 } // namespace Ir
