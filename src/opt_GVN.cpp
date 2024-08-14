@@ -13,6 +13,8 @@
 #include <functional>
 #include <set>
 
+#define printf(...)
+
 namespace OptGVN {
 
 GVN_pass::GVN_pass(Ir::BlockedProgram &arg_func, Alys::DomTree &dom_ctx)
@@ -298,15 +300,8 @@ bool exp_eq::operator()(const Exp &a, const Exp &b) const {
 }
 
 void GVN_pass::sink_gep() {
-    auto dumpGepOperand = [](String str) -> String {
-        for (auto it = str.begin(); it != str.end();) {
-            if (*it != 'g')
-                it = str.erase(it);
-            else {
-                break;
-            }
-        }
-        return str;
+    auto dumpGepOperand = [](const String& str) -> String {
+        return str.substr(str.find('g'));
     };
     Map<String, Ir::Instr *> gep_map;
     for (auto &&cur_gep : shared_gep) {
