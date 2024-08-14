@@ -4,6 +4,7 @@
 
 #include "def.h"
 #include "ir_instr.h"
+#include "type.h"
 
 namespace Ir {
 
@@ -12,8 +13,8 @@ struct AllocInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_ALLOCA; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new AllocInstr(ty);
+    Instr* clone_internal() const override {
+        return new AllocInstr(to_pointed_type(ty));
     }
 
     String instr_print() const override;
@@ -24,8 +25,8 @@ struct LoadInstr : public Instr {
         add_operand(from);
     }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new LoadInstr(new_operands.front());
+    Instr* clone_internal() const override {
+        return new LoadInstr(operands().front()->usee);
     }
 
     InstrType instr_type() const override { return INSTR_LOAD; }
@@ -42,8 +43,8 @@ struct StoreInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_STORE; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new StoreInstr(new_operands.front(), new_operands.back());
+    Instr* clone_internal() const override {
+        return new StoreInstr(operands()[0]->usee, operands()[1]->usee);
     }
 
     String instr_print() const override;

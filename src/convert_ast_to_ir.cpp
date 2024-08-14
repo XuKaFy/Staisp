@@ -997,7 +997,6 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
         }
         TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
-        func->ast_root = root;
         _cur_ctx.init(func);
         for (size_t i = 0; i < root->args.size(); ++i) {
             /*
@@ -1039,7 +1038,6 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
         }
         TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
-        func->ast_root = root;
 
         _cur_ctx.init(func);
 

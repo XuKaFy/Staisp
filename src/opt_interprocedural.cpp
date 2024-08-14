@@ -107,7 +107,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     new_p.clear();
 }
 
-bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &func_should_be_removed)
+bool func_inline(Ir::pFuncDefined func, bool &func_should_be_removed)
 {
     func_should_be_removed = false;
     // printf("try to inline %s\n", func->name().c_str());
@@ -125,7 +125,7 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &fun
         }
     }
 
-    if (calls.size() == 1 && !func->ast_root) { // __buildin_initializer has no ast_root
+    if (calls.size() == 1 && func->name() == "__buildin_initializer") {
         // 不内联它是为了日后删掉它
         return false;
     }
@@ -136,10 +136,7 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &fun
         if (&func->p == fun) // don't inline self
             continue;
 
-        // printf("SWAP [%s] inlined\n", call_instr->instr_print().c_str());
-
-        Ir::pFuncDefined new_fun = convertor.generate_inline_function(func->ast_root);
-        Ir::BlockedProgram new_p = new_fun->p;
+        Ir::BlockedProgram new_p = func->p.clone();
 
         func_inline_from_bp(call_instr, new_p);
         has_inlined = true;
@@ -147,14 +144,14 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &fun
     return has_inlined;
 }
 
-bool inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor)
+bool inline_all_function(const Ir::pModule &mod)
 {
     bool has_inlined = false;
 
     // inline all function that can be inlined
     for (auto i = mod->funsDefined.begin(); i != mod->funsDefined.end();) {
         bool func_should_be_removed;
-        has_inlined |= func_inline(*i, convertor, func_should_be_removed);
+        has_inlined |= func_inline(*i, func_should_be_removed);
         if (func_should_be_removed) {
             // printf("erase function %s\n", (*i)->name().c_str());
             i = mod->funsDefined.erase(i);

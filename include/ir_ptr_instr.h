@@ -2,6 +2,7 @@
 
 #include "def.h"
 #include "ir_instr.h"
+#include <iterator>
 
 namespace Ir {
 
@@ -13,8 +14,8 @@ struct MiniGepInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_MINI_GEP; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new MiniGepInstr(new_operands[0], new_operands[1], in_this_dim);
+    Instr* clone_internal() const override {
+        return new MiniGepInstr(operands()[0]->usee, operands()[1]->usee, in_this_dim);
     }
 
     // 寻址有两种
@@ -33,9 +34,12 @@ struct ItemInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_ITEM; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new ItemInstr(new_operands[0], 
-                Vector<Val*>(std::next(new_operands.begin()), new_operands.end()));
+    Instr* clone_internal() const override {
+        Vector<Val*> v;
+        for (auto &&i = std::next(operands().begin()); i != operands().end(); ++i) {
+            v.push_back((*i)->usee);
+        }
+        return new ItemInstr(operands()[0]->usee, v);
     }
 
     // from int[][10], false

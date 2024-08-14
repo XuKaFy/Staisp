@@ -105,6 +105,8 @@ bool FuncDefined::is_pure() {
                     }
                     break;
                 }
+                default:
+                    break;
             }
         }
     }

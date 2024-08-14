@@ -62,6 +62,10 @@ struct Block : public Val {
 
     Instrs::iterator end() { return body.end(); }
 
+    Instrs::const_iterator cbegin() const { return body.cbegin(); }
+
+    Instrs::const_iterator cend() const { return body.cend(); }
+
     Instrs::reverse_iterator rbegin() { return body.rbegin(); }
 
     Instrs::reverse_iterator rend() { return body.rend(); }
@@ -93,8 +97,6 @@ struct Block : public Val {
         body.erase(i, j);
     }
 
-    void reverse() { std::reverse(body.begin(), body.end()); }
-
     // 在 Ret 或者 Br 前面插入指令，即倒数第二条
     void push_behind_end(const pInstr &instr);
     // 在 Label 后面插入指令，即正数第二条
@@ -103,6 +105,9 @@ struct Block : public Val {
     bool empty() const { return body.empty(); }
 
     size_t size() const { return body.size(); }
+
+    pBlock clone(CloneContext &context) const;
+    void fix_clone(CloneContext &context) const;
 
 private:
     friend struct BlockedProgram;
@@ -117,6 +122,10 @@ private:
 pBlock make_block();
 
 struct BlockedProgram {
+
+    void add_param(const pVal &arg) {
+        params_.push_back(std::move(arg));
+    }
 
     void initialize(String name, Instrs instrs, Vector<pVal> args,
                     ConstPool cpool);
@@ -188,6 +197,8 @@ struct BlockedProgram {
     size_t size() const { return blocks.size(); }
 
     const Vector<pVal> &params() const { return params_; }
+
+    BlockedProgram clone() const;
 
     ConstPool cpool;
 

@@ -20,9 +20,12 @@ struct CallInstr : public Instr {
 
     String instr_print() const override;
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new CallInstr(dynamic_cast<Func*>(new_operands.front()), 
-            Vector<Val*>(std::next(new_operands.begin()), new_operands.end()));
+    Instr* clone_internal() const override {
+        Vector<Val*> v;
+        for (auto &&i = std::next(operands().begin()); i != operands().end(); ++i) {
+            v.push_back((*i)->usee);
+        }
+        return new CallInstr(dynamic_cast<Func*>(operands().front()->usee), v);
     }
 
     pFunctionType func_ty;
@@ -35,10 +38,10 @@ struct RetInstr : public Instr {
         }
     }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        if (new_operands.empty())
+    Instr* clone_internal() const override {
+        if (operands().empty())
             return new RetInstr();
-        return new RetInstr(new_operands[0]);
+        return new RetInstr(operands()[0]->usee);
     }
 
     InstrType instr_type() const override { return INSTR_RET; }
@@ -51,7 +54,7 @@ struct UnreachableInstr : Instr {
 
     InstrType instr_type() const override { return INSTR_UNREACHABLE; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+    Instr* clone_internal() const override {
         return new UnreachableInstr;
     }
 

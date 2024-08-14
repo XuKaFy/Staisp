@@ -20,7 +20,6 @@ struct FuncDefined : public Func {
     void end_function(FunctionContext& context);
 
     BlockedProgram p;
-    Pointer<Ast::FuncDefNode> ast_root;
 
     Vector<String> arg_name;
 

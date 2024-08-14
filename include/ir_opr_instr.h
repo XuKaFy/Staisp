@@ -47,8 +47,8 @@ struct UnaryInstr : public CalculatableInstr {
 
     InstrType instr_type() const override { return INSTR_UNARY; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new UnaryInstr(new_operands[0]);
+    Instr* clone_internal() const override {
+        return new UnaryInstr(operands()[0]->usee);
     }
 
     ImmValue calculate(Vector<ImmValue> v) const override;
@@ -67,8 +67,8 @@ struct BinInstr : public CalculatableInstr {
 
     InstrType instr_type() const override { return INSTR_BINARY; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new BinInstr(binType, new_operands[0], new_operands[1]);
+    Instr* clone_internal() const override {
+        return new BinInstr(binType, operands()[0]->usee, operands()[1]->usee);
     }
 
     BinInstrType binType;

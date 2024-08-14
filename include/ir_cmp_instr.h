@@ -49,8 +49,8 @@ struct CmpInstr : public CalculatableInstr {
 
     ImmValue calculate(Vector<ImmValue> v) const override;
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new CmpInstr(cmp_type, new_operands[0], new_operands[1]);
+    Instr* clone_internal() const override {
+        return new CmpInstr(cmp_type, operands()[0]->usee, operands()[1]->usee);
     }
 
     CmpType cmp_type;

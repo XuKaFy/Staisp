@@ -10,6 +10,7 @@
 #include "ir_reg_generator.h"
 
 #include "ir_constant.h"
+#include "type.h"
 
 #include <memory>
 #include <utility>
@@ -48,6 +49,22 @@ void Block::push_after_label(const pInstr &instr)
 
 pVal Block::add_imm(Value value) {
     return program()->add_imm(std::move(value));
+}
+
+pBlock Block::clone(CloneContext &context) const
+{
+    pBlock new_block = make_block();
+    for (auto &&i = cbegin(); i != cend(); ++i) {
+        new_block->push_back(pInstr((*i)->clone(context)));
+    }
+    return new_block;
+}
+
+void Block::fix_clone(CloneContext &context) const
+{
+    for (auto &&i = cbegin(); i != cend(); ++i) {
+        (*i)->fix_clone(context);
+    }
 }
 
 bool BlockedProgram::check_invalid_phi(String state)
@@ -281,6 +298,27 @@ Set<Block *> Block::out_blocks() const {
         break;
     }
     return {};
+}
+
+BlockedProgram BlockedProgram::clone() const
+{
+    BlockedProgram p;
+    CloneContext ctx;
+    p.cpool = cpool;
+    p.name_ = name_;
+    for (auto i : params_) {
+        auto new_param = make_sym_instr(TypedSym("NOT_NAMED", i->ty));
+        p.add_param(new_param);
+        ctx.map(i.get(), new_param.get());
+    }
+    for (auto i = cbegin(); i != cend(); ++i) {
+        p.push_back((*i)->clone(ctx));
+    }
+    for (auto i = p.cbegin(); i != p.cend(); ++i) {
+        (*i)->fix_clone(ctx);
+    }
+    p.re_generate();
+    return p;
 }
 
 } // namespace Ir

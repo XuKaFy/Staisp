@@ -59,10 +59,10 @@ struct PhiInstr final : Instr {
         return {this, phi_pairs()};
     }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+    Instr* clone_internal() const override {
         auto res = new PhiInstr(ty);
-        for (size_t i = 0; i < new_operands.size(); i += 2) {
-            res->add_incoming(dynamic_cast<LabelInstr*>(new_operands[i]), new_operands[i+1]);
+        for (size_t i = 0; i < operands().size(); i += 2) {
+            res->add_incoming(dynamic_cast<LabelInstr*>(operands()[i]->usee), operands()[i+1]->usee);
         }
         return res;
     }

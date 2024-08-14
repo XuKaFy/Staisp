@@ -53,8 +53,8 @@ struct CastInstr : public CalculatableInstr {
         return _method;
     }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new CastInstr(ty, new_operands[0]);
+    Instr* clone_internal() const override {
+        return new CastInstr(ty, operands()[0]->usee);
     }
 
 private:

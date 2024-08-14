@@ -9,7 +9,7 @@ struct LabelInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_LABEL; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
+    Instr* clone_internal() const override {
         return new LabelInstr();
     }
 
@@ -21,8 +21,8 @@ struct BrInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_BR; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new BrInstr(dynamic_cast<Instr*>(new_operands.front()));
+    Instr* clone_internal() const override {
+        return new BrInstr(dynamic_cast<Instr*>(operands().front()->usee));
     }
 
     String instr_print() const override;
@@ -40,10 +40,10 @@ struct BrCondInstr : public Instr {
 
     InstrType instr_type() const override { return INSTR_BR_COND; }
 
-    Instr* clone_internal(const Vector<Val*> new_operands) const override {
-        return new BrCondInstr(new_operands[0],
-                               dynamic_cast<Instr*>(new_operands[1]),
-                               dynamic_cast<Instr*>(new_operands[2]));
+    Instr* clone_internal() const override {
+        return new BrCondInstr(operands()[0]->usee,
+                               dynamic_cast<Instr*>(operands()[1]->usee),
+                               dynamic_cast<Instr*>(operands()[2]->usee));
     }
 
     String instr_print() const override;

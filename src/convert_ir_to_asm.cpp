@@ -35,7 +35,7 @@ void remove_unused_initialization(const Ir::pModule &mod)
 {
     Ir::pFuncDefined unused;
     for (const auto &i : mod->funsDefined) {
-        if (!(*i).ast_root) { // __buildin_initialization
+        if (i->name() == "__buildin_initializer") { // __buildin_initialization
             unused = i;
             break;
         }

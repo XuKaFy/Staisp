@@ -72,6 +72,7 @@ struct User : public Val {
     void add_operand(Val *val);
     void change_operand(size_t index, Val *val);
     void release_operand(size_t index);
+    void release_all_operands();
 
     const Vector<pUse>& operands() const { return _operands; }
 

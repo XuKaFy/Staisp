@@ -60,6 +60,9 @@ ImmValue BinInstr::calculate(Vector<ImmValue> v) const {
     case INSTR_SHL:
         ans = a0 << a1;
         break;
+    case INSTR_SLT: // XKF: is it meaningful?
+        ans = a0 < a1;
+        break;
     }
 
     // printf("[BinaryInstr] %s\n", instr_print().c_str());

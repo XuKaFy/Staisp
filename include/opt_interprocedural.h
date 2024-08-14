@@ -6,7 +6,7 @@
 
 namespace Optimize {
 
-bool inline_all_function(const Ir::pModule &mod, AstToIr::Convertor &convertor);
+bool inline_all_function(const Ir::pModule &mod);
 
 void global2local(const Ir::pModule &mod);
 

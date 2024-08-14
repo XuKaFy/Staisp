@@ -79,16 +79,24 @@ struct Instr : public User {
     }
 
     Instr* clone(CloneContext &ctx) const {
-        Vector<Val*> new_operand;
-        for (auto &&i : operands())
-            new_operand.push_back(i->usee);
-        auto ret = clone_internal(new_operand);
+        auto ret = clone_internal();
         ctx.map(this, ret);
         return ret;
     }
 
+    void fix_clone(CloneContext &ctx) {
+        Vector<Val*> v;
+        for (auto i : operands()) {
+            v.push_back(ctx.lookup(i->usee));
+        }
+        release_all_operands();
+        for (auto &&i : v) {
+            add_operand(i);
+        }
+    }
+
 protected:
-    virtual Instr* clone_internal(const Vector<Val*> new_operands) const {
+    virtual Instr* clone_internal() const {
         return new Instr(ty);
     }
 
