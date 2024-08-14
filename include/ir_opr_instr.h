@@ -39,13 +39,17 @@ const String gBinInstrName[] = {BIN_INSTR_TABLE};
 #undef BIN_INSTR_TABLE
 
 struct UnaryInstr : public CalculatableInstr {
-    UnaryInstr(const pVal &oprd) : CalculatableInstr(oprd->ty) {
+    UnaryInstr(Val *oprd) : CalculatableInstr(oprd->ty) {
         add_operand(oprd);
     }
 
     String instr_print() const override;
 
     InstrType instr_type() const override { return INSTR_UNARY; }
+
+    Instr* clone_internal() const override {
+        return new UnaryInstr(operands()[0]->usee);
+    }
 
     ImmValue calculate(Vector<ImmValue> v) const override;
 };
@@ -63,11 +67,14 @@ struct BinInstr : public CalculatableInstr {
 
     InstrType instr_type() const override { return INSTR_BINARY; }
 
+    Instr* clone_internal() const override {
+        return new BinInstr(binType, operands()[0]->usee, operands()[1]->usee);
+    }
+
     BinInstrType binType;
 };
 
-pInstr make_unary_instr(const pVal &oprd);
-pInstr make_binary_instr(BinInstrType type, const pVal &oprd1,
-                         const pVal &oprd2);
+pInstr make_unary_instr(Val* oprd);
+pInstr make_binary_instr(BinInstrType type, Val* oprd1, Val* oprd2);
 
 } // namespace Ir

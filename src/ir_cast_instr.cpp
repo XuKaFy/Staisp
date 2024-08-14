@@ -83,7 +83,7 @@ ImmValue CastInstr::calculate(Vector<ImmValue> v) const {
     return ans;
 }
 
-pInstr make_cast_instr(pType ty, const pVal &a1) {
+pInstr make_cast_instr(pType ty, Val* a1) {
     return pInstr(new CastInstr(std::move(ty), a1));
 }
 

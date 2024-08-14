@@ -39,7 +39,7 @@ const String CAST_METHOD_NAME[] = {
 CastMethod get_cast_method(pType from, pType to);
 
 struct CastInstr : public CalculatableInstr {
-    CastInstr(pType tr, const pVal &a1) : CalculatableInstr(std::move(tr)), _method(get_cast_method(a1->ty, ty)) {
+    CastInstr(pType tr, Val* a1) : CalculatableInstr(std::move(tr)), _method(get_cast_method(a1->ty, ty)) {
         add_operand(a1);
     }
 
@@ -53,11 +53,15 @@ struct CastInstr : public CalculatableInstr {
         return _method;
     }
 
+    Instr* clone_internal() const override {
+        return new CastInstr(ty, operands()[0]->usee);
+    }
+
 private:
 
     CastMethod _method;
 };
 
-pInstr make_cast_instr(pType ty, const pVal &a1);
+pInstr make_cast_instr(pType ty, Val* a1);
 
 } // namespace Ir

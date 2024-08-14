@@ -14,13 +14,11 @@
 
 namespace Optimize {
 
-void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
-#ifndef OPT_CONST_PROPAGATE_DEBUG
+void optimize(const Ir::pModule &mod) {
     mod->remove_unused_function();
-    while (inline_all_function(mod, convertor))
+    while (inline_all_function(mod))
         ;
     mod->remove_unused_function();
-#endif
     for (auto &&func : mod->funsDefined) {
         from_top_analysis<OptConstPropagate::BlockValue,
                           OptConstPropagate::TransferFunction>(func->p);

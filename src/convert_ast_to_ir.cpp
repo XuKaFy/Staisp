@@ -85,7 +85,7 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
         // decay for i32** -> i32*
         if (is_pointer(to_pointed_type(val->ty)) && 
             is_same_type(to_pointed_type(ty), to_pointed_type(to_pointed_type(val->ty)))) {
-            return add_instr(Ir::make_load_instr(val));
+            return add_instr(Ir::make_load_instr(val.get()));
         }
         // decay for [10 x i32]* -> i32*
         if (is_array(to_pointed_type(val->ty)) && 
@@ -94,9 +94,9 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
             // val->ty->type_name(), ty->type_name());
             auto imm = _cur_ctx.cpool.add(ImmValue(0));
     #ifdef USING_MINI_GEP
-            auto r = Ir::make_mini_gep_instr(val, imm);
+            auto r = Ir::make_mini_gep_instr(val.get(), imm.get());
     #else
-            auto r = Ir::make_item_instr(val, {imm});
+            auto r = Ir::make_item_instr(val.get(), {imm});
     #endif
             if (!is_same_type(ty, r->ty)) {
                 throw_error(root, -1, "decay error?");
@@ -116,9 +116,9 @@ Ir::pVal Convertor::cast_to_type(const pNode &root, Ir::pVal val,
         (to_basic_type(ty)->ty == IMM_I1 || to_basic_type(ty)->ty == IMM_U1)) {
         auto imm =_cur_ctx.cpool.add(ImmValue(to_basic_type(val->ty)->ty));
         bool is_flt = is_float(val->ty);
-        return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val, imm));
+        return add_instr(Ir::make_cmp_instr(is_flt ? Ir::CMP_UNE: Ir::CMP_NE, val.get(), imm.get()));
     }
-    auto r = Ir::make_cast_instr(ty, val);
+    auto r = Ir::make_cast_instr(ty, val.get());
     add_instr(r);
     return r;
 }
@@ -146,11 +146,11 @@ Ir::pVal Convertor::generate_and(const pNode &A, const pNode &B) {
     Ir::pVal a = analyze_value(A);
     Ir::pVal b = analyze_value(B);
     if (is_same_type(a->ty, b->ty) && is_integer(a->ty)) {
-        return add_instr(Ir::make_binary_instr(Ir::INSTR_AND, a, b));
+        return add_instr(Ir::make_binary_instr(Ir::INSTR_AND, a.get(), b.get()));
     }
     Ir::pVal xa = cast_to_type(A, a, make_basic_type(IMM_I1));
     Ir::pVal xb = cast_to_type(B, b, make_basic_type(IMM_I1));
-    return add_instr(Ir::make_binary_instr(Ir::INSTR_AND, a, b));
+    return add_instr(Ir::make_binary_instr(Ir::INSTR_AND, a.get(), b.get()));
 }
 
 Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
@@ -176,30 +176,30 @@ Ir::pVal Convertor::generate_shortcut_and(const pNode &A, const pNode &B) {
     auto constant = _cur_ctx.cpool.add(ImmValue(0ll, IMM_I1));
 
     add_instr(a0);
-    add_instr(Ir::make_br_cond_instr(a1, L2, L1));
+    add_instr(Ir::make_br_cond_instr(a1.get(), L2.get(), L1.get()));
     add_instr(L1);
-    add_instr(Ir::make_store_instr(a0, constant));
-    add_instr(Ir::make_br_instr(L3));
+    add_instr(Ir::make_store_instr(a0.get(), constant.get()));
+    add_instr(Ir::make_br_instr(L3.get()));
     add_instr(L2);
     
     auto a2 = analyze_value(B);
     add_instr(Ir::make_store_instr(
-        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
-    add_instr(Ir::make_br_instr(L3));
+        a0.get(), cast_to_type(B, a2, make_basic_type(IMM_I1)).get()));
+    add_instr(Ir::make_br_instr(L3.get()));
     add_instr(L3);
 
-    return add_instr(Ir::make_load_instr(a0));
+    return add_instr(Ir::make_load_instr(a0.get()));
 }
 
 Ir::pVal Convertor::generate_or(const pNode &A, const pNode &B) {
     Ir::pVal a = analyze_value(A);
     Ir::pVal b = analyze_value(B);
     if (is_same_type(a->ty, b->ty) && is_integer(a->ty)) {
-        return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a, b));
+        return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a.get(), b.get()));
     }
     Ir::pVal xa = cast_to_type(A, a, make_basic_type(IMM_I1));
     Ir::pVal xb = cast_to_type(B, b, make_basic_type(IMM_I1));
-    return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a, b));
+    return add_instr(Ir::make_binary_instr(Ir::INSTR_OR, a.get(), b.get()));
 }
 
 Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
@@ -225,18 +225,18 @@ Ir::pVal Convertor::generate_shortcut_or(const pNode &A, const pNode &B) {
     auto constant = _cur_ctx.cpool.add(ImmValue(1LL, IMM_I1));
     
     add_instr(a0);
-    add_instr(Ir::make_br_cond_instr(a1, L1, L2));
+    add_instr(Ir::make_br_cond_instr(a1.get(), L1.get(), L2.get()));
     add_instr(L1);
-    add_instr(Ir::make_store_instr(a0, constant));
-    add_instr(Ir::make_br_instr(L3));
+    add_instr(Ir::make_store_instr(a0.get(), constant.get()));
+    add_instr(Ir::make_br_instr(L3.get()));
     add_instr(L2);
     auto a2 = analyze_value(B);
     add_instr(Ir::make_store_instr(
-        a0, cast_to_type(B, a2, make_basic_type(IMM_I1))));
-    add_instr(Ir::make_br_instr(L3));
+        a0.get(), cast_to_type(B, a2, make_basic_type(IMM_I1)).get()));
+    add_instr(Ir::make_br_instr(L3.get()));
     add_instr(L3);
 
-    return add_instr(Ir::make_load_instr(a0));
+    return add_instr(Ir::make_load_instr(a0.get()));
 }
 
 Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
@@ -256,8 +256,8 @@ Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
         }
         auto ir =
             Ir::make_binary_instr(fromBinaryOpr(root, joined_type),
-                                  cast_to_type(root->lhs, a1, joined_type),
-                                  cast_to_type(root->rhs, a2, joined_type));
+                                  cast_to_type(root->lhs, a1, joined_type).get(),
+                                  cast_to_type(root->rhs, a2, joined_type).get());
         add_instr(ir);
         return ir;
     }
@@ -284,8 +284,8 @@ Ir::pVal Convertor::analyze_opr(const Pointer<Ast::BinaryNode> &root) {
             throw_error(root, 18, "type has no joined type");
         }
         auto ir = Ir::make_cmp_instr(fromCmpOpr(root, ty),
-                                     cast_to_type(root->lhs, a1, ty),
-                                     cast_to_type(root->rhs, a2, ty));
+                                     cast_to_type(root->lhs, a1, ty).get(),
+                                     cast_to_type(root->rhs, a2, ty).get());
         add_instr(ir);
         return ir;
     }
@@ -396,18 +396,18 @@ Ir::pVal Convertor::analyze_left_value(const pNode &root,
         // 不过，去除的方式不一样
         if (is_array(to_pointed_type(item_instr->ty))) {
             // 若是 int*[] 形式，则抛弃最外层
-            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, analyze_value(*r->index.begin())));
+            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr.get(), analyze_value(*r->index.begin()).get()));
         } else {
             // 若是 int** 形式，则直接在最外层寻址
-            item_instr = add_instr(Ir::make_load_instr(item_instr));
-            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, analyze_value(*r->index.begin()), true));
+            item_instr = add_instr(Ir::make_load_instr(item_instr.get()));
+            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr.get(), analyze_value(*r->index.begin()).get(), true));
         }
         for (auto i = std::next(r->index.begin()); i != r->index.end(); ++i) {
             auto index = analyze_value(*i);
             if (!is_integer(index->ty)) {
                 throw_error(*i, 14, "type of index should be integer");
             }
-            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr, index));
+            item_instr = add_instr(Ir::make_mini_gep_instr(item_instr.get(), index.get()));
         }
         return item_instr;
 #else
@@ -435,7 +435,7 @@ Ir::pVal Convertor::analyze_left_value(const pNode &root,
                             | store i32 1, i32* %1
         */
         auto r = std::dynamic_pointer_cast<Ast::DerefNode>(root);
-        return add_instr(Ir::make_load_instr(analyze_left_value(r->val)));
+        return add_instr(Ir::make_load_instr(analyze_left_value(r->val).get()));
     }
     default:
         throw_error(root, 22, "left value needed");
@@ -457,7 +457,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
         if (!is_basic_type(to_pointed_type(lv->ty))) {
             return lv;
         }
-        return add_instr(Ir::make_load_instr(lv));
+        return add_instr(Ir::make_load_instr(lv.get()));
     }
     case NODE_REF: {
         auto r = std::dynamic_pointer_cast<Ast::RefNode>(root);
@@ -466,7 +466,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
     case NODE_CAST: {
         auto r = std::dynamic_pointer_cast<Ast::CastNode>(root);
         auto res =
-            Ir::make_cast_instr(analyze_type(r->ty), analyze_value(r->val));
+            Ir::make_cast_instr(analyze_type(r->ty), analyze_value(r->val).get());
         add_instr(res);
         return res;
     }
@@ -486,18 +486,18 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
             auto imm_ty = to_basic_type(val->ty)->ty;
             auto imm = _cur_ctx.cpool.add(ImmValue(0).cast_to(imm_ty));
             return add_instr(Ir::make_cmp_instr(
-                is_imm_integer(imm_ty) ? Ir::CMP_EQ : Ir::CMP_OEQ, val, imm));
+                is_imm_integer(imm_ty) ? Ir::CMP_EQ : Ir::CMP_OEQ, val.get(), imm.get()));
         }
         case OPR_NEG: {
             if (is_float(val->ty)) {
-                return add_instr(Ir::make_unary_instr(val));
+                return add_instr(Ir::make_unary_instr(val.get()));
             }
             if (is_integer(val->ty)) {
                 auto imm = _cur_ctx.cpool.add(ImmValue(0));
                 auto ty = join_type(val->ty, imm->ty);
                 return add_instr(Ir::make_binary_instr(
-                    Ir::INSTR_SUB, cast_to_type(root, imm, ty),
-                    cast_to_type(root, val, ty)));
+                    Ir::INSTR_SUB, cast_to_type(root, imm, ty).get(),
+                    cast_to_type(root, val, ty).get()));
             }
             throw_error(root, 21, "neg an non-number");
         }
@@ -514,7 +514,7 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
             throw_error(r, 20, "function not found");
         }
         auto func = find_func(r->name);
-        Vector<Ir::pVal> args;
+        Vector<Ir::Val*> args;
         // assert size equal
         size_t length = func->function_type()->arg_type.size();
         if (!func->variant_length && length != r->ch.size()) {
@@ -524,12 +524,12 @@ Ir::pVal Convertor::analyze_value(const pNode &root, bool request_not_const) {
             Ir::pVal cur_arg = analyze_value(r->ch[i]);
             if (i < length) {
                 args.push_back(cast_to_type(
-                    r->ch[i], cur_arg, func->function_type()->arg_type[i]));
+                    r->ch[i], cur_arg, func->function_type()->arg_type[i]).get());
             } else {
-                args.push_back(cur_arg);
+                args.push_back(cur_arg.get());
             }
         }
-        return add_instr(Ir::make_call_instr(func, args));
+        return add_instr(Ir::make_call_instr(func.get(), args));
     }
     default:
         throw_error(root, 3, "node not calculatable");
@@ -590,7 +590,7 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
         throw_error(root, 16, "list should initialize type that is pointed");
     }
     Vector<pNode> flat = flatten(n, t);
-    Vector<Ir::pVal> indexes;
+    Vector<Ir::Val*> indexes;
     auto begin = flat.begin();
     auto end = flat.end();
     std::function<void(pType t)> fn = [&](const pType &t) -> void {
@@ -607,11 +607,11 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
                 if (!val) {
                     return;
                 }
-                auto item = Ir::make_item_instr(addr, indexes);
+                auto item = Ir::make_item_instr(addr.get(), indexes);
                 auto imm = _cur_ctx.cpool.add(val);
                 add_instr(item);
                 auto store =
-                    Ir::make_store_instr(item, cast_to_type(root, imm, t));
+                    Ir::make_store_instr(item.get(), cast_to_type(root, imm, t).get());
                 add_instr(store);
                 return;
             }
@@ -620,9 +620,9 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
                 return;
             }
             auto val = analyze_value(cur);
-            auto item = Ir::make_item_instr(addr, indexes);
+            auto item = Ir::make_item_instr(addr.get(), indexes);
             add_instr(item);
-            auto store = Ir::make_store_instr(item, cast_to_type(root, val, t));
+            auto store = Ir::make_store_instr(item.get(), cast_to_type(root, val, t).get());
             add_instr(store);
             return;
         }
@@ -631,7 +631,7 @@ void Convertor::copy_to_array(pNode root, Ir::pVal addr,
         for (size_t i = 0; i < length; ++i) {
             auto index = _cur_ctx.cpool.add(
                 ImmValue(static_cast<unsigned long long>(i), IMM_I32));
-            indexes.push_back(index);
+            indexes.push_back(index.get());
             fn(next_ty);
             indexes.pop_back();
         }
@@ -645,15 +645,15 @@ void Convertor::analyze_simple_if(const pNode &cond, const Ir::pVal &to, bool us
     if (use_eq) {
         Ir::pVal cast_i1 = cast_to_type(cond, val, make_basic_type(IMM_I1));
         Ir::pVal cast_ty = cast_to_type(cond, cast_i1, to_pointed_type(to->ty));
-        add_instr(Ir::make_store_instr(to, cast_ty));
+        add_instr(Ir::make_store_instr(to.get(), cast_ty.get()));
     } else {
         ImmType ty = to_basic_type(to->ty)->ty;
         Ir::pVal zero = _cur_ctx.cpool.add(ImmValue(ty));
         Ir::pVal cast_i1 = Ir::make_cmp_instr(is_imm_float(ty) ? Ir::CMP_UNE : Ir::CMP_NE,
-                                         val,
-                                         zero);
+                                         val.get(),
+                                         zero.get());
         Ir::pVal cast_ty = cast_to_type(cond, cast_i1, to_pointed_type(to->ty));
-        add_instr(Ir::make_store_instr(to, cast_ty));
+        add_instr(Ir::make_store_instr(to.get(), cast_ty.get()));
     }
 }
 
@@ -730,20 +730,20 @@ bool Convertor::analyze_if(const Pointer<Ast::IfNode> &r) {
         auto if_else_end = Ir::make_label_instr();
         bool need_label = false;
         add_instr(Ir::make_br_cond_instr(
-            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)),
-            if_begin, if_end));
+            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)).get(),
+            if_begin.get(), if_end.get()));
         add_instr(if_begin);
         analyze_statement_node(r->body);
         if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
             !current_block_end()) {
-            add_instr(Ir::make_br_instr(if_else_end));
+            add_instr(Ir::make_br_instr(if_else_end.get()));
             need_label = true;
         }
         add_instr(if_end);
         analyze_statement_node(r->elsed);
         if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
             !current_block_end()) {
-            add_instr(Ir::make_br_instr(if_else_end));
+            add_instr(Ir::make_br_instr(if_else_end.get()));
             need_label = true;
         }
         if (need_label) {
@@ -762,13 +762,13 @@ bool Convertor::analyze_if(const Pointer<Ast::IfNode> &r) {
         auto if_begin = Ir::make_label_instr();
         auto if_end = Ir::make_label_instr();
         add_instr(Ir::make_br_cond_instr(
-            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)),
-            if_begin, if_end));
+            cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1)).get(),
+            if_begin.get(), if_end.get()));
         add_instr(if_begin);
         analyze_statement_node(r->body);
         if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
             !current_block_end()) {
-            add_instr(Ir::make_br_instr(if_end));
+            add_instr(Ir::make_br_instr(if_end.get()));
         }
         add_instr(if_end);
     }
@@ -799,7 +799,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         }
         auto rv = analyze_value(r->val);
         add_instr(Ir::make_store_instr(
-            lv, cast_to_type(r->val, rv, to_pointed_type(lv->ty))));
+            lv.get(), cast_to_type(r->val, rv, to_pointed_type(lv->ty)).get()));
         break;
     }
     case NODE_DEF_VAR: {
@@ -819,10 +819,10 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                 assert(len % 4 == 0);
                 auto imm = _cur_ctx.cpool.add(ImmValue(static_cast<unsigned long long>(len / 4), IMM_I32));
                 add_instr(Ir::make_call_instr(
-                    find_func("__builtin_fill_zero"),
+                    find_func("__builtin_fill_zero").get(),
                     {cast_to_type(r, tmp,
-                                  make_pointer_type(make_basic_type(IMM_I8))),
-                      imm}));
+                                  make_pointer_type(make_basic_type(IMM_I8))).get(),
+                      imm.get()}));
                 copy_to_array(r, tmp, to_array_type(ty), rrr, false);
             }
             break;
@@ -837,7 +837,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
                 // _const_env.env()->find(r->var.name).print());
             }
             add_instr(Ir::make_store_instr(
-                tmp, cast_to_type(r->val, analyze_value(r->val), ty)));
+                tmp.get(), cast_to_type(r->val, analyze_value(r->val), ty).get()));
         }
         _env.env()->set(r->var.name, {tmp, r->is_const});
         break;
@@ -859,11 +859,11 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         auto while_cond = Ir::make_label_instr();
         auto while_begin = Ir::make_label_instr();
         auto while_end = Ir::make_label_instr();
-        add_instr(Ir::make_br_instr(while_cond));
+        add_instr(Ir::make_br_instr(while_cond.get()));
         add_instr(while_cond);
         auto cond =
             cast_to_type(r, analyze_value(r->cond), make_basic_type(IMM_I1));
-        add_instr(Ir::make_br_cond_instr(cond, while_begin, while_end));
+        add_instr(Ir::make_br_cond_instr(cond.get(), while_begin.get(), while_end.get()));
         add_instr(while_begin);
         push_loop_env(while_cond, while_end);
         analyze_statement_node(r->body);
@@ -871,7 +871,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         if ((static_cast<unsigned int>(!_cur_ctx.body.empty()) != 0U) &&
             !current_block_end()) {
             add_instr(Ir::make_br_instr(
-                while_cond)); // who will write "while(xxx) return 0"?
+                while_cond.get())); // who will write "while(xxx) return 0"?
         }
         add_instr(while_end);
         end_loop_env();
@@ -901,16 +901,16 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         _const_env.push_env();
         push_loop_env(for_exec, for_end); // continue start from for_exec
         analyze_statement_node(r->init);
-        add_instr(Ir::make_br_instr(for_cond));
+        add_instr(Ir::make_br_instr(for_cond.get()));
         add_instr(for_cond);
         auto cond = analyze_value(r->cond);
-        add_instr(Ir::make_br_cond_instr(cond, for_body, for_end));
+        add_instr(Ir::make_br_cond_instr(cond.get(), for_body.get(), for_end.get()));
         add_instr(for_body);
         analyze_statement_node(r->body);
-        add_instr(Ir::make_br_instr(for_exec));
+        add_instr(Ir::make_br_instr(for_exec.get()));
         add_instr(for_exec);
         analyze_statement_node(r->exec);
-        add_instr(Ir::make_br_instr(for_cond));
+        add_instr(Ir::make_br_instr(for_cond.get()));
         add_instr(for_end);
         end_loop_env();
         _const_env.end_env();
@@ -921,14 +921,14 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         if (!has_loop_env()) {
             throw_error(root, 9, "no outer loops");
         }
-        add_instr(Ir::make_br_instr(loop_env()->loop_end));
+        add_instr(Ir::make_br_instr(loop_env()->loop_end.get()));
         add_instr(Ir::make_label_instr());
         break;
     case NODE_CONTINUE:
         if (!has_loop_env()) {
             throw_error(root, 9, "no outer loops");
         }
-        add_instr(Ir::make_br_instr(loop_env()->loop_begin));
+        add_instr(Ir::make_br_instr(loop_env()->loop_begin.get()));
         add_instr(Ir::make_label_instr());
         break;
     case NODE_RETURN: {
@@ -936,7 +936,7 @@ bool Convertor::analyze_statement_node(const pNode &root) {
         if (r->ret) {
             auto res = analyze_value(r->ret);
             add_instr(Ir::make_ret_instr(
-                cast_to_type(r, res, _cur_ctx.func_type->ret_type)));
+                cast_to_type(r, res, _cur_ctx.func_type->ret_type).get()));
         } else {
             add_instr(Ir::make_ret_instr());
         }
@@ -997,7 +997,6 @@ Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefN
         }
         TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
-        func->ast_root = root;
         _cur_ctx.init(func);
         for (size_t i = 0; i < root->args.size(); ++i) {
             /*
@@ -1039,7 +1038,6 @@ void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
         }
         TypedSym root_var(root->var.name, analyze_type(root->var.n));
         func = Ir::make_func_defined(root_var, types, syms);
-        func->ast_root = root;
 
         _cur_ctx.init(func);
 

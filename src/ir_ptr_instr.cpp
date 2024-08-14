@@ -33,10 +33,6 @@ String MiniGepInstr::instr_print() const {
     return ans;
 }
 
-pInstr make_mini_gep_instr(const pVal &val, const pVal &index, bool in_this_dim)
-{
-    return make_mini_gep_instr(val.get(), index.get(), in_this_dim);
-}
 pInstr make_mini_gep_instr(Val* val, Val* index, bool in_this_dim)
 {
     return pInstr(new MiniGepInstr(val, index, in_this_dim));
@@ -79,7 +75,7 @@ pType ex_shell(pType t, size_t count, bool &get_from_local) {
     return make_pointer_type(t);
 }
 
-ItemInstr::ItemInstr(const pVal &val, const Vector<pVal> &index)
+ItemInstr::ItemInstr(Val* val, const Vector<Val*> &index)
     : Instr(ex_shell(val->ty, index.size(), get_from_local)) {
     add_operand(val);
     // set_name("%%");
@@ -95,7 +91,7 @@ ItemInstr::ItemInstr(const pVal &val, const Vector<pVal> &index)
     // set_name(nullptr);
 }
 
-pInstr make_item_instr(const pVal &val, const Vector<pVal> &index) {
+pInstr make_item_instr(Val* val, const Vector<Val*> &index) {
     return pInstr(new ItemInstr(val, index));
 }
 

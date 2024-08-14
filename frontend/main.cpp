@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
         AstToIr::Convertor convertor;
         Ir::pModule mod = convertor.generate(ast_root);
 
-        Optimize::optimize(mod, convertor);
+        Optimize::optimize(mod);
 
         if (!out_file_ll.empty()) {
             out.open(out_file_ll, std::fstream::out);

@@ -31,6 +31,8 @@ bool Val::has_name() { return !_name.empty(); }
 void Val::set_name(String name) { _name = std::move(name); }
 
 void Val::replace_self(Val *val) {
+    if (val == this)
+        return ;
     for (auto &i : _users) {
         // printf("replace %s(%llx) val %s with %s\n", i->user->name(), i->user,
         // i->usee->name(), val->name());
@@ -49,8 +51,6 @@ void User::add_operand(Val *val) {
     val->_users.push_back(use);
 }
 
-void User::add_operand(const pVal &val) { add_operand(val.get()); }
-
 void User::change_operand(size_t index, Val *val) {
     val_release_use(_operands[index]->usee, _operands[index]);
     _operands[index]->usee = val;
@@ -63,8 +63,12 @@ void User::release_operand(size_t index)
     _operands.erase(_operands.begin() + index);
 }
 
-void User::change_operand(size_t index, const pVal &val) {
-    change_operand(index, val.get());
+void User::release_all_operands()
+{
+    for (auto &&i : _operands) {
+        val_release_use(i->usee, i);
+    }
+    _operands.clear();
 }
 
 size_t User::operand_size() const { return _operands.size(); }

@@ -38,7 +38,7 @@ struct Val {
 
     const Vector<pUse>& users() const { return _users; }
 
-    pType ty;
+    const pType ty;
 
     void replace_self(Val *val);
 
@@ -69,11 +69,10 @@ struct User : public Val {
 
     ~User() override { user_release(this); }
 
-    void add_operand(const pVal &val);
     void add_operand(Val *val);
     void change_operand(size_t index, Val *val);
-    void change_operand(size_t index, const pVal &val);
     void release_operand(size_t index);
+    void release_all_operands();
 
     const Vector<pUse>& operands() const { return _operands; }
 

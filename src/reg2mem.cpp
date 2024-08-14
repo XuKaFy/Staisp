@@ -13,7 +13,7 @@ void reg2mem(Ir::BlockedProgram& program) {
                     auto store = Ir::make_store_instr(alloc.get(), val);
                     label->block()->push_behind_end(store);
                 }
-                auto load = Ir::make_load_instr(alloc);
+                auto load = Ir::make_load_instr(alloc.get());
                 phi->replace_self(load.get());
                 it = block->erase(it);
                 it = block->insert(it, load);

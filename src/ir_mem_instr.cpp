@@ -31,10 +31,4 @@ pInstr make_store_instr(Val *to, Val *val) {
     return pInstr(new StoreInstr(to, val));
 }
 
-pInstr make_load_instr(const pVal &from) { return pInstr(new LoadInstr(from)); }
-
-pInstr make_store_instr(const pVal &to, const pVal &val) {
-    return pInstr(new StoreInstr(to, val));
-}
-
 } // namespace Ir

@@ -58,6 +58,14 @@ struct PhiInstr final : Instr {
     iterator end() const {
         return {this, phi_pairs()};
     }
+
+    Instr* clone_internal() const override {
+        auto res = new PhiInstr(ty);
+        for (size_t i = 0; i < operands().size(); i += 2) {
+            res->add_incoming(dynamic_cast<LabelInstr*>(operands()[i]->usee), operands()[i+1]->usee);
+        }
+        return res;
+    }
 };
 
 // make_phi_instr: create a new PhiInstr with the given type

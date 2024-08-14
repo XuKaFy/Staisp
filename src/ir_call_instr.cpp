@@ -45,11 +45,11 @@ String RetInstr::instr_print() const {
     return "ret void";
 }
 
-pInstr make_call_instr(const pFunc &func, const Vector<pVal> &args) {
+pInstr make_call_instr(Func *func, const Vector<Val*> &args) {
     return pInstr(new CallInstr(func, args));
 }
 
-pInstr make_ret_instr(const pVal &oprd) { return pInstr(new RetInstr(oprd)); }
+pInstr make_ret_instr(Val *oprd) { return pInstr(new RetInstr(oprd)); }
 
 pInstr make_unreachable_instr() { return pInstr(new UnreachableInstr()); }
 

@@ -49,7 +49,7 @@ ImmValue CmpInstr::calculate(Vector<ImmValue> v) const {
     return ans;
 }
 
-pInstr make_cmp_instr(CmpType cmp_type, const pVal &a1, const pVal &a2) {
+pInstr make_cmp_instr(CmpType cmp_type, Val* a1, Val* a2) {
     return pInstr(new CmpInstr(cmp_type, a1, a2));
 }
 
