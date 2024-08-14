@@ -24,19 +24,6 @@ template <typename T1, typename T2> struct hash<std::pair<T1, T2>> {
 namespace OptGVN {
 
 struct Exp {
-    // 判断两个指令是否 “形式上一致”
-    // 比如
-    // %1 = load %a, %2 = load %b
-    // %3 = add %1, %2 和 %4 = add %1, %2
-    // %3 和 %4 都会被当作 % = add "a", "b"
-    // 当操作数是数字的时候，也是直接按照表达式进行比较
-    // 注意，store、br、ret、call 指令不论如何不能是公共子表达式
-    // 因为其不参与运算
-    bool operator==(const Exp &exp) const;
-
-    // Yaossg's NOTE: use HASH instead of CMP
-    // 需要一个比较函数，才能使用 Set 进行查找
-    bool operator<(const Exp &exp) const;
     void fold(Map<Exp *, Ir::Const *> &exp_const);
     bool is_folded = false;
     Ir::Instr *instr;
@@ -92,9 +79,8 @@ public:
     void handle_cur_instr(Ir::pInstr cur_instr, Ir::Block *cur_blk,
                           std::function<void(Ir::Instr *)> symbolic_evaluation);
     static Vector<Ir::Val *> collect_usees(Ir::Instr *instr);
-    exp_eq exp_predicate;
 
-    std::set<Exp, decltype(exp_predicate)> exp_pool{exp_predicate};
+    std::set<Exp, exp_eq> exp_pool;
     static bool is_block_definable(Ir::Block *arg_blk, Ir::Instr *arg_instr,
                                    DomPredicate dom_set,
                                    Ir::BlockedProgram &cur_func);
