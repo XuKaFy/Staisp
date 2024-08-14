@@ -14,7 +14,7 @@ struct NaturalLoopBody {
     Ir::Val *ind;
     Ir::Val *bound;
     Ir::CmpType cmp_op;
-    Ir::CmpInstr* loop_cnd_instr;
+    Ir::CmpInstr *loop_cnd_instr;
 
     NaturalLoopBody() = delete;
     NaturalLoopBody(Ir::Block *header, Ir::Block *latch,
@@ -48,14 +48,5 @@ public:
     }
     void print_loop() const;
 };
-
-// a is dominated by b
-inline bool is_dom(Ir::Block *a, Ir::Block *b,
-                   const Map<Ir::Block *, Set<Ir::Block *>> &dom_set) {
-    return dom_set.at(a).count(b) > 0;
-}
-// dom context for dominator relation
-auto build_dom_set(const DomTree &dom_ctx)
-    -> Map<Ir::Block *, Set<Ir::Block *>>;
 
 } // namespace Alys

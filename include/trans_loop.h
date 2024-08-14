@@ -162,7 +162,7 @@ public:
                Alys::is_dom(loop_hdr, val_as_instr->block(), dom_set);
     }
 
-    static auto is_func_parameter(Ir::Val *arg_val,
+    static bool is_func_parameter(Ir::Val *arg_val,
                                   const Ir::BlockedProgram &cur_func) {
         for (auto para : cur_func.params()) {
             if (para.get() == arg_val) {

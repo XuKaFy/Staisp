@@ -5,10 +5,10 @@
 #include <reg2mem.h>
 
 #include "alys_dom.h"
-#include "alys_loop.h"
 #include "def.h"
 #include "opt_DFA.h"
 #include "opt_DSE.h"
+#include "opt_GVN.h"
 #include "opt_const_propagate.h"
 #include "opt_interprocedural.h"
 #include "trans_SSA.h"
@@ -68,10 +68,12 @@ void optimize(const Ir::pModule &mod) {
         func->p.re_generate();
 
         pointer_iteration(func->p, dom_ctx);
+        func->p.re_generate();
+        printf("%s\n", func->print_func().c_str());
+        OptGVN::GVN_pass(func->p, dom_ctx).ap();
 
         func->p.re_generate();
     }
-
 }
 
 } // namespace Optimize

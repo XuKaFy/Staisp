@@ -1,16 +1,11 @@
 #include "alys_dom.h"
 #include "def.h"
 #include "ir_block.h"
-#include "ir_control_instr.h"
 #include "ir_instr.h"
-#include "ir_val.h"
-#include "type.h"
 #include <algorithm>
 #include <cassert>
-#include <cstddef>
 #include <cstdio>
 
-#include <functional>
 #include <memory>
 #include <string>
 
@@ -46,7 +41,8 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
 
     int level = 1;
     Vector<Ir::Block *> idfn;
-    auto dfsn = [&idfn, &order_map](auto dfsn, Ir::Block *bb, int &level) -> void {
+    auto dfsn = [&idfn, &order_map](auto dfsn, Ir::Block *bb,
+                                    int &level) -> void {
         if (order_map.at(bb) == level) {
             return;
         }
@@ -81,6 +77,7 @@ void DomTree::build_dom(Ir::BlockedProgram &p) {
     }
     Set<DomBlock *> v;
     build_dfsn(v, dom_map[entry].get());
+    dom_set = build_dom_set(*this);
     for (auto &[bb, dom_bb] : dom_map) {
         if (v.count(dom_bb.get())) {
             my_assert(!unreachable_blocks.count(bb), y);
@@ -121,6 +118,36 @@ Map<Ir::Block *, pDomBlock> DomTree::build_dom_frontier() const {
         }
     }
     return dom_frontier;
+}
+
+Ir::Block *DomTree::LCA(Ir::Block *blk_1, Ir::Block *blk_2) {
+    if (is_dom(blk_1, blk_2)) {
+        return blk_2;
+    }
+    if (is_dom(blk_2, blk_1)) {
+        return blk_1;
+    }
+    auto dom_1 = dom_set[blk_1];
+    auto dom_2 = dom_set[blk_2];
+    auto cur_dom = [this](Ir::Block *cur_blk) { return dom_map[cur_blk]; };
+    if (dom_1.size() > dom_2.size()) {
+        auto c = blk_1;
+        blk_1 = blk_2;
+        blk_2 = c;
+    }
+    dom_1 = dom_set[blk_1];
+    dom_2 = dom_set[blk_2];
+    while (dom_set[blk_2].size() > dom_1.size()) {
+        blk_2 = cur_dom(blk_2)->idom->basic_block;
+    }
+    auto dom_node1 = cur_dom(blk_1).get();
+    auto dom_node2 = cur_dom(blk_2).get();
+
+    while (dom_node1 != dom_node2) {
+        dom_node1 = dom_node1->idom;
+        dom_node2 = dom_node2->idom;
+    }
+    return dom_node1->basic_block;
 }
 
 } // namespace Alys
