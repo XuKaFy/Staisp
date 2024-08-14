@@ -1,5 +1,4 @@
 #include "opt_GVN.h"
-#include "alys_loop.h"
 #include "def.h"
 #include "imm.h"
 #include "ir_block.h"
@@ -9,9 +8,10 @@
 #include "trans_loop.h"
 #include "type.h"
 #include <cstddef>
+#include <cstdio>
 #include <deque>
 #include <functional>
-#include <iostream>
+#include <set>
 
 namespace OptGVN {
 
@@ -58,54 +58,20 @@ Exp GVN_pass::perform_symbolic_evaluation(Ir::Instr *arg_instr,
 }
 
 void GVN_pass::perform_congruence_finding(Ir::Instr *arg_instr, Exp *exp) {
-    auto dom_lca = [this](Ir::Block *blk_1, Ir::Block *blk_2) -> Ir::Block * {
-        auto dom_1 = dom_set[blk_1];
-        auto dom_2 = dom_set[blk_2];
-        auto cur_dom = [this](Ir::Block *cur_blk) {
-            return dom_ctx.dom_map[cur_blk];
-        };
-        if (dom_1.size() > dom_2.size()) {
-            auto c = blk_1;
-            blk_1 = blk_2;
-            blk_2 = c;
-        }
-        dom_1 = dom_set[blk_1];
-        dom_2 = dom_set[blk_2];
-        while (dom_set[blk_2].size() > dom_1.size()) {
-            blk_2 = cur_dom(blk_2)->idom->basic_block;
-        }
-        auto dom_node1 = cur_dom(blk_1).get();
-        auto dom_node2 = cur_dom(blk_2).get();
 
-        while (dom_node1 != dom_node2) {
-            dom_node1 = dom_node1->idom;
-            dom_node2 = dom_node2->idom;
-        }
-        return dom_node1->basic_block;
-    };
     if (auto [it, result] = exp_pool.insert(*exp); !result) {
         auto real_instr = it->instr;
-        if (Alys::is_dom(arg_instr->block(), real_instr->block(), dom_set)) {
-            arg_instr->replace_self(real_instr);
-            arg_instr->block()->erase(arg_instr);
-        } else if (Alys::is_dom(real_instr->block(), arg_instr->block(),
-                                dom_set)) {
-            Exp new_exp = *it;
+        if (!hoist_fold(real_instr, arg_instr)) {
+            auto cloned_exp = *exp;
+            cloned_exp.instr = arg_instr;
             exp_pool.erase(it);
-            new_exp.instr = arg_instr;
-            exp_pool.insert(new_exp);
+            exp_pool.insert(cloned_exp);
             real_instr->replace_self(arg_instr);
             real_instr->block()->erase(real_instr);
-        } else {
-            auto target = dom_lca(arg_instr->block(), real_instr->block());
-            my_assert(
-                is_block_definable(target, real_instr, dom_set, cur_func) &&
-                    is_block_definable(target, arg_instr, dom_set, cur_func),
-                "semantics of usee");
-            Optimize::instr_move(real_instr, target);
-            arg_instr->replace_self(real_instr);
-            arg_instr->block()->erase(arg_instr);
         }
+    } else if (arg_instr->instr_type() == Ir::INSTR_MINI_GEP ||
+               arg_instr->instr_type() == Ir::INSTR_ITEM) {
+        shared_gep.push_back(arg_instr);
     }
 }
 
@@ -148,8 +114,8 @@ void GVN_pass::ap() {
                 handle_cur_instr(cur_instr, cur_blk, symbolic_evaluation);
             }
         }
-        return;
     }
+    sink_gep();
 }
 
 void GVN_pass::handle_cur_instr(
@@ -329,5 +295,63 @@ bool exp_eq::operator()(const Exp &a, const Exp &b) const {
     }
 
     return false;
+}
+
+void GVN_pass::sink_gep() {
+    auto dumpGepOperand = [](String str) -> String {
+        for (auto it = str.begin(); it != str.end();) {
+            if (*it != 'g')
+                it = str.erase(it);
+            else {
+                break;
+            }
+        }
+        return str;
+    };
+    Map<String, Ir::Instr *> gep_map;
+    for (auto &&cur_gep : shared_gep) {
+        auto cur_gep_str = dumpGepOperand(cur_gep->instr_print());
+        printf("%s\n", cur_gep_str.c_str());
+        if (auto [real_instr_it, result] =
+                gep_map.insert({cur_gep_str, cur_gep});
+            !result) {
+            auto real_instr = real_instr_it->second;
+            if (!hoist_fold(real_instr, cur_gep)) {
+                real_instr->replace_self(cur_gep);
+                real_instr->block()->erase(real_instr);
+                gep_map.erase(real_instr_it);
+                gep_map.insert({cur_gep_str, cur_gep});
+            }
+            continue;
+        }
+        printf("%s\n", cur_gep->instr_print().c_str());
+    }
+    for (auto &&[_, cur_gep] : gep_map) {
+        auto cur_dom = cur_gep->block();
+        for (auto &&cur_gep_user : cur_gep->users) {
+            auto user_ins = static_cast<Ir::Instr *>(cur_gep_user->usee);
+            cur_dom = dom_ctx.LCA(user_ins->block(), cur_dom);
+        }
+        if (cur_dom != cur_gep->block())
+            Optimize::instr_move(cur_gep, cur_dom);
+    }
+}
+
+bool GVN_pass::hoist_fold(Ir::Instr *&real_instr, Ir::Instr *&arg_instr) {
+    auto target = dom_ctx.LCA(real_instr->block(), arg_instr->block());
+    my_assert(is_block_definable(target, real_instr, dom_set, cur_func) &&
+                  is_block_definable(target, arg_instr, dom_set, cur_func),
+              "use semantics");
+    if (target == arg_instr->block()) {
+        // arg sdom real
+        if (real_instr->block() != arg_instr->block())
+            return true;
+        // arg is real
+    }
+    if (real_instr->block() != target)
+        Optimize::instr_move(real_instr, target);
+    arg_instr->replace_self(real_instr);
+    arg_instr->block()->erase(arg_instr);
+    return true;
 }
 } // namespace OptGVN

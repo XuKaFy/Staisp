@@ -82,13 +82,13 @@ class GVN_pass {
     std::deque<Ir::Block *> rpo{};
 
     Set<Ir::Val *> touched{};
-    Set<Ir::Block *> changed{};
     Set<Ir::Block *> reachable{};
     DomPredicate dom_set;
     Map<Exp *, Ir::Const *> exp_const;
-    Vector<Ir::Instr *> instrs_tobe_removed;
+    Vector<Ir::Instr *> shared_gep;
 
 public:
+    bool hoist_fold(Ir::Instr *&real_instr, Ir::Instr *&arg_instr);
     void handle_cur_instr(Ir::pInstr cur_instr, Ir::Block *cur_blk,
                           std::function<void(Ir::Instr *)> symbolic_evaluation);
     static Vector<Ir::Val *> collect_usees(Ir::Instr *instr);
@@ -103,6 +103,7 @@ public:
     Exp perform_symbolic_evaluation(Ir::Instr *arg_instr, Ir::Block *arg_blk);
     void perform_congruence_finding(Ir::Instr *arg_instr, Exp *exp);
     void process_out_blks(Ir::Block *arg_blk);
+    void sink_gep();
     ~GVN_pass() {
         printf("\n \t the cnt of folded consts: %zu\n", exp_const.size());
     };

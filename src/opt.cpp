@@ -71,6 +71,7 @@ void optimize(const Ir::pModule &mod, AstToIr::Convertor &convertor) {
 
         pointer_iteration(func->p, dom_ctx);
         func->p.re_generate();
+        printf("%s\n", func->print_func().c_str());
         OptGVN::GVN_pass(func->p, dom_ctx).ap();
 
         func->p.re_generate();
