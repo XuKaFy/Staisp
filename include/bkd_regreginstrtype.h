@@ -28,9 +28,6 @@ enum class RegRegInstrType {
     OR,
     XOR,
     SLT,
-    SH1ADD,
-    SH2ADD,
-    SH3ADD,
 };
 
 inline constexpr std::string_view REGREGINSTRTYPE_NAME[] = {
@@ -54,9 +51,6 @@ inline constexpr std::string_view REGREGINSTRTYPE_NAME[] = {
     "or",
     "xor",
     "slt",
-    "sh1add",
-    "sh2add",
-    "sh3add",
 };
 
 inline std::string stringify(RegRegInstrType value) {

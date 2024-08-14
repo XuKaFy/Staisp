@@ -115,7 +115,7 @@ bool func_inline(Ir::pFuncDefined func, AstToIr::Convertor &convertor, bool &fun
         return false; // shouldn't inline function that has calls
 
     Vector<Ir::CallInstr*> calls;
-    for(const auto &use : func->users) {
+    for(const auto &use : func->users()) {
         auto user = use->user;
         if (user->type() == Ir::VAL_INSTR &&
             dynamic_cast<Ir::Instr*>(user)->instr_type() == Ir::INSTR_CALL) {
@@ -177,7 +177,7 @@ void global2local(const Ir::pModule &mod)
     for (auto i = mod->globs.begin(); i != mod->globs.end(); ) {
         bool onlyfans = true;
         Ir::BlockedProgram *func = nullptr;
-        if ((*i)->users.empty()) {
+        if ((*i)->users().empty()) {
             i = mod->globs.erase(i);
             continue;
         }
@@ -185,7 +185,7 @@ void global2local(const Ir::pModule &mod)
             ++i;
             continue;
         }
-        for (auto j : (*i)->users) {
+        for (auto &&j : (*i)->users()) {
             my_assert(j->user->type() == Ir::VAL_INSTR, "?");
             auto user_instr = dynamic_cast<Ir::Instr*>(j->user);
             if (func == nullptr) func = user_instr->block()->program();

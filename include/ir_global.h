@@ -25,7 +25,7 @@ struct Global : public Val {
     bool is_const;
 
     bool is_effectively_final() {
-        return is_const || std::none_of(users.begin(), users.end(), [](const pUse& use) {
+        return is_const || std::none_of(users().begin(), users().end(), [](const pUse& use) {
             return dynamic_cast<StoreInstr*>(use->user);
         });
     }

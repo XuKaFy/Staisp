@@ -41,7 +41,7 @@ void remove_unused_initialization(const Ir::pModule &mod)
         }
     }
     if (!unused) return ;
-    for (const auto &i : unused->users) {
+    for (const auto &i : unused->users()) {
         my_assert(i->user->type() == Ir::VAL_INSTR, "?");
         auto instr = dynamic_cast<Ir::Instr*>(i->user);
         my_assert(instr->instr_type(), Ir::INSTR_CALL);
@@ -135,11 +135,6 @@ struct ConvertBulk {
 
     FReg allocate_freg() {
         return (FReg) ~func.next_reg();
-    }
-
-    static bool is_immediate(Ir::Val* val) {
-        auto name = val->name();
-        return name[0] != '%' && name[0] != '@';
     }
 
     static std::optional<int> to_itype_immediate(Ir::Val* val, bool negative = false) {
@@ -675,6 +670,14 @@ struct ConvertBulk {
             } });
             return;
         }
+        if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(address);
+                gep && gep->users().size() == 1 && gep->users()[0]->user == instr.get()) {
+            auto [reg, offset] = parse_mini_gep(gep);
+            add({ StoreInstr{
+                type, rs, offset, reg
+            } });
+            return;
+        }
         add({ StoreInstr{
             type, rs, 0, toReg(address)
         } });
@@ -701,62 +704,80 @@ struct ConvertBulk {
             } });
             return;
         }
+        if (auto gep = dynamic_cast<Ir::MiniGepInstr*>(address);
+                gep && gep->users().size() == 1 && gep->users()[0]->user == instr.get()) {
+            auto [reg, offset] = parse_mini_gep(gep);
+            add({ LoadInstr{
+                type, rd, offset, reg
+            } });
+            return;
+        }
         add({ LoadInstr{
             type, rd, 0, toReg(address)
         } });
     }
 
 #ifdef USING_MINI_GEP
-    void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
+    std::pair<Reg, int> parse_mini_gep(Ir::MiniGepInstr* instr) {
         auto base = instr->operand(0)->usee;
         auto type = base->ty;
         type = to_pointed_type(type);
-
         auto rs = load_address(base);
-        auto rd = toReg(instr.get());
-        if (instr->in_this_dim) {
-            type = make_array_type(type, 0);
+        if (!instr->in_this_dim) {
+            type = to_elem_type(type);
         }
-        type = to_elem_type(type);
         int step = type->length();
         auto access = instr->operand(1)->usee;
         if (auto con = dynamic_cast<Ir::Const*>(access)) {
             int imm = std::stoi(con->name());
-            if (imm != 0) {
-                int forward = imm * step;
-                auto forwarded  = allocate_reg();
-                if (check_itype_immediate(forward)) {
-                    add({ RegImmInstr {
-                        RegImmInstrType::ADDI, forwarded, rs, forward
-                    } });
-                } else {
-                    add({ RegRegInstr {
-                        RegRegInstrType::ADD, forwarded, rs, li(forward)
-                    } });
-                }
-                rs = forwarded;
+            int forward = imm * step;
+            if (check_itype_immediate(forward)) {
+                return {rs, forward};
             }
-        } else {
-            auto index = toReg(access);
-            auto forward  = allocate_reg();
-            auto forwarded  = allocate_reg();
-            if ((step & (step - 1)) == 0) {
-                add({ RegImmInstr {
-                    RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
-                } });
-            } else {
-                add({ RegRegInstr {
-                    RegRegInstrType::MUL, forward, li(step), index
-                } });
-            }
+            auto forwarded = allocate_reg();
             add({ RegRegInstr {
-                RegRegInstrType::ADD, forwarded, rs, forward
+                RegRegInstrType::ADD, forwarded, rs, li(forward)
             } });
-            rs = forwarded;
+            return {forwarded, 0};
         }
-        add({  RegInstr{
-            RegInstrType::MV, rd, rs
+        auto index = toReg(access);
+        auto forward  = allocate_reg();
+        auto forwarded  = allocate_reg();
+        if ((step & (step - 1)) == 0) {
+            add({ RegImmInstr {
+                RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+            } });
+        } else {
+            add({ RegRegInstr {
+                RegRegInstrType::MUL, forward, li(step), index
+            } });
+        }
+        add({ RegRegInstr {
+            RegRegInstrType::ADD, forwarded, rs, forward
         } });
+        return {forwarded, 0};
+    }
+
+    void convert_mini_gep_instr(const Pointer<Ir::MiniGepInstr> &instr) {
+        if (instr->users().size() == 1) {
+            if (auto user = dynamic_cast<Ir::Instr*>(instr->users()[0]->user)) {
+                if (user->instr_type() == Ir::INSTR_LOAD || user->instr_type() == Ir::INSTR_STORE) {
+                    return;
+                }
+            }
+        }
+        auto rd = toReg(instr.get());
+        auto [reg, offset] = parse_mini_gep(instr.get());
+        if (offset == 0) {
+            // a hint for register allocator
+            add({  RegInstr{
+                RegInstrType::MV, rd, reg
+            } });
+        } else {
+            add({ RegImmInstr {
+                RegImmInstrType::ADDI, rd, reg, offset,
+            } });
+        }
     }
 #endif
 
@@ -774,32 +795,20 @@ struct ConvertBulk {
             int step = type->length();
             auto index = toReg(instr->operand(dim)->usee);
             if (index != Reg::ZERO) {
+                auto forward  = allocate_reg();
                 auto forwarded  = allocate_reg();
                 if ((step & (step - 1)) == 0) {
-                    int bits = __builtin_ctz(step);
-                    if (bits <= 3) {
-                        auto instr_type = (int)RegRegInstrType::SH1ADD + bits - 1;
-                        add({ RegRegInstr {
-                            (RegRegInstrType)instr_type, forwarded, index, rs
-                        } });
-                    } else {
-                        auto forward  = allocate_reg();
-                        add({ RegImmInstr {
-                            RegImmInstrType::SLLI, forward, index, bits
-                        } });
-                        add({ RegRegInstr {
-                            RegRegInstrType::ADD, forwarded, rs, forward
-                        } });
-                    }
+                    add({ RegImmInstr {
+                        RegImmInstrType::SLLI, forward, index, __builtin_ctz(step)
+                    } });
                 } else {
-                    auto forward  = allocate_reg();
                     add({ RegRegInstr {
                         RegRegInstrType::MUL, forward, li(step), index
                     } });
-                    add({ RegRegInstr {
-                        RegRegInstrType::ADD, forwarded, rs, forward
-                    } });
                 }
+                add({ RegRegInstr {
+                    RegRegInstrType::ADD, forwarded, rs, forward
+                } });
                 rs = forwarded;
             }
         }
@@ -879,7 +888,7 @@ MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, b
         case Ir::INSTR_CALL: {
             auto terminator = *block->rbegin();
             tail = terminator->instr_type() == Ir::INSTR_RET && next == terminator
-                    && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+                    && instr->users().size() == 1 && instr->users().front()->user == terminator.get();
             bulk.convert_call_instr(tail, std::static_pointer_cast<Ir::CallInstr>(instr));
             break;
         }
@@ -895,7 +904,7 @@ MachineInstrs Func::translate(const Ir::pInstr &instr, const Ir::pInstr &next, b
         case Ir::INSTR_CMP: {
             auto terminator = *block->rbegin();
             tail = terminator->instr_type() == Ir::INSTR_BR_COND && next == terminator
-                    && instr->users.size() == 1 && instr->users[0]->user == terminator.get();
+                    && instr->users().size() == 1 && instr->users().front()->user == terminator.get();
             bulk.convert_cmp_instr(tail, terminator, std::static_pointer_cast<Ir::CmpInstr>(instr));
             break;
         }
