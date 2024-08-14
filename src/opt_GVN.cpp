@@ -328,7 +328,7 @@ void GVN_pass::sink_gep() {
     }
     for (auto &&[_, cur_gep] : gep_map) {
         auto cur_dom = cur_gep->block();
-        for (auto &&cur_gep_user : cur_gep->users) {
+        for (auto &&cur_gep_user : cur_gep->users()) {
             auto user_ins = static_cast<Ir::Instr *>(cur_gep_user->usee);
             cur_dom = dom_ctx.LCA(user_ins->block(), cur_dom);
         }
@@ -345,7 +345,7 @@ bool GVN_pass::hoist_fold(Ir::Instr *&real_instr, Ir::Instr *&arg_instr) {
     if (target == arg_instr->block()) {
         // arg sdom real
         if (real_instr->block() != arg_instr->block())
-            return true;
+            return false;
         // arg is real
     }
     if (real_instr->block() != target)
