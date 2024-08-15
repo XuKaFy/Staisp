@@ -87,12 +87,6 @@ std::optional<IterationInfo> detect_iteration(const Alys::pNaturalLoopBody& loop
         }
     }
     assert (initial); // no initial value? fancy case!
-    if (loop->header->in_blocks().size() != 1) return {};
-
-    auto pre = *loop->header->in_blocks().begin();
-    if (auto def = dynamic_cast<Ir::Instr*>(pre); def && !pre->contains(def))
-        return {};
-
     assert (from);
     assert (!iterations.empty()); // no iteration? fancy case!
     return {{loop, phi, initial, from, std::move(iterations)}};
@@ -205,8 +199,7 @@ void detect_sum_and_transform(IterationInfo info) {
             return;
         if (instr->operand(0)->usee == instr->operand(1)->usee)
             return;
-        if (bin->binType == Ir::INSTR_ADD || bin->binType == Ir::INSTR_SUB
-            || bin->binType == Ir::INSTR_FADD || bin->binType == Ir::INSTR_FSUB) {
+        if (bin->binType == Ir::INSTR_ADD || bin->binType == Ir::INSTR_SUB) {
             if (block->contains(dynamic_cast<Ir::Instr*>(instr->operand(1)->usee)))
                 return;
         } else {
@@ -219,7 +212,7 @@ void detect_sum_and_transform(IterationInfo info) {
         if (!bin) continue;
         auto phi = dynamic_cast<Ir::PhiInstr*>(instr->operand(0)->usee);
         phis.push_back(phi);
-        auto advance = instr->operand(1)->usee;
+        auto step = instr->operand(1)->usee;
         Ir::Val* initial = nullptr;
         for (auto [label, val] : *phi) {
             if (!info.loop->loop_blocks.count(label->block())) {
@@ -228,19 +221,11 @@ void detect_sum_and_transform(IterationInfo info) {
             }
         }
         assert(initial);
-        auto sub = Ir::make_binary_instr(Ir::INSTR_SUB, info.loop->bound, info.initial);
-        header->push_behind_end(sub);
+        auto times = Ir::make_binary_instr(Ir::INSTR_SUB, info.loop->bound, info.initial);
+        header->push_behind_end(times);
         if (bin->binType == Ir::INSTR_ADD || bin->binType == Ir::INSTR_SUB) {
-            auto mul = Ir::make_binary_instr(Ir::INSTR_MUL, sub.get(), advance);
+            auto mul = Ir::make_binary_instr(Ir::INSTR_MUL, times.get(), step);
             auto add = Ir::make_binary_instr(bin->binType, initial, mul.get());
-            header->push_behind_end(mul);
-            header->push_behind_end(add);
-            phi->replace_self(add.get());
-        } else if (bin->binType == Ir::INSTR_FADD || bin->binType == Ir::INSTR_FSUB) {
-            auto cast = Ir::make_cast_instr(make_basic_type(IMM_F32), sub.get());
-            auto mul = Ir::make_binary_instr(Ir::INSTR_FMUL, cast.get(), advance);
-            auto add = Ir::make_binary_instr(bin->binType, initial, mul.get());
-            header->push_behind_end(cast);
             header->push_behind_end(mul);
             header->push_behind_end(add);
             phi->replace_self(add.get());
