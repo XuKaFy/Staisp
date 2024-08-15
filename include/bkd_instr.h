@@ -414,6 +414,7 @@ inline std::string stringify(StackObjectType type) {
         case StackObjectType::PARENT_ARG:
             return "P";
     }
+    my_assert(false, "unreachable");
 }
 
 struct LoadStackAddressInstr {

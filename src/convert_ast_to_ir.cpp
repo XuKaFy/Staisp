@@ -26,8 +26,6 @@
 #include <functional>
 #include <utility>
 
-#define BUILTIN_INITIALIZER "__buildin_initializer"
-
 namespace AstToIr {
 
 void Convertor::throw_error(const pNode &root, int id, const String &msg) {

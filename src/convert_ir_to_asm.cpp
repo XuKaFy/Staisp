@@ -35,7 +35,7 @@ void remove_unused_initialization(const Ir::pModule &mod)
 {
     Ir::pFuncDefined unused;
     for (const auto &i : mod->funsDefined) {
-        if (i->name() == "__buildin_initializer") { // __buildin_initialization
+        if (i->name() == BUILTIN_INITIALIZER) { // __buildin_initialization
             unused = i;
             break;
         }
@@ -238,6 +238,8 @@ struct ConvertBulk {
                 return RegImmInstrType::SLLIW;
             case Ir::INSTR_SLT:
                 return RegImmInstrType::SLTI;
+            default:
+                break;
         }
         return std::nullopt;
     }
@@ -252,6 +254,8 @@ struct ConvertBulk {
                 return RegImmInstrType::ORI;
             case Ir::INSTR_XOR:
                 return RegImmInstrType::XORI;
+            default:
+                break;
         }
         return std::nullopt;
     }

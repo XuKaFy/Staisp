@@ -71,6 +71,8 @@ struct Exception {
     String message;
 };
 
+#define BUILTIN_INITIALIZER "__buildin_initializer"
+
 #define USING_MINI_GEP
 
 // #define CATCHING_EXCEPTION

@@ -125,7 +125,7 @@ bool func_inline(Ir::pFuncDefined func, bool &func_should_be_removed)
         }
     }
 
-    if (calls.size() == 1 && func->name() == "__buildin_initializer") {
+    if (calls.size() == 1 && func->name() == BUILTIN_INITIALIZER) {
         // 不内联它是为了日后删掉它
         return false;
     }
