@@ -55,6 +55,7 @@ void func_pass_loop_gep_motion(const Ir::pFuncDefined &func, Alys::DomTree &dom_
 
 void func_pass_pointer_iteration(const Ir::pFuncDefined &func, Alys::DomTree &dom_ctx) {
     pointer_iteration(func->p, dom_ctx);
+    func->p.plain_opt_all();
     func->p.re_generate();
 }
 
