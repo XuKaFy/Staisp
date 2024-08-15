@@ -82,6 +82,11 @@ struct Block : public Val {
 
     void pop_back() { body.pop_back(); }
 
+    bool contains(Instr* instr) {
+        if (instr == nullptr) return false;
+        return std::find_if(begin(), end(), [instr](const pInstr& i) { return i.get() == instr; }) != end();
+    }
+
     Instrs::iterator erase(const Instrs::iterator &i) { return body.erase(i); }
 
     void erase(Instr *instr) {
