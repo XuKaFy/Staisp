@@ -90,9 +90,6 @@ public:
     void perform_congruence_finding(Ir::Instr *arg_instr, Exp *exp);
     void process_out_blks(Ir::Block *arg_blk);
     void sink_gep();
-    ~GVN_pass() {
-        printf("\n \t the cnt of folded consts: %zu\n", exp_const.size());
-    };
 };
 
 } // namespace OptGVN
