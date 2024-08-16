@@ -14,6 +14,11 @@ extern Vector<pNode> root;
 bool flag_O1 = false;
 bool flag_no_backend;
 
+namespace Backend {
+extern bool flag_O1;
+}
+
+
 int main(int argc, char *argv[]) {
     if (argc == 1) {
         printf("Usage: %s -S [-o out_file] [in_file] [-o1]\n", argv[0]);
@@ -31,7 +36,7 @@ int main(int argc, char *argv[]) {
         }
         if (strcmp(argv[i], "-o1") == 0 ||
             strcmp(argv[i], "-O1") == 0) {
-            flag_O1 = true;
+            Backend::flag_O1 = flag_O1 = true;
             continue;
         }
         if (strcmp(argv[i], "-o") == 0) {

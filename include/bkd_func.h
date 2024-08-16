@@ -195,7 +195,7 @@ struct Func {
     Map<GReg, size_t> operand_spill_map;
 
     // used temporary registers.
-    Set<MachineInstr*> used_temp_map;
+    Map<MachineInstr*, int> used_temp_map;
 
     Map<GReg, GReg> coalesce_map;
     Map<GReg, GReg> hint_map;

@@ -388,6 +388,8 @@ void Func::spill(int alloc_num) {
     }
     GReg t1; if (is_flt) t1 = FReg::FT1; else t1 = Reg::T1;
     GReg t2; if (is_flt) t2 = FReg::FT2; else t2 = Reg::T2;
+    GReg t3 = FReg::FT0; // for ma
+    GReg rt[] = {t1, t2, t3};
 
     for (auto&& instr : def_worklist) {
         auto [list, it] = lookup[instr];
@@ -400,13 +402,8 @@ void Func::spill(int alloc_num) {
 
     for (auto&& instr : use_worklist) {
         auto [list, it] = lookup[instr];
-        GReg reg = t1;
+        GReg reg = rt[used_temp_map[instr]++];
         auto type = is_flt ? LSType::FLOAT : LSType::DWORD;
-        if (used_temp_map.count(instr)) {
-            reg = t2;
-        } else {
-            used_temp_map.insert(instr);
-        }
         instr->replace_use(operand, reg);
         it = list->insert(it, { LoadStackAddressInstr { Reg::T0, index } });
         it = list->insert(++it, { LoadInstr { type, reg, 0, Reg::T0 } });

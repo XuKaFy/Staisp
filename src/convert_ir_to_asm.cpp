@@ -27,6 +27,8 @@
 
 namespace Backend {
 
+bool flag_O1;
+
 [[noreturn]] void unreachable() {
     my_assert(false, "unreachable");
 }
@@ -317,9 +319,54 @@ struct ConvertBulk {
 
     void convert_binary_instr(const Pointer<Ir::BinInstr> &instr) {
         if (is_float(instr->ty)) {
+            if (flag_O1 && instr->binType == Ir::INSTR_FMUL && instr->users().size() == 1) {
+                if (auto add = dynamic_cast<Ir::BinInstr*>(instr->users()[0]->user);
+                    add && (add->binType == Ir::INSTR_FADD || add->binType == Ir::INSTR_FSUB)) {
+                    return;
+                }
+            }
             auto rd = toFReg(instr.get());
-            auto rs1 = toFReg(instr->operand(0)->usee);
-            auto rs2 = toFReg(instr->operand(1)->usee);
+            auto lhs = instr->operand(0)->usee;
+            auto rhs = instr->operand(1)->usee;
+            if (flag_O1 && (instr->binType == Ir::INSTR_FADD || instr->binType == Ir::INSTR_FSUB)) {
+                bool is_add = instr->binType == Ir::INSTR_FADD;
+                if (auto mul = dynamic_cast<Ir::BinInstr*>(lhs);
+                    mul && mul->users().size() == 1 && mul->users()[0]->user == instr.get() && mul->binType == Ir::INSTR_FMUL) {
+                    // a * b +/- c
+                    FReg c;
+                    if (auto mul2 = dynamic_cast<Ir::BinInstr*>(rhs);
+                        mul2 && mul2->users().size() == 1 && mul2->users()[0]->user == instr.get() && mul2->binType == Ir::INSTR_FMUL) {
+                        // a * b +/- c * d
+                        c = toFReg(mul2);
+                        auto rs1 = toFReg(mul2->operand(0)->usee);
+                        auto rs2 = toFReg(mul2->operand(1)->usee);
+                        add({ FRegFRegInstr {
+                            FRegFRegInstrType::FMUL_S, c, rs1, rs2,
+                        } });
+                    } else {
+                        c = toFReg(rhs);
+                    }
+                    auto a = mul->operand(0)->usee;
+                    auto b = mul->operand(1)->usee;
+                    add({ MAInstr {
+                        is_add ? MAInstrType::FMADD_S : MAInstrType::FMSUB_S, rd, toFReg(a), toFReg(b), c
+                    } });
+                    return;
+                }
+                if (auto mul = dynamic_cast<Ir::BinInstr*>(rhs);
+                    mul && mul->users().size() == 1 && mul->users()[0]->user == instr.get() && mul->binType == Ir::INSTR_FMUL) {
+                    // +/- a * b + c
+                    auto a = mul->operand(0)->usee;
+                    auto b = mul->operand(1)->usee;
+                    auto c = lhs;
+                    add({ MAInstr {
+                        is_add ? MAInstrType::FMADD_S : MAInstrType::FNMSUB_S, rd, toFReg(a), toFReg(b), toFReg(c)
+                    } });
+                    return;
+                }
+            }
+            auto rs1 = toFReg(lhs);
+            auto rs2 = toFReg(rhs);
             add({ FRegFRegInstr {
                 selectFRFRType(instr->binType), rd, rs1, rs2,
             } });

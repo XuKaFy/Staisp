@@ -15,6 +15,7 @@
 #include <bkd_regfreginstrtype.h>
 #include <bkd_fregfreginstrtype.h>
 #include <bkd_fcmpinstrtype.h>
+#include <bkd_mainstrtype.h>
 #include <variant>
 
 namespace Backend {
@@ -191,6 +192,25 @@ struct FRegFRegInstr {
     void replace_use(GReg from, GReg to) {
         if (GReg(rs1) == from) rs1 = std::get<FReg>(to);
         if (GReg(rs2) == from) rs2 = std::get<FReg>(to);
+    }
+};
+
+struct MAInstr {
+    MAInstrType type;
+    FReg rd, rs1, rs2, rs3;
+
+    std::string stringify() const {
+        return format(type, rd, rs1, rs2, rs3);
+    }
+
+    std::vector<GReg> def() const { return {rd}; }
+    std::vector<GReg> use() const { return {rs1, rs2, rs3}; }
+
+    void replace_def(GReg from, GReg to) { if (GReg(rd) == from) rd = std::get<FReg>(to); }
+    void replace_use(GReg from, GReg to) {
+        if (GReg(rs1) == from) rs1 = std::get<FReg>(to);
+        if (GReg(rs2) == from) rs2 = std::get<FReg>(to);
+        if (GReg(rs3) == from) rs3 = std::get<FReg>(to);
     }
 };
 
@@ -486,6 +506,7 @@ struct MachineInstr {
         FREGREG,
         REGFREG,
         FREGFREG,
+        MA,
         FCMP,
         LOAD,
         STORE,
@@ -528,7 +549,7 @@ struct MachineInstr {
 
     std::variant<
         ImmInstr, RegInstr, RegRegInstr, RegImmInstr, BranchInstr,
-        FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr,
+        FRegInstr, FRegRegInstr, RegFRegInstr, FRegFRegInstr, FCmpInstr, MAInstr,
         LoadInstr, StoreInstr,
         JInstr, CallInstr, ReturnInstr,
         LoadAddressInstr, LoadGlobalInstr, StoreGlobalInstr,
