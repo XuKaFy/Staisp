@@ -61,8 +61,8 @@ struct PhiInstr final : Instr {
 
     Instr* clone_internal() const override {
         auto res = new PhiInstr(ty);
-        for (size_t i = 0; i < operands().size(); i += 2) {
-            res->add_incoming(dynamic_cast<LabelInstr*>(operands()[i]->usee), operands()[i+1]->usee);
+        for (auto [label, val] : *this) {
+            res->add_incoming(label, val);
         }
         return res;
     }

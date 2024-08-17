@@ -16,6 +16,8 @@ struct IterationInfo {
     Ir::PhiInstr* phi;
     Ir::Val* initial;
     Ir::LabelInstr* from;
+    Ir::Block* pred_block;
+    Ir::Block* succ_block;
     // iteration -> optional corresponding self-increment
     std::unordered_map<Ir::Val*, SelfIncrement> iterations;
 
@@ -89,7 +91,23 @@ std::optional<IterationInfo> detect_iteration(const Alys::pNaturalLoopBody& loop
     assert (initial); // no initial value? fancy case!
     assert (from);
     assert (!iterations.empty()); // no iteration? fancy case!
-    return {{loop, phi, initial, from, std::move(iterations)}};
+    Ir::Block* pred_block = nullptr;
+    for (auto in_blk : loop->header->in_blocks()) {
+        if (loop->loop_blocks.count(in_blk) == 0) {
+            pred_block = in_blk;
+            break;
+        }
+    }
+    Ir::Block* succ_block = nullptr;
+    for (auto out_blk : loop->header->out_blocks()) {
+        if (loop->loop_blocks.count(out_blk) == 0) {
+            succ_block = out_blk;
+            break;
+        }
+    }
+    my_assert(pred_block, "must exists");
+    my_assert(succ_block, "must exists");
+    return {{loop, phi, initial, from, pred_block, succ_block, std::move(iterations)}};
 }
 
 std::optional<IterationGEPInfo> detect_gep_iteration(IterationInfo info) {
@@ -157,14 +175,7 @@ void transform(const IterationGEPInfo& gepInfo) {
         info.loop->loop_cnd_instr->replace_self(cmp.get());
         block->erase(original_phi);
         block->erase(info.loop->loop_cnd_instr);
-        Ir::Block* pred_blk = nullptr;
-        for (auto in_blk : block->in_blocks()) {
-            if (info.loop->loop_blocks.count(in_blk) == 0) {
-                pred_blk = in_blk;
-                break;
-            }
-        }
-        my_assert(pred_blk, "must exists");
+        auto pred_blk = info.pred_block;
         for (auto&& base : bases) {
             pred_blk->push_behind_end(base);
         }
@@ -182,6 +193,7 @@ void transform(const IterationGEPInfo& gepInfo) {
     }
 }
 
+[[deprecated]] // usable but useless
 void detect_sum_and_transform(IterationInfo info) {
     if (info.loop->loop_blocks.size() != 2) return;
     auto blocks = info.loop->loop_blocks;
@@ -231,9 +243,7 @@ void detect_sum_and_transform(IterationInfo info) {
             phi->replace_self(add.get());
         }
     }
-    auto branch = std::dynamic_pointer_cast<Ir::BrCondInstr>(header->back());
-    header->pop_back();
-    header->push_back(branch->select(true));
+    header->squeeze_out(false);
     for (auto it = header->begin(); it != header->end(); ) {
         auto type = (*it)->instr_type();
         if (type == Ir::INSTR_CMP) {
@@ -247,6 +257,40 @@ void detect_sum_and_transform(IterationInfo info) {
     }
 }
 
+void loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
+    Ir::CloneContext ctx;
+    std::vector<Ir::pBlock> blocks;
+    Ir::Block* cloned_header = nullptr;
+    for (auto&& block : info.loop->loop_blocks) {
+        blocks.push_back(block->clone(ctx));
+        if (block == info.loop->header) {
+            cloned_header = blocks.back().get();
+        }
+    }
+    assert(cloned_header);
+    for (auto&& block : blocks) {
+        block->fix_clone(ctx);
+    }
+    for (auto&& block : blocks) {
+        func.push_back(block);
+    }
+    info.pred_block->replace_out(info.loop->header, cloned_header);
+    cloned_header->replace_out(info.succ_block, info.loop->header);
+    info.loop->header->replace_in(info.pred_block, cloned_header);
+    info.succ_block->replace_in(cloned_header, info.loop->header);
+}
+
+
+void loop_unrolling(Ir::BlockedProgram &func, Alys::DomTree &dom) {
+    Alys::LoopInfo loop_info(func, dom);
+    for (auto&& [_, loop] : loop_info.loops) {
+        if (auto info = detect_iteration(loop)) {
+            loop_unrolling(func, info.value());
+            break;
+        }
+    }
+}
+
 void pointer_iteration(Ir::BlockedProgram &func, Alys::DomTree &dom) {
     Alys::LoopInfo loop_info(func, dom);
     for (auto&& [_, loop] : loop_info.loops) {
@@ -254,10 +298,9 @@ void pointer_iteration(Ir::BlockedProgram &func, Alys::DomTree &dom) {
             if (auto gepInfo = detect_gep_iteration(info.value())) {
                 transform(gepInfo.value());
             } else {
-                detect_sum_and_transform(info.value());
+                // detect_sum_and_transform(info.value());
             }
         }
     }
 }
-
 }

@@ -30,6 +30,8 @@ struct Block : public Val {
     // 指令的指向对象） 最后一条指令必须是 cond br 或者 br
     void replace_out(Block *before, Block *out);
 
+    void replace_in(Block* before, Block* in);
+
     // 打印该 block
     String print_block() const;
 

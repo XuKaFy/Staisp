@@ -37,38 +37,49 @@ void func_pass_ssa(const Ir::pFuncDefined &func) {
     my_assert(func->p.check_empty_use("SSA") == 0, "SSA Failed");
 }
 
-void func_pass_canonicalizer(const Ir::pFuncDefined &func, Alys::DomTree &dom_ctx)
+Alys::DomTree func_pass_get_dom_ctx(const Ir::pFuncDefined &func) {
+    Alys::DomTree dom_ctx;
+    dom_ctx.build_dom(func->p);
+    func->p.re_generate();
+    return dom_ctx;
+}
+
+void func_pass_canonicalizer(const Ir::pFuncDefined &func)
 {
+    Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
     Optimize::Canonicalizer_pass(func->p, dom_ctx).ap();
     my_assert(func->p.check_empty_use("Canonicalizer") == 0,
               "Canonicalizer Failed");
     func->p.re_generate();
 }
 
-void func_pass_loop_gep_motion(const Ir::pFuncDefined &func, Alys::DomTree &dom_ctx)
+void func_pass_loop_gep_motion(const Ir::pFuncDefined &func)
 {
+    Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
     Optimize::LoopGEPMotion_pass(func->p, dom_ctx).ap();
     my_assert(func->p.check_empty_use("LoopGEPMotion") == 0,
               "LoopGEPMotion Failed");
     func->p.re_generate();
 }
 
-void func_pass_pointer_iteration(const Ir::pFuncDefined &func, Alys::DomTree &dom_ctx) {
+void func_pass_pointer_iteration(const Ir::pFuncDefined &func) {
+    Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
     pointer_iteration(func->p, dom_ctx);
     func->p.plain_opt_all();
     func->p.re_generate();
 }
 
-void func_pass_gvn(const Ir::pFuncDefined &func, Alys::DomTree &dom_ctx) {
-    OptGVN::GVN_pass(func->p, dom_ctx).ap();
+
+void func_pass_loop_unrolling(const Ir::pFuncDefined &func) {
+    Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
+    loop_unrolling(func->p, dom_ctx);
     func->p.re_generate();
 }
 
-Alys::DomTree func_pass_get_dom_ctx(const Ir::pFuncDefined &func) {
-    Alys::DomTree dom_ctx;
-    dom_ctx.build_dom(func->p);
+void func_pass_gvn(const Ir::pFuncDefined &func) {
+    Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
+    OptGVN::GVN_pass(func->p, dom_ctx).ap();
     func->p.re_generate();
-    return dom_ctx;
 }
 
 void pass_inline(const Ir::pModule &mod) {
@@ -100,11 +111,11 @@ void optimize(const Ir::pModule &mod) {
     }
     pass_dfa(mod);
     for (auto &&func : mod->funsDefined) {
-        Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
-        func_pass_canonicalizer(func, dom_ctx);
-        func_pass_loop_gep_motion(func, dom_ctx);
-        func_pass_pointer_iteration(func, dom_ctx);
-        func_pass_gvn(func, dom_ctx);
+        func_pass_canonicalizer(func);
+        func_pass_loop_gep_motion(func);
+        func_pass_gvn(func);
+        func_pass_loop_unrolling(func);
+        func_pass_pointer_iteration(func);
     }
 }
 

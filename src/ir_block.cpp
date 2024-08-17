@@ -138,6 +138,20 @@ void Block::squeeze_out(bool selected) {
     push_back(new_br);
 }
 
+void Block::replace_in(Block* before, Block* in) {
+    for (auto&& instr : *this) {
+        auto phi = dynamic_cast<PhiInstr*>(instr.get());
+        if (!phi)
+            continue;
+        for (size_t i=0; i<phi->phi_pairs(); ++i) {
+            if (phi->phi_label(i)->block() == before) {
+                phi->change_phi_label(i, in->label().get());
+                break;
+            }
+        }
+    }
+}
+
 void Block::connect_in_and_out() {
     auto out_block = *out_blocks().begin();
 
