@@ -568,9 +568,12 @@ void LoopGEPMotion_pass::process_cur_blk(Ir::Block *arg_blk,
                     !result) {
                     auto real_gep = *real_gep_it;
                     if (Alys::is_dom(real_gep->block(), cur_item->block(),
-                                     dom_set)) {
+                                     dom_set) &&
+                        cur_item->block() != real_gep->block()) {
                         hoistable_gep.erase(*real_gep_it);
                         hoistable_gep.insert(cur_item);
+                        aliases[cur_base].erase(real_gep_it);
+                        aliases[cur_base].insert(cur_item);
                         real_gep->replace_self(cur_item);
                         real_gep->block()->erase(real_gep);
                     } else if (Alys::is_dom(cur_item->block(),
