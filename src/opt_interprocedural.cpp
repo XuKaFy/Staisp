@@ -12,8 +12,12 @@
 
 namespace Optimize {
 
-void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
+// 将一个 CallInstr 删除，并且 inline
+void replace_call_with_inline(Ir::CallInstr* call_instr)
 {
+    auto func_inlined = dynamic_cast<Ir::FuncDefined*>(call_instr->operand(0)->usee);
+    my_assert(func_inlined, "?");
+    auto new_p = func_inlined->p.clone();
     /*
     before:
         OriginalBlock:
@@ -70,7 +74,7 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     // Step 4: replace all ret in copied program to two statement:
     // 1. (if not void) store my value to
     // 2. jump to BackBlock
-    for (auto i : new_p) {
+    for (auto&& i : new_p) {
         if (i->back()->instr_type() == Ir::INSTR_RET) {
             Ir::pInstr ret_instr = i->back();
             i->pop_back();
@@ -107,62 +111,104 @@ void func_inline_from_bp(Ir::CallInstr* call_instr, Ir::BlockedProgram &new_p)
     new_p.clear();
 }
 
-bool func_inline(Ir::pFuncDefined func, bool &func_should_be_removed)
+// 判断一个函数是否应该被内联进其他函数
+bool should_function_be_inlined(const Ir::pFuncDefined &f)
 {
-    func_should_be_removed = false;
-    // printf("try to inline %s\n", func->name().c_str());
-    if (func->p.has_calls())
-        return false; // shouldn't inline function that has calls
+    if (f->name() == BUILTIN_INITIALIZER) {
+        // BUILTIN_INITIALIZER should NOT be inlined
+        return false;
+    }
+    for (auto&& block : f->p) {
+        for (auto&& instr : *block) {
+            if (instr->instr_type() != Ir::INSTR_CALL) continue;
+            auto call_instr = dynamic_cast<Ir::CallInstr*>(instr.get());
+            if (auto callee = dynamic_cast<Ir::FuncDefined*>(call_instr->operand(0)->usee); 
+                callee != nullptr) {
+                // when a function calls a user-defined function (**INCLUDE ITSELF**)
+                // it should NOT be inlined into other functions 
+                return false;
+            }
+        }
+    }
+    return true;
+}
 
-    Vector<Ir::CallInstr*> calls;
-    for(const auto &use : func->users()) {
-        auto user = use->user;
-        if (user->type() == Ir::VAL_INSTR &&
-            dynamic_cast<Ir::Instr*>(user)->instr_type() == Ir::INSTR_CALL) {
-            Ir::CallInstr* call_instr = dynamic_cast<Ir::CallInstr*>(user);
-            calls.push_back(call_instr);
-            // printf("user: %s\n", call_instr->instr_print().c_str());
+// 判断某个 CallInstr 所在的地方是否该进行内联
+bool should_call_instr_replaced_by_inline(const Ir::CallInstr* call_instr)
+{
+    for (auto&& use : call_instr->users()) {
+        if (use->user->type() != Ir::VAL_INSTR) continue;
+        auto user_instr = dynamic_cast<Ir::Instr*>(use->user);
+        switch (user_instr->instr_type()) {
+        case Ir::INSTR_MINI_GEP:
+        case Ir::INSTR_ITEM:
+            // if a pure function call is used by a GEP
+            // it should NOT inline this callee function
+            return false;
+        default: break;
+        }
+    }
+    return true;
+}
+
+// 遍历所有应该 inline 的函数，并且尝试 inline
+int inline_all_function(const Ir::pModule &mod)
+{
+    int inline_cnt = 0;
+
+    // inline all function that can be inlined
+    for (auto&& func : mod->funsDefined) {
+        if (!should_function_be_inlined(func)) continue;
+        
+        Vector<Ir::CallInstr*> ready_to_inline;
+        for (auto &&use : func->users()) {
+            if (use->user->type() != Ir::VAL_INSTR) continue;
+            auto user_instr = dynamic_cast<Ir::Instr*>(use->user);
+            if (user_instr->instr_type() != Ir::INSTR_CALL) continue;
+            auto call_instr = dynamic_cast<Ir::CallInstr*>(user_instr);
+            if (should_call_instr_replaced_by_inline(call_instr)) {
+                // should NOT inline here
+                // because func->users() changed
+                ready_to_inline.push_back(call_instr);
+            }
+        }
+        
+        for (auto &&call_instr : ready_to_inline) {
+            replace_call_with_inline(call_instr);
+            inline_cnt += 1;
+        }
+    }
+    
+    // plain opt all functions
+    if (inline_cnt) {
+        for (auto &&i : mod->funsDefined) {
+            i->p.plain_opt_all();
         }
     }
 
-    if (calls.size() == 1 && func->name() == BUILTIN_INITIALIZER) {
-        // 不内联它是为了日后删掉它
-        return false;
-    }
-
-    bool has_inlined = false;
-    for(auto call_instr : calls) {
-        Ir::BlockedProgram* fun = call_instr->block()->program();
-        if (&func->p == fun) // don't inline self
-            continue;
-
-        Ir::BlockedProgram new_p = func->p.clone();
-
-        func_inline_from_bp(call_instr, new_p);
-        has_inlined = true;
-    }
-    return has_inlined;
+    mod->remove_unused_function();
+    return inline_cnt;
 }
 
-bool inline_all_function(const Ir::pModule &mod)
+Ir::BlockedProgram* is_used_by_single_function(const Ir::pGlobal &p)
 {
-    bool has_inlined = false;
-
-    // inline all function that can be inlined
-    for (auto i = mod->funsDefined.begin(); i != mod->funsDefined.end();) {
-        bool func_should_be_removed;
-        has_inlined |= func_inline(*i, func_should_be_removed);
-        if (func_should_be_removed) {
-            // printf("erase function %s\n", (*i)->name().c_str());
-            i = mod->funsDefined.erase(i);
-        } else ++i;
+    Ir::BlockedProgram *func = nullptr;
+    if (!is_basic_type(p->con.v.ty)) {
+        return nullptr;
     }
-    // might be inlined so re_generate
-    for (auto &&i : mod->funsDefined) {
-        i->p.plain_opt_all();
+    for (auto &&j : p->users()) {
+        my_assert(j->user->type() == Ir::VAL_INSTR, "?");
+        auto user_instr = dynamic_cast<Ir::Instr*>(j->user);
+        auto user_program = user_instr->block()->program();
+        if (user_program->name() == BUILTIN_INITIALIZER)
+            continue;
+        if (func == nullptr) {
+            func = user_program;
+        } else if (user_program != func) {
+            return nullptr;
+        }
     }
-
-    return has_inlined;
+    return func;
 }
 
 void global2local(const Ir::pModule &mod)
@@ -170,33 +216,19 @@ void global2local(const Ir::pModule &mod)
     // warning: only inline globals that only used in function "main"
     // may cause stack overflow !!!
 
-    Set<Ir::BlockedProgram*> mod_funcs;
+    mod->remove_unused_global();
+
     for (auto i = mod->globs.begin(); i != mod->globs.end(); ) {
-        bool onlyfans = true;
-        Ir::BlockedProgram *func = nullptr;
-        if ((*i)->users().empty()) {
-            i = mod->globs.erase(i);
-            continue;
-        }
-        if (!is_basic_type((*i)->con.v.ty)) {
+        Ir::BlockedProgram *func = is_used_by_single_function(*i);
+        if (func == nullptr) {
             ++i;
             continue;
         }
-        for (auto &&j : (*i)->users()) {
-            my_assert(j->user->type() == Ir::VAL_INSTR, "?");
-            auto user_instr = dynamic_cast<Ir::Instr*>(j->user);
-            if (func == nullptr) func = user_instr->block()->program();
-            if (func->name() != "main" || 
-                user_instr->block()->program() != func) {
-                onlyfans = false;
-                break;
-            }
-        }
-        if (!onlyfans) {
+        if (func->name() != "main" && !func->is_pure()) {
             ++i;
+            // must be a pure function
             continue;
         }
-        mod_funcs.insert(func);
         // Step 1: make a new alloca
         auto alloca_instr = Ir::make_alloc_instr(to_pointed_type((*i)->ty));
         // Step 2: replace global with this alloca

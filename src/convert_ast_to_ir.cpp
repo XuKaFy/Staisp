@@ -976,48 +976,6 @@ bool Convertor::analyze_statement_node(const pNode &root) {
     return is_end;
 }
 
-Ir::pFuncDefined Convertor::generate_inline_function(const Pointer<Ast::FuncDefNode> &root) {
-    my_assert(root, "?");
-    _env.push_env();
-    _const_env.push_env();
-    Ir::pFuncDefined func;
-    {
-        Vector<pType> types;
-        Vector<String> syms;
-        for (const auto &i : root->args) {
-            auto ty = analyze_type(i.n);
-            if (is_array(ty)) {
-                printf("Warning: %s is array.\n", i.name.c_str());
-                throw_error(root, 24, "array cannot be argument");
-            }
-            types.push_back(ty);
-            syms.push_back(i.name);
-        }
-        TypedSym root_var(root->var.name, analyze_type(root->var.n));
-        func = Ir::make_func_defined(root_var, types, syms);
-        _cur_ctx.init(func);
-        for (size_t i = 0; i < root->args.size(); ++i) {
-            /*
-                由于 sysy 语法中函数参数没有 const
-                所以这里一定是 false
-            */
-            if (_env.env()->count(root->args[i].name)) {
-                printf("Warning: %s repeated.\n", root->args[i].name.c_str());
-                throw_error(root, 26, "repeated argument name");
-            }
-            _env.env()->set(root->args[i].name, {_cur_ctx.args[i], false});
-        }
-    }
-    
-    analyze_statement_node(root->body);
-    
-    func->end_function(_cur_ctx);
-    _const_env.end_env();
-    _env.end_env();
-
-    return func;
-}
-
 void Convertor::generate_function(const Pointer<Ast::FuncDefNode> &root) {
     _env.push_env();
     _const_env.push_env();
@@ -1229,6 +1187,10 @@ Ir::pModule Convertor::generate(const AstProg &asts) {
     }
 
     _initializer_func->end_function(_init_ctx);
+
+    // **REMOVE ALL SHARED POINTER SO THAT FUNCTION CAN BE FREED**
+    _initializer_func.reset();
+    _func_map.clear();
 
     // _const_env.end_env();
     return _mod;

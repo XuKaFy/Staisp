@@ -75,7 +75,6 @@ struct InitializerVisitor {
 class Convertor {
 public:
     Ir::pModule generate(const AstProg &asts);
-    Ir::pFuncDefined generate_inline_function(const Pointer<Ast::FuncDefNode> &root);
 
     static Ir::BinInstrType fromBinaryOpr(const Pointer<Ast::BinaryNode> &root,
                                           const pType &ty);

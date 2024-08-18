@@ -80,8 +80,13 @@ int main(int argc, char *argv[]) {
     try {
 #endif
         std::ofstream out;
-        AstToIr::Convertor convertor;
-        Ir::pModule mod = convertor.generate(ast_root);
+        Ir::pModule mod;
+        
+        {
+            // make sure that convertor is freed
+            AstToIr::Convertor convertor;
+            mod = convertor.generate(ast_root);
+        }
 
         Optimize::optimize(mod);
 

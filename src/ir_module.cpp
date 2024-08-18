@@ -1,4 +1,5 @@
 #include "ir_module.h"
+#include "def.h"
 
 #include <memory>
 
@@ -36,8 +37,17 @@ String Module::print_module() const {
 void Module::remove_unused_function()
 {
     for (auto i = funsDefined.begin(); i != funsDefined.end(); ) {
-        if ((*i)->users().empty() && (!(*i)->has_name() || (*i)->name() != "main")) {
+        if ((*i)->users().empty() && (*i)->name() != "main") {
             i = funsDefined.erase(i);
+        } else ++i;
+    }
+}
+
+void Module::remove_unused_global()
+{
+    for (auto i = globs.begin(); i != globs.end(); ) {
+        if ((*i)->users().empty()) {
+            i = globs.erase(i);
         } else ++i;
     }
 }

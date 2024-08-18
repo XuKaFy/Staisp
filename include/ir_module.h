@@ -14,6 +14,7 @@ struct Module {
     void add_global(const pGlobal &g);
 
     void remove_unused_function();
+    void remove_unused_global();
 
     Vector<pFuncDefined> funsDefined;
     Vector<pGlobal> globs;
