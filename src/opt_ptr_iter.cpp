@@ -422,18 +422,6 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
                 }
             }
         }
-        // for (auto&& block : body) {
-        //     for (auto&& instr : *block) {
-        //         auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
-        //         if (!phi) continue;
-        //         for (auto [label, val] : *phi) {
-        //             if (info.loop->loop_blocks.count(label->block())) {
-        //                 cloned_phi_map[phi] = val;
-        //                 break; // assume there is only one case
-        //             }
-        //         }
-        //     }
-        // }
         body = std::move(cloned_body);
         continues = std::move(cloned_continues);
     }
@@ -441,13 +429,37 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
 }
 
 
+template <typename T>
+bool isSubset(const std::unordered_set<T>& subset, const std::unordered_set<T>& superset) {
+    for (const auto& elem : subset) {
+        if (superset.find(elem) == superset.end()) {
+            return false;
+        }
+    }
+    return true;
+}
+
 void loop_unrolling(Ir::BlockedProgram &func, Alys::DomTree &dom) {
     Alys::LoopInfo loop_info(func, dom);
+    std::vector<IterationInfo> infos;
     for (auto&& [_, loop] : loop_info.loops) {
         if (auto info = detect_iteration(loop)) {
-            if (loop_unrolling(func, info.value())) {
+            infos.push_back(info.value());
+        }
+    }
+    // only innermost loops should be unrolled
+    std::vector<bool> outer(infos.size());
+    for (size_t i = 0; i < infos.size(); ++i) {
+        for (size_t j = i + 1; j < infos.size(); ++j) {
+            if (isSubset(infos[j].loop->loop_blocks, infos[i].loop->loop_blocks)) {
+                outer[i] = true;
                 break;
             }
+        }
+    }
+    for (size_t i = 0; i < infos.size(); ++i) {
+        if (!outer[i]) {
+            loop_unrolling(func, infos[i]);
         }
     }
 }
