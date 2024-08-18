@@ -9,10 +9,11 @@ enable_testing()
 
 add_subdirectory(third_party/googletest)
 add_subdirectory(test)
-add_subdirectory(frontend)
 
-include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
-aux_source_directory(${CMAKE_CURRENT_LIST_DIR}/src STAISP_SRC)
-add_library(staisp ${STAISP_SRC})
+include_directories(${PROJECT_SOURCE_DIR}/include)
+aux_source_directory(${PROJECT_SOURCE_DIR}/src STAISP_SRC)
+aux_source_directory(${PROJECT_SOURCE_DIR}/frontend STAISP_FE)
+aux_source_directory(${PROJECT_SOURCE_DIR}/include STAISP_INC)
 
 add_custom_target(clean-test rm ${CMAKE_BINARY_DIR}/test/sysy_tests_*)
+add_executable(bbyyy ${STAISP_SRC} ${STAISP_FE} ${STAISP_INC})
