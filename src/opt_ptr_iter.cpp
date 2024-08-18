@@ -16,6 +16,7 @@ struct IterationInfo {
     Ir::PhiInstr* phi;
     Ir::Val* initial;
     Ir::LabelInstr* from;
+    Ir::Block* entry_block;
     Ir::Block* pred_block;
     Ir::Block* succ_block;
     // iteration -> optional corresponding self-increment
@@ -98,16 +99,20 @@ std::optional<IterationInfo> detect_iteration(const Alys::pNaturalLoopBody& loop
             break;
         }
     }
+    my_assert(pred_block, "must exists");
     Ir::Block* succ_block = nullptr;
+    Ir::Block* entry_block = nullptr;
     for (auto out_blk : loop->header->out_blocks()) {
         if (loop->loop_blocks.count(out_blk) == 0) {
+            assert(!succ_block);
             succ_block = out_blk;
-            break;
+        } else if (out_blk != loop->header) {
+            if (entry_block) return {}; // && or || is in condition
+            entry_block = out_blk;
         }
     }
-    my_assert(pred_block, "must exists");
-    my_assert(succ_block, "must exists");
-    return {{loop, phi, initial, from, pred_block, succ_block, std::move(iterations)}};
+    // my_assert(succ_block, "must exists"); // may not exists
+    return {{loop, phi, initial, from, entry_block, pred_block, succ_block, std::move(iterations)}};
 }
 
 std::optional<IterationGEPInfo> detect_gep_iteration(IterationInfo info) {
@@ -257,27 +262,182 @@ void detect_sum_and_transform(IterationInfo info) {
     }
 }
 
-void loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
+constexpr int UNROLLING_CYCLE = 2;
+
+bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
+    if (!info.succ_block) return false;
+    size_t size = 0;
+    for (auto&& block : info.loop->loop_blocks) {
+        size += block->size();
+        if (block == info.loop->header) continue;
+        for (auto&& out : block->out_blocks()) {
+            if (!info.loop->loop_blocks.count(out)) {
+                return false;
+            }
+        }
+    }
+    // if (size > 100) return false; // too big
+    if (info.loop->cmp_op != Ir::CMP_SLT) return false; // maybe CMP_SLE is also OK
+    for (auto [_, increment] : info.iterations) {
+        if (increment.step->name() != "1") return false;
+    }
+    fputs("unrolling...\n", stderr);
+    // step 1   duplicate the loop
+    // step 1.1 clone blocks
     Ir::CloneContext ctx;
     std::vector<Ir::pBlock> blocks;
+    std::vector<Ir::pBlock> body;
+    std::vector<Ir::pBlock> continues;
     Ir::Block* cloned_header = nullptr;
+    int entry_index = -1; int index = entry_index;
     for (auto&& block : info.loop->loop_blocks) {
         blocks.push_back(block->clone(ctx));
         if (block == info.loop->header) {
             cloned_header = blocks.back().get();
+        } else {
+            ++index;
+            if (block == info.entry_block) {
+                assert(entry_index < 0);
+                entry_index = index;
+            }
+            body.push_back(blocks.back());
+            for (auto&& out : block->out_blocks()) {
+                if (out == info.loop->header) {
+                    continues.push_back(blocks.back());
+                }
+            }
         }
     }
+    // if (continues.size() > 1) return false;
     assert(cloned_header);
+    assert(entry_index >= 0);
     for (auto&& block : blocks) {
         block->fix_clone(ctx);
     }
-    for (auto&& block : blocks) {
-        func.push_back(block);
+    {
+        auto inserter = func.find(info.loop->header);
+        for (auto&& block : blocks) {
+            func.insert(inserter, block);
+        }
     }
+    // step 1.2 reorganize loops
     info.pred_block->replace_out(info.loop->header, cloned_header);
-    cloned_header->replace_out(info.succ_block, info.loop->header);
     info.loop->header->replace_in(info.pred_block, cloned_header);
-    info.succ_block->replace_in(cloned_header, info.loop->header);
+    cloned_header->replace_out(info.succ_block, info.loop->header);
+    // info.succ_block->replace_in(cloned_header, info.loop->header); // leave this alone
+    for (auto it1 = info.loop->header->begin(), it2 = cloned_header->begin(); it2 != cloned_header->end(); ++it1, ++it2) {
+        auto phi1 = dynamic_cast<Ir::PhiInstr*>(it1->get());
+        auto phi2 = dynamic_cast<Ir::PhiInstr*>(it2->get());
+        if (phi1 && phi2) {
+            for (size_t i = 0; i < phi1->phi_pairs(); ++i) {
+                if (phi1->phi_val(i) == phi2->phi_val(i)) {
+                    phi1->change_phi_val(i, phi2);
+                }
+            }
+        }
+    }
+    // step 2   unrolling first loop
+    // step 2.1 manipulate condition
+    for (auto it = cloned_header->begin(); it != cloned_header->end(); ++it) {
+        if (auto cmp = dynamic_cast<Ir::CmpInstr*>(it->get())) {
+            auto add = Ir::make_binary_instr(Ir::INSTR_ADD, cmp->operand(0)->usee,
+                func.add_imm(Value(ImmValue(UNROLLING_CYCLE - 1))).get());
+            auto cmp2 = Ir::make_cmp_instr(cmp->cmp_type, add.get(), cmp->operand(1)->usee);
+            cloned_header->insert(it, add);
+            cloned_header->insert(it, cmp2);
+            cmp->replace_self(cmp2.get());
+            cloned_header->erase(it);
+            break;
+        }
+    }
+    // step 2.2 duplicate loop body
+
+    auto initial_body = body;
+    for (int cycle = 1; cycle < UNROLLING_CYCLE; ++cycle) {
+        Ir::CloneContext body_ctx;
+        std::vector<Ir::pInstr> sub_phis;
+        Set<Ir::LabelInstr*> labels;
+        for (auto&& block : blocks) {
+            labels.insert(block->label().get());
+        }
+        for (auto&& instr : *cloned_header) {
+            auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
+            if (!phi) continue;
+            std::vector<std::pair<Ir::LabelInstr*, Ir::Val*>> incoming;
+            for (auto [label, val] : *phi) {
+                if (labels.count(label)) {
+                    incoming.emplace_back(label, val);
+                }
+            }
+            if (incoming.size() == 1) {
+                body_ctx.map(phi, incoming[0].second);
+            } else if (incoming.size() > 1) {
+                auto sub_phi = Ir::make_phi_instr(phi->ty);
+                for (auto [label, val] : incoming) {
+                    sub_phi->add_incoming(label, val);
+                }
+                body_ctx.map(phi, sub_phi.get());
+                sub_phis.push_back(sub_phi);
+            }
+        }
+        std::vector<Ir::pBlock> cloned_body;
+        std::vector<Ir::pBlock> cloned_continues;
+        Map<Ir::PhiInstr*, Ir::Val*> cloned_phi_map;
+        for (auto&& block : initial_body) {
+            cloned_body.push_back(block->clone(body_ctx));
+            for (auto&& out : block->out_blocks()) {
+                if (out == cloned_header) {
+                    cloned_continues.push_back(cloned_body.back());
+                }
+            }
+        }
+        for (auto&& block : cloned_body) {
+            block->fix_clone(body_ctx);
+        }
+        auto inserter = ++func.find(body.back().get());
+        for (auto&& block : cloned_body) {
+            func.insert(inserter, block);
+        }
+        auto entry_block = cloned_body[entry_index];
+        for (auto&& phi : sub_phis) {
+            entry_block->push_after_label(phi);
+        }
+        for (auto&& cont : continues) {
+            cont->replace_out(cloned_header, entry_block.get());
+            // cloned_header->replace_in(cont.get(), static_cast<Ir::LabelInstr*>(body_ctx.lookup(cont->label().get()))->block());
+        }
+        for (auto&& instr : *cloned_header) {
+            auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
+            if (!phi) continue;
+            for (size_t i = 0; i < phi->phi_pairs(); ++i) {
+                auto old_label = phi->phi_label(i);
+                auto mapped_label = body_ctx.lookup(old_label);
+                if (mapped_label != old_label) {
+                    phi->change_phi_label(i, static_cast<Ir::LabelInstr *>(mapped_label));
+                }
+                auto old_val = phi->phi_val(i);
+                auto mapped_val = body_ctx.lookup(old_val);
+                if (old_val != mapped_val) {
+                    phi->change_phi_val(i, mapped_val);
+                }
+            }
+        }
+        // for (auto&& block : body) {
+        //     for (auto&& instr : *block) {
+        //         auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
+        //         if (!phi) continue;
+        //         for (auto [label, val] : *phi) {
+        //             if (info.loop->loop_blocks.count(label->block())) {
+        //                 cloned_phi_map[phi] = val;
+        //                 break; // assume there is only one case
+        //             }
+        //         }
+        //     }
+        // }
+        body = std::move(cloned_body);
+        continues = std::move(cloned_continues);
+    }
+    return true;
 }
 
 
@@ -285,8 +445,9 @@ void loop_unrolling(Ir::BlockedProgram &func, Alys::DomTree &dom) {
     Alys::LoopInfo loop_info(func, dom);
     for (auto&& [_, loop] : loop_info.loops) {
         if (auto info = detect_iteration(loop)) {
-            loop_unrolling(func, info.value());
-            break;
+            if (loop_unrolling(func, info.value())) {
+                break;
+            }
         }
     }
 }

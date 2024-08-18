@@ -24,6 +24,10 @@ struct PhiInstr final : Instr {
         change_operand(x * 2 + 1, l);
     }
 
+    void change_phi_val(size_t x, Val* val) {
+        change_operand(x * 2, val);
+    }
+
     Ir::Val *phi_val(size_t x) const {
         return static_cast<Ir::Block*>(operand(x * 2)->usee);    
     }

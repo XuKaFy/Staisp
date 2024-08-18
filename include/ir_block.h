@@ -168,6 +168,12 @@ struct BlockedProgram {
 
     Blocks::iterator begin() { return blocks.begin(); }
 
+    Blocks::iterator find(Block* block) {
+        auto it = begin();
+        while (it->get() != block && it != end()) ++it;
+        return it;
+    }
+
     Blocks::iterator insert(const Blocks::iterator &i, const pBlock &block) {
         block->set_program(this);
         return blocks.insert(i, block);

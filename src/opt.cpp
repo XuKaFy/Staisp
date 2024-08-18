@@ -35,12 +35,12 @@ void func_pass_ssa(const Ir::pFuncDefined &func) {
     SSA_pass(func->p).reconstruct();
     func->p.plain_opt_all();
     my_assert(func->p.check_empty_use("SSA") == 0, "SSA Failed");
+    func->p.re_generate();
 }
 
 Alys::DomTree func_pass_get_dom_ctx(const Ir::pFuncDefined &func) {
     Alys::DomTree dom_ctx;
     dom_ctx.build_dom(func->p);
-    func->p.re_generate();
     return dom_ctx;
 }
 
@@ -97,6 +97,7 @@ void pass_dfa(const Ir::pModule &mod) {
             opt_cnt = func_pass_dse(func);
             opt_cnt += func_pass_const_propagate(func);
         }
+        func->p.re_generate();
     }
 }
 
@@ -113,9 +114,9 @@ void optimize(const Ir::pModule &mod) {
     for (auto &&func : mod->funsDefined) {
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
-        func_pass_gvn(func);
         func_pass_loop_unrolling(func);
-        func_pass_pointer_iteration(func);
+        func_pass_gvn(func);
+        // func_pass_pointer_iteration(func);
     }
 }
 
