@@ -86,7 +86,6 @@ void pass_inline(const Ir::pModule &mod) {
     mod->remove_unused_function();
     while (inline_all_function(mod))
         ;
-    mod->remove_unused_function();
 }
 
 void pass_dfa(const Ir::pModule &mod) {

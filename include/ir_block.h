@@ -144,6 +144,9 @@ struct BlockedProgram {
     // 加入一个立即数
     pVal add_imm(Value value);
 
+    // 是否是 pure function
+    bool is_pure() const;
+
     // 影响 bb 的普通优化
     void plain_opt_bb();
     // 不影响 bb 的普通优化

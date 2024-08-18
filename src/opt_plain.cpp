@@ -10,6 +10,46 @@
 
 namespace Ir {
 
+bool BlockedProgram::is_pure() const
+{
+    // if (function_type()->ret_type->type_type() == TYPE_VOID_TYPE || function_type()->arg_type.empty()) return false;
+    for (auto&& arg_type : params_) {
+        if (!is_basic_type(arg_type->ty)) return false;
+    }
+    for (auto i = cbegin(); i != cend(); ++i) {
+        auto block = *i;
+        for (auto&& instr : *block) {
+            switch (instr->instr_type()) {
+                case INSTR_CALL: {
+                    auto call = static_cast<CallInstr*>(instr.get());
+                    auto func = call->operand(0)->usee;
+                    auto callee = dynamic_cast<FuncDefined*>(func);
+                    if (!callee)
+                        return false;
+                    if (callee->p.name() != name() && !callee->p.is_pure()) {
+                        // recursion do not cancel purity
+                        return false;
+                    }
+                    break;
+                }
+                case INSTR_LOAD:
+                case INSTR_ITEM:
+                case INSTR_STORE:
+                case INSTR_CAST:
+                case INSTR_MINI_GEP: {
+                    if (instr->operand(0)->usee->name()[0] == '@') {
+                        return false;
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    }
+    return true;
+}
+
 void BlockedProgram::plain_opt_bb() {
     int modified = 1;
     // re_generate();
