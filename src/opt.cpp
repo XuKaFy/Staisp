@@ -113,9 +113,9 @@ void optimize(const Ir::pModule &mod) {
     for (auto &&func : mod->funsDefined) {
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
+        func_pass_pointer_iteration(func);
         func_pass_loop_unrolling(func);
         func_pass_gvn(func);
-        // func_pass_pointer_iteration(func);
     }
 }
 

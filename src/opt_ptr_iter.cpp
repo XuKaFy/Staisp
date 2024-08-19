@@ -135,7 +135,7 @@ std::optional<IterationGEPInfo> detect_gep_iteration(IterationInfo info) {
             // OK if used by condition (assumed that header contains only compare and branch)
         } else {
             // otherwise, it is forbidden
-            return {};
+            //return {};
         }
     }
     if (geps.empty()) return {};
@@ -146,7 +146,7 @@ void transform(const IterationGEPInfo& gepInfo) {
     auto [info, geps] = gepInfo;
     // step 1: construction new instructions
     std::vector<Ir::pInstr> bases, bounds, phis;
-    Ir::pInstr cmp = nullptr;
+    // Ir::pInstr cmp = nullptr;
     for (auto&& [array, geps] : geps) {
         // I hope there is only one gep for every array
         // as long as GVN is implemented
@@ -162,8 +162,8 @@ void transform(const IterationGEPInfo& gepInfo) {
             auto block = from->block();
             block->push_behind_end(iter);
         }
-        if (cmp == nullptr)
-            cmp = Ir::make_cmp_instr(info.loop->cmp_op, phi.get(), bound.get());
+        // if (cmp == nullptr)
+        //     cmp = Ir::make_cmp_instr(info.loop->cmp_op, phi.get(), bound.get());
         for (auto& gep : geps) {
             gep->replace_self(phi.get());
             gep->block()->erase(gep);
@@ -173,13 +173,13 @@ void transform(const IterationGEPInfo& gepInfo) {
         phis.push_back(std::move(phi));
     }
 
-    assert(cmp);
+    // assert(cmp);
     {
         auto block = info.loop->header;
-        auto original_phi = dynamic_cast<Ir::PhiInstr*>(info.loop->ind);
-        info.loop->loop_cnd_instr->replace_self(cmp.get());
-        block->erase(original_phi);
-        block->erase(info.loop->loop_cnd_instr);
+        // auto original_phi = dynamic_cast<Ir::PhiInstr*>(info.loop->ind);
+        // info.loop->loop_cnd_instr->replace_self(cmp.get());
+        // block->erase(original_phi);
+        // block->erase(info.loop->loop_cnd_instr);
         auto pred_blk = info.pred_block;
         for (auto&& base : bases) {
             pred_blk->push_behind_end(base);
@@ -188,14 +188,14 @@ void transform(const IterationGEPInfo& gepInfo) {
             pred_blk->push_behind_end(bound);
         }
         for (auto&& phi : phis) {
-            block->push_behind_end(phi);
+            block->push_after_label(phi);
         }
-        block->push_behind_end(cmp);
+        // block->push_behind_end(cmp);
     }
-    for (auto&& [original, increment]: info.iterations) {
-        auto [step, from, neg/* no negative support now */ ] = increment;
-        from->block()->erase(dynamic_cast<Ir::Instr*>(original));
-    }
+    // for (auto&& [original, increment]: info.iterations) {
+    //     auto [step, from, neg/* no negative support now */ ] = increment;
+    //     from->block()->erase(dynamic_cast<Ir::Instr*>(original));
+    // }
 }
 
 [[deprecated]] // usable but useless
@@ -276,8 +276,8 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
             }
         }
     }
-    // if (size > 100) return false; // too big
-    if (info.loop->cmp_op != Ir::CMP_SLT) return false; // maybe CMP_SLE is also OK
+    // if (size > 100) return false; // threshold?
+    if (auto cmp_op = info.loop->cmp_op; cmp_op != Ir::CMP_SLT && cmp_op != Ir::CMP_SLE) return false;
     for (auto [_, increment] : info.iterations) {
         if (increment.step->name() != "1") return false;
     }
@@ -324,7 +324,6 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
     info.pred_block->replace_out(info.loop->header, cloned_header);
     info.loop->header->replace_in(info.pred_block, cloned_header);
     cloned_header->replace_out(info.succ_block, info.loop->header);
-    // info.succ_block->replace_in(cloned_header, info.loop->header); // leave this alone
     for (auto it1 = info.loop->header->begin(), it2 = cloned_header->begin(); it2 != cloned_header->end(); ++it1, ++it2) {
         auto phi1 = dynamic_cast<Ir::PhiInstr*>(it1->get());
         auto phi2 = dynamic_cast<Ir::PhiInstr*>(it2->get());
