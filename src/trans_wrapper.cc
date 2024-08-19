@@ -144,11 +144,12 @@ String construct(size_t id, Ir::FuncDefined* func) {
     std::string call_put = "\n    mv      a4, s0\n    call    __put";
     std::string call_func = "\n    call    " + name;
     std::string store_return, load_return;
-    store_return = "\n    mv      s0, a0";
     if (is_float(type->ret_type)) {
-        load_return = "\n    fmv.s.x fa0, s0";
+        load_return  = "\n    fmv.s.x fa0, s0";
+        store_return = "\n    fmv.x.s s0, fa0";
     } else {
-        load_return = "\n    mv      a0, s0";
+        load_return  = "\n    mv      a0, s0";
+        store_return = "\n    mv      s0, a0";
     }
     std::string ret = "\n    ret\n";
     std::string j_epilog = "\n    j " + epilog_label;
@@ -163,7 +164,7 @@ String construct(size_t id, Ir::FuncDefined* func) {
     + if_hit
     + mv_args
     + call_get
-    + store_return
+    + "\n    mv      s0, a0" // get always return int
     + load_return
     + j_epilog
     + miss_block
