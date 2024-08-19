@@ -9,26 +9,28 @@
 #include "opt_DSE.h"
 #include "opt_GVN.h"
 #include "opt_const_propagate.h"
+#include "opt_ptr_iter.h"
 #include "opt_interprocedural.h"
+#include "opt_array_accumulate.h"
 #include "trans_SSA.h"
 #include "trans_loop.h"
 
 namespace Optimize {
 
-int func_pass_dse(const Ir::pFuncDefined &func) {
-    int cnt = from_bottom_analysis<OptDSE::BlockValue,
-                                   OptDSE::TransferFunction>(func->p);
+DFAAnalysisData<OptDSE::BlockValue> func_pass_dse(const Ir::pFuncDefined &func) {
+    auto ans = from_bottom_analysis<OptDSE::BlockValue,
+                                    OptDSE::TransferFunction>(func->p);
     func->p.plain_opt_all();
     my_assert(func->p.check_empty_use("DSE") == 0, "DSE Failed");
-    return cnt;
+    return ans;
 }
 
-int func_pass_const_propagate(const Ir::pFuncDefined &func) {
-    int cnt = from_top_analysis<OptConstPropagate::BlockValue,
-                                OptConstPropagate::TransferFunction>(func->p);
+DFAAnalysisData<OptConstPropagate::BlockValue> func_pass_const_propagate(const Ir::pFuncDefined &func) {
+    auto ans = from_top_analysis<OptConstPropagate::BlockValue,
+                                 OptConstPropagate::TransferFunction>(func->p);
     func->p.plain_opt_all();
     my_assert(func->p.check_empty_use("CP") == 0, "CP Failed");
-    return cnt;
+    return ans;
 }
 
 void func_pass_ssa(const Ir::pFuncDefined &func) {
@@ -82,6 +84,21 @@ void func_pass_gvn(const Ir::pFuncDefined &func) {
     func->p.re_generate();
 }
 
+void func_pass_array_accumulate(const Ir::pFuncDefined &func)
+{
+    // only get cp data
+    auto ans = from_bottom_analysis<OptConstPropagate::BlockValue,
+                                    OptConstPropagate::TransferFunction>(func->p, false);
+    
+    Alys::DomTree dom = func_pass_get_dom_ctx(func);
+    Alys::LoopInfo loop_info(func->p, dom);
+
+    array_accumulate(func, dom, loop_info);
+
+    func->p.plain_opt_all();
+    func->p.re_generate();
+}
+
 void pass_inline(const Ir::pModule &mod) {
     mod->remove_unused_function();
     while (inline_all_function(mod))
@@ -93,8 +110,8 @@ void pass_dfa(const Ir::pModule &mod) {
         int cnt = 0;
         const int MAX_OPT_COUNT = 8;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
-            opt_cnt = func_pass_dse(func);
-            opt_cnt += func_pass_const_propagate(func);
+            opt_cnt = func_pass_dse(func).cnt;
+            opt_cnt += func_pass_const_propagate(func).cnt;
         }
         func->p.re_generate();
     }
@@ -111,11 +128,14 @@ void optimize(const Ir::pModule &mod) {
     }
     pass_dfa(mod);
     for (auto &&func : mod->funsDefined) {
+        Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
-        func_pass_pointer_iteration(func);
-        func_pass_loop_unrolling(func);
-        func_pass_gvn(func);
+        func_pass_array_accumulate(func);
+        func_pass_dse(func);
+        // func_pass_pointer_iteration(func, dom_ctx);
+        // func_pass_loop_unrolling(func);
+        // func_pass_gvn(func, dom_ctx);
     }
 }
 

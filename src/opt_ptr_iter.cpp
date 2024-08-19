@@ -1,52 +1,10 @@
+#include "opt_ptr_iter.h"
+
 #include "def.h"
 #include "ir_block.h"
-#include <iostream>
 #include <ir_cast_instr.h>
-#include <trans_loop.h>
 
 namespace Optimize {
-
-struct IterationInfo {
-    struct SelfIncrement {
-        Ir::Val* step;
-        Ir::LabelInstr* from;
-        bool negative; // reserved for future use
-    };
-    Alys::pNaturalLoopBody loop;
-    Ir::PhiInstr* phi;
-    Ir::Val* initial;
-    Ir::LabelInstr* from;
-    Ir::Block* entry_block;
-    Ir::Block* pred_block;
-    Ir::Block* succ_block;
-    // iteration -> optional corresponding self-increment
-    std::unordered_map<Ir::Val*, SelfIncrement> iterations;
-
-    void print() {
-        std::cerr << loop->print() << std::flush;
-        std::cerr << "initial: " << initial->name() << std::endl;
-        std::cerr << std::endl << "iterations: " << std::endl;
-        for (auto&& [iteration, increment] : iterations) {
-            std::cerr << "    " << iteration->name() << " with self-increment: "
-                      << (increment.negative ? '-' : '+') << increment.step->name() << std::endl;
-        }
-        std::cerr << std::endl;
-    }
-};
-
-struct IterationGEPInfo {
-    IterationInfo info;
-    // array -> GEPs
-    std::unordered_map<Ir::Val*, std::vector<Ir::MiniGepInstr*>> geps;
-
-    void print() {
-        std::cerr << geps.size() << " arrays: ";
-        for (auto&& [array, gep] : geps) {
-            std::cerr << array->name() << " ";
-        }
-    }
-
-};
 
 std::optional<IterationInfo> detect_iteration(const Alys::pNaturalLoopBody& loop) {
     auto phi = dynamic_cast<Ir::PhiInstr*>(loop->ind);

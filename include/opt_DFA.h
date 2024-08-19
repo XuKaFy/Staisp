@@ -1,11 +1,19 @@
 #pragma once
 
+#include "ir_block.h"
 #include "opt.h"
 
 namespace Optimize {
 
+template<typename BlockValue>
+struct DFAAnalysisData {
+    Map<Ir::Block *, BlockValue> INs;
+    Map<Ir::Block *, BlockValue> OUTs;
+    int cnt;
+};
+
 template <typename BlockValue, typename TransferFunction>
-int from_top_analysis(Ir::BlockedProgram &p) {
+DFAAnalysisData<BlockValue> from_top_analysis(Ir::BlockedProgram &p, bool do_transfer = true) {
     Map<Ir::Block *, BlockValue> INs;
     Map<Ir::Block *, BlockValue> OUTs;
     std::deque<Ir::Block *> pending_blocks;
@@ -47,14 +55,16 @@ int from_top_analysis(Ir::BlockedProgram &p) {
             // printf("    BLOCK UNCHANGED\n");
         }
     }
-    for (const auto &i : p) {
-        ans += transfer(i.get(), INs[i.get()], OUTs[i.get()]);
+    if (do_transfer) {
+        for (const auto &i : p) {
+            ans += transfer(i.get(), INs[i.get()], OUTs[i.get()]);
+        }
     }
-    return ans;
+    return { INs, OUTs, ans };
 }
 
 template <typename BlockValue, typename TransferFunction>
-int from_bottom_analysis(Ir::BlockedProgram &p) {
+DFAAnalysisData<BlockValue> from_bottom_analysis(Ir::BlockedProgram &p, bool do_transfer = true) {
     Map<Ir::Block *, BlockValue> INs;
     Map<Ir::Block *, BlockValue> OUTs;
     std::deque<Ir::Block *> pending_blocks;
@@ -90,10 +100,12 @@ int from_bottom_analysis(Ir::BlockedProgram &p) {
             pending_blocks.insert(pending_blocks.end(), in_block.begin(), in_block.end());
         }
     }
-    for (const auto &i : p) {
-        ans += transfer(i.get(), INs[i.get()], OUTs[i.get()]);
+    if (do_transfer) {
+        for (const auto &i : p) {
+            ans += transfer(i.get(), INs[i.get()], OUTs[i.get()]);
+        }
     }
-    return ans;
+    return { INs, OUTs, ans };
 }
 
 }
