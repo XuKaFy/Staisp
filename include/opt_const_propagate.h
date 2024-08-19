@@ -109,7 +109,9 @@ struct BlockValue {
     bool operator==(const BlockValue &b) const { return val == b.val; }
     bool operator!=(const BlockValue &b) const { return !operator==(b); }
 
-    void cup(const BlockValue &v);
+    void cup(const BlockValue &v) {
+        val.cup(v.val);
+    }
 
     void clear() { val.clear(); }
 

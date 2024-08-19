@@ -1,11 +1,14 @@
 #include "opt_const_propagate.h"
 
+#include "imm.h"
 #include "ir_constant.h"
 #include "ir_global.h"
 #include "ir_instr.h"
 #include "ir_mem_instr.h"
 #include "ir_phi_instr.h"
+#include "ir_call_instr.h"
 #include "ir_val.h"
+#include "type.h"
 #include "value.h"
 #include <memory>
 #include <optional>
@@ -41,20 +44,163 @@ void ConstantMap::cup(const ConstantMap &map)
         }
         // const + const = same: const
     }
-    /*
-    for (auto i = val.begin(); i != val.end(); ) {
-        if (i->second.has_value() && map.val.find(i->first) == map.val.end()) {
-            // undef + const = undef
-            i = val.erase(i);
-            continue;
-        }
-        ++i;
-    }
-    */
 }
 
-void BlockValue::cup(const BlockValue &v) {
-    val.cup(v.val);
+struct ValResult {
+    enum State {
+        UNDEF,
+        VALUE,
+        NAC,
+    } stat;
+    ImmValue val;
+    
+    ValResult(State t = UNDEF)
+        : stat(t) { }
+    ValResult(const ImmValue &val)
+        : stat(VALUE), val(val){ }
+};
+
+ValResult read_val(Ir::Val* val, BlockValue &v) {
+    switch (val->type()) {
+    case Ir::VAL_CONST: {
+        auto constant = dynamic_cast<Ir::Const*>(val);
+        if (constant->v.type() == VALUE_IMM) {
+            return constant->v.imm_value();
+        } else {
+            return ValResult::NAC;
+        }
+        break;
+    }
+    case Ir::VAL_INSTR: {
+        auto oprd_instr = dynamic_cast<Ir::Instr*>(val);
+        if (v.val.hasValue(oprd_instr)) {
+            auto res = v.val.value(oprd_instr);
+            if (res) {
+                return res.value();
+            }
+            return ValResult::NAC;
+        }
+        if (oprd_instr->instr_type() == Ir::INSTR_SYM) {
+            // all symbol is NAC
+            return ValResult::NAC;
+        }
+        if (oprd_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+            // for situation that first use
+            return ValResult::NAC;
+        }
+        return ValResult::UNDEF;
+    }
+    case Ir::VAL_GLOBAL: {
+        /* auto global = static_cast<Ir::Global*>(val);
+        if (global->is_effectively_final() && is_basic_type(global->con.v.ty)) {
+            return global->con.v.imm_value();
+        } */
+        return ValResult::NAC;
+    }
+    default: break;
+    }
+    return ValResult::NAC;
+}
+
+void fill_val(Ir::Instr* instr, const ValResult &res, BlockValue &v)
+{
+    // printf("*** FILL %s with stat = %s, val = %s\n", instr->instr_print().c_str(), res.stat == ValResult::NAC ? "NAC" : (res.stat == ValResult::VALUE ? "VALUE" : "UNDEF"), res.val.print().c_str());
+    switch (res.stat) {
+    case ValResult::NAC:
+        v.val.setValueNac(instr);
+        break;
+    case ValResult::UNDEF:
+        break;
+    case ValResult::VALUE:
+        v.val.setValue(instr, res.val);
+        break;
+    }
+}
+
+void when_phi(Ir::PhiInstr *phi, BlockValue &v)
+{
+    for (auto [label, val] : *phi) {
+        fill_val(phi, read_val(val, v), v);
+        if (!v.val.hasValue(phi) || v.val.isValueNac(phi)) {
+            break;
+        }
+    }
+}
+
+void when_store(Ir::StoreInstr* store, BlockValue& v)
+{
+    auto to = store->operand(0)->usee;
+    auto val = store->operand(1)->usee;
+    
+    if (to->type() != Ir::VAL_INSTR) {
+        // only for instr "alloca" or "gep"
+        return ;
+    }
+
+    auto to_instr = dynamic_cast<Ir::Instr*>(to);
+    
+    if (to_instr->instr_type() == Ir::INSTR_ALLOCA) {
+        fill_val(to_instr, read_val(val, v), v);
+        return ;
+    }
+
+    v.val.setValueNac(to_instr);
+    return ;
+
+    if(to_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+        auto target = to_instr->operand(0)->usee;
+        auto index = to_instr->operand(1)->usee;
+        
+        // only for (instr)[i]
+        if (target->type() != Ir::VAL_INSTR) {
+            return ;
+        }
+        // only for (1-dim-array / alloca [N x i32])[i]
+        auto arr_target = dynamic_cast<Ir::AllocInstr*>(target);
+        if (arr_target == nullptr) {
+            return ;
+        }
+        // 1. store a[i], N, NAC all a[...]
+        if (index->type() != Ir::VAL_CONST) {
+            v.val.setValueNac(arr_target);
+            return ;
+        }
+        // 2. store a[1], N
+        //    first check whether all a[...] is disabled
+        if (v.val.hasValue(arr_target) && v.val.isValueNac(arr_target)) {
+            v.val.setValueNac(to_instr);
+            return ;
+        }
+        //    then grep the value
+        fill_val(to_instr, read_val(val, v), v);
+    }
+
+}
+
+void when_load(Ir::LoadInstr* load, BlockValue& v)
+{
+    auto from = load->operand(0)->usee;
+    fill_val(load, read_val(from, v), v);
+}
+
+void when_calculatable(Ir::CalculatableInstr* cal, BlockValue& v)
+{
+    Vector<ImmValue> vv;
+    for (auto i : cal->operands()) {
+        auto oprd = i->usee;
+        ValResult res = read_val(oprd, v);
+        switch (res.stat) {
+        case ValResult::VALUE:
+            vv.push_back(res.val);
+            break;
+        case ValResult::NAC:
+            v.val.setValueNac(cal);
+            return ;
+        case ValResult::UNDEF:
+            return ;
+        }
+    }
+    v.val.setValue(cal, cal->calculate(vv));
 }
 
 void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
@@ -62,155 +208,16 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
     printf("Analyzing Block %s\n", p->label()->name().c_str());
 #endif
     for (const auto &i : *p) {
-        switch (i->instr_type()) {
-        case Ir::INSTR_PHI: {
-            auto r = std::dynamic_pointer_cast<Ir::PhiInstr>(i);
-            for (size_t i=0; i<r->phi_pairs(); ++i) {
-                switch (r->phi_val(i)->type()) {
-                case Ir::VAL_CONST: {
-                    auto constant = dynamic_cast<Ir::Const*>(r->phi_val(i));
-                    if (constant->v.type() == VALUE_IMM) {
-                        v.val.setValue(r.get(), constant->v.imm_value());
-                    } else {
-                        v.val.setValueNac(r.get());
-                        break;
-                    }
-                    break;
-                }
-                case Ir::VAL_INSTR: {
-                    auto oprd_instr = dynamic_cast<Ir::Instr*>(r->phi_val(i));
-                    if (!v.val.hasValue(oprd_instr)) {
-                        v.val.setValueNac(r.get());
-                        break;
-                    }
-                    v.val.transfer(r.get(), oprd_instr);
-                    break;
-                }
-                default: {
-                    v.val.setValueNac(r.get());
-                    break;
-                }
-                } // end of switch
-                if (v.val.isValueNac(r.get()))
-                    break;
-            }
-            break;
-        }
-        case Ir::INSTR_STORE: {
-            auto r = std::dynamic_pointer_cast<Ir::StoreInstr>(i);
-            auto to = r->operand(0)->usee;
-            auto val = r->operand(1)->usee;
-            if (to->type() != Ir::VAL_INSTR) {
-                // only for instr "alloca" or "gep"
-                continue;
-            }
-            auto to_instr = dynamic_cast<Ir::Instr*>(to);
-            if (to_instr->instr_type() != Ir::INSTR_ALLOCA) {
-                // GEP might cause error
-                break;
-            }
-            switch (val->type()) {
-            case Ir::VAL_CONST: {
-                auto con = static_cast<Ir::Const *>(val);
-                if (con->v.type() == VALUE_IMM) {
-                    v.val.setValue(to_instr, con->v.imm_value());
-                } else {
-                    v.val.setValueNac(to_instr);
-                }
-                break;
-            }
-            case Ir::VAL_GLOBAL:
-                v.val.setValueNac(to_instr);
-                break;
-            case Ir::VAL_INSTR: {
-                auto val_instr = dynamic_cast<Ir::Instr*>(val);
-                if(val_instr->instr_type() == Ir::INSTR_SYM) {
-                    // all symbols are NAK
-                    v.val.setValueNac(to_instr);
-                } else if (v.val.hasValue(val_instr)) {
-                    v.val.transfer(to_instr, val_instr);
-                }
-                break;
-            }
-            case Ir::VAL_BLOCK:
-            case Ir::VAL_FUNC:
-                throw Exception(1, "Utils", "Impossible Value in Block");
-            }
-            break;
-        }
-        case Ir::INSTR_LOAD: {
-            auto r = std::dynamic_pointer_cast<Ir::LoadInstr>(i);
-            auto from = r->operand(0)->usee;
-            if (from->type() == Ir::VAL_GLOBAL) {
-                auto global = static_cast<Ir::Global*>(from);
-                if (global->is_effectively_final()) {
-                    v.val.setValue(r.get(), global->con.v.imm_value());
-                } else {
-                    v.val.setValueNac(r.get());
-                }
-                continue;
-            }
-            if (from->type() == Ir::VAL_INSTR) {
-                auto from_instr = dynamic_cast<Ir::Instr*>(from);
-                if (from_instr->instr_type() == Ir::INSTR_ITEM
-#ifdef USING_MINI_GEP
-                    || from_instr->instr_type() == Ir::INSTR_MINI_GEP
-#endif
-                ) { // gep
-                    v.val.setValueNac(r.get());
-                } else if (v.val.hasValue(from_instr)) { // alloca
-                    v.val.transfer(r.get(), from_instr);
-                }
-            }
-            break;
-        }
-        case Ir::INSTR_CALL: {
-            v.val.setValueNac(i.get()); // all function regarded as NAK
-            break;
-        }
-        case Ir::INSTR_ALLOCA:
-            break;
-        case Ir::INSTR_BINARY:
-        case Ir::INSTR_UNARY:
-        case Ir::INSTR_CAST:
-        case Ir::INSTR_CMP: {
-            Vector<ImmValue> vv;
-            for (size_t c = 0; c < i->operand_size(); ++c) {
-                auto oprd = i->operand(c)->usee;
-                if (oprd->type() == Ir::VAL_GLOBAL) {
-                    v.val.setValueNac(i.get());
-                    goto End;
-                } else if (oprd->type() == Ir::VAL_INSTR) {
-                    auto oprd_instr = dynamic_cast<Ir::Instr*>(oprd);
-                    if (!v.val.hasValue(oprd_instr)) {  // undef
-                        v.val.erase(i.get());
-                        goto End;
-                    }
-                    if (v.val.isValueNac(oprd_instr)) { // not a constant
-                        v.val.setValueNac(i.get());
-                        goto End;
-                    }
-                } else {
-                    if (static_cast<Ir::Const *>(oprd)->v.type() != VALUE_IMM) {
-                        v.val.setValueNac(i.get());
-                        goto End;
-                    }
-                }
-            }
-            for (size_t c = 0; c < i->operand_size(); ++c) {
-                auto oprd = i->operand(c)->usee;
-                if (oprd->type() == Ir::VAL_INSTR) {
-                    vv.push_back(v.val.value(dynamic_cast<Ir::Instr*>(oprd)).value());
-                } else {
-                    vv.push_back(static_cast<Ir::Const *>(oprd)->v.imm_value());
-                }
-            }
-            v.val.setValue(i.get(), std::dynamic_pointer_cast<Ir::CalculatableInstr>(i)->calculate(vv));
-        End:
-            break;
-        }
-        default:
-            break;
+        if (auto instr = dynamic_cast<Ir::PhiInstr*>(i.get()); instr) {
+            when_phi(instr, v);
+        } else if (auto instr = dynamic_cast<Ir::StoreInstr*>(i.get()); instr) {
+            when_store(instr, v);
+        } else if (auto instr = dynamic_cast<Ir::LoadInstr*>(i.get()); instr) {
+            when_load(instr, v);
+        } else if (auto instr = dynamic_cast<Ir::CallInstr*>(i.get()); instr) {
+            v.val.setValueNac(instr); // all function regarded as NAK
+        } else if (auto instr = dynamic_cast<Ir::CalculatableInstr*>(i.get()); instr) {
+            when_calculatable(instr, v);
         }
 #ifdef OPT_CONST_PROPAGATE_DEBUG
         if (v.val.hasValue(i.get())) {

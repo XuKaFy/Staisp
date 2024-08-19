@@ -95,8 +95,15 @@ void func_pass_array_accumulate(const Ir::pFuncDefined &func)
 
     array_accumulate(func, dom, loop_info);
 
+    func_pass_dse(func);
+
     func->p.plain_opt_all();
     func->p.re_generate();
+}
+
+void function_pass_print(const Ir::pFuncDefined &func)
+{
+    printf("%s\n", func->print_func().c_str());
 }
 
 void pass_inline(const Ir::pModule &mod) {
@@ -117,8 +124,15 @@ void pass_dfa(const Ir::pModule &mod) {
     }
 }
 
+void pass_print(const Ir::pModule &mod) {
+    for (auto &&func : mod->funsDefined) {
+        function_pass_print(func);
+    }
+}
+
 void optimize(const Ir::pModule &mod) {
-    pass_inline(mod);
+    // pass_inline(mod);
+    // pass_print(mod);
     for (auto &&func : mod->funsDefined) {
         func_pass_const_propagate(func);
     }
@@ -131,11 +145,10 @@ void optimize(const Ir::pModule &mod) {
         Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
-        func_pass_array_accumulate(func);
-        func_pass_dse(func);
-        // func_pass_pointer_iteration(func, dom_ctx);
-        // func_pass_loop_unrolling(func);
-        // func_pass_gvn(func, dom_ctx);
+        // func_pass_array_accumulate(func);
+        func_pass_pointer_iteration(func);
+        func_pass_loop_unrolling(func);
+        func_pass_gvn(func);
     }
 }
 
