@@ -1,9 +1,10 @@
 #include "bkd_module.h"
+#include "trans_wrapper.h"
+#include <string>
 
 namespace Backend {
 
-String Module::print_module() const
-{
+String Module::print_module() const {
     String res;
     res += ".data\n";
     for (auto &&i : globs) {
@@ -15,13 +16,12 @@ String Module::print_module() const
     res += ".global main\n";
     res += "\n";
 
-
     for (auto &&func : funcs) {
         res += func.generate_asm();
     }
 
-	if (res.find("call __builtin_fill_zero") != std::string::npos)
-		res += R"(
+    if (res.find("call __builtin_fill_zero") != std::string::npos)
+        res += R"(
 .text
 .globl  __builtin_fill_zero
 __builtin_fill_zero:
@@ -42,6 +42,9 @@ __builtin_fill_zero:
     li      a1,0
     tail    memset
 )";
+
+    if (res.find("_cached") != std::string::npos)
+        Optimize::memoi_wrapper::bk_fill(res);
 
     return res;
 }
