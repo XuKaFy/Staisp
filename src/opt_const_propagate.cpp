@@ -98,6 +98,14 @@ ValResult read_val(Ir::Val* val, BlockValue &v) {
                     return ValResult::NAC;
                 if (v.val.isValueNac(arr))
                     return ValResult::NAC;
+                
+                if (oprd_instr->operand(1)->usee->type() != Ir::VAL_CONST)
+                    return ValResult::NAC;
+                int64_t index = static_cast<Ir::Const*>(oprd_instr->operand(1)->usee)->v.imm_value().val.ival;
+                auto res = v.val.getArrayValue(arr, index);
+                if (res.has_value())
+                    return res.value();
+                return ValResult::UNDEF;
             }
             auto res = v.val.value(oprd_instr);
             if (res) {
@@ -167,10 +175,23 @@ void when_store(Ir::StoreInstr* store, BlockValue& v)
         //    first check whether all a[...] is disabled
         if (v.val.hasValue(arr_target) && v.val.isValueNac(arr_target)) {
             v.val.setValueNac(to_instr);
+            v.val.clearArrayValue(arr_target);
             return ;
         }
+        auto index_val = static_cast<Ir::Const*>(index)->v.imm_value().val.ival;
         //    then grep the value
-        fill_val(to_instr, read_val(val, v), v);
+        ValResult res = read_val(val, v);
+        switch (res.stat) {
+        case ValResult::VALUE:
+            v.val.saveArrayValue(arr_target, index_val, read_val(val, v).val);
+            break;
+        case ValResult::NAC:
+            v.val.setValueNac(to_instr);
+            v.val.clearArrayValue(arr_target);
+            break;
+        case ValResult::UNDEF:
+            break;
+        }
     }
 
 }

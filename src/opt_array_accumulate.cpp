@@ -19,7 +19,7 @@ namespace Optimize {
 Vector<ImmValue> getarray(Ir::AllocInstr* arr, 
                           Ir::Block* cur_block,
                           const DFAAnalysisData<OptConstPropagate::BlockValue> &cp_ans,
-                          size_t end)
+                          int64_t start, int64_t end)
 {
     if (cp_ans.INs.at(cur_block).val.hasValue(arr) && 
         cp_ans.INs.at(cur_block).val.isValueNac(arr)) {
@@ -52,20 +52,15 @@ Vector<ImmValue> getarray(Ir::AllocInstr* arr,
 
     Vector<ImmValue> ans;
     ans.resize(end + 1);
-    
-    cp_ans.INs.at(cur_block).val.ergodic([&] (Ir::Instr* instr, ImmValue v) {
-        if (instr->instr_type() != Ir::INSTR_MINI_GEP)
-            return ;
-        auto gep = static_cast<Ir::MiniGepInstr*>(instr);
-        if (gep->operand(0)->usee != arr)
-            return ;
-        if (gep->operand(1)->usee->type() != Ir::VAL_CONST) {
-            // impossible if everything goes right
-            return ;
+
+    for (int64_t i=start; i<=end; ++i) {
+        auto val = cp_ans.INs.at(cur_block).val.getArrayValue(arr, i);
+        if (val.has_value()) {
+            ans[i] = val.value();
+            // printf("FILL [%ld] = %s\n", i, val.value().print().c_str());
         }
-        int64_t index = static_cast<Ir::Const*>(gep->operand(1)->usee)->v.imm_value().val.ival;
-        ans[index] = v;
-    });
+        // else is UB
+    }
     
     return ans;
 }
@@ -161,7 +156,7 @@ void array_accumulate(const Ir::pFuncDefined& func,
         if (!is_basic_type(outer_sum->ty))
             continue;
     
-        auto arr_val = getarray(arr, body, ans, end);
+        auto arr_val = getarray(arr, body, ans, start, end);
         if (arr_val.empty()) continue;
 
         ImmValue accumu (to_basic_type(outer_sum->ty)->ty);
@@ -185,6 +180,114 @@ void array_accumulate(const Ir::pFuncDefined& func,
         pred->push_behind_end(add);
         phi->replace_self(add.get());
         // printf("PUSH %s\n", add->instr_print().c_str());
+
+        auto header = loop->header;
+        header->squeeze_out(false);
+        for (auto it = header->begin(); it != header->end(); ) {
+            auto type = (*it)->instr_type();
+            if (type == Ir::INSTR_CMP) {
+                it = header->erase(it);
+            } else {
+                ++it;
+            }
+        }
+        for (auto i = header->begin(); i != header->end(); ) {
+            if ((*i)->instr_type() == Ir::INSTR_PHI) {
+                i = header->erase(i);
+            } else {
+                ++i;
+            }
+        }
+    }
+}
+
+void replace_init_with_force(const Ir::pFuncDefined& func, const Alys::LoopInfo &loop_info)
+{
+    for (auto&& [_, loop] : loop_info.loops) {
+        if (loop->loop_blocks.size() != 2) continue;
+
+        int64_t start, end;
+        Ir::Block* pred = nullptr;
+        auto iter_info = detect_iteration(loop);
+
+        if (iter_info) {
+            if (loop->cmp_op != Ir::CMP_SLT && loop->cmp_op != Ir::CMP_SLE)
+                continue;
+
+            if (iter_info->initial->type() != Ir::VAL_CONST)
+                continue;
+            start = static_cast<Ir::Const*>(iter_info->initial)->v.imm_value().val.ival;
+            
+            if (loop->bound->type() != Ir::VAL_CONST)
+                continue;
+            end = static_cast<Ir::Const*>(loop->bound)->v.imm_value().val.ival;
+
+            if (loop->cmp_op == Ir::CMP_SLT)
+                --end;
+
+            pred = iter_info->pred_block;
+        } else {
+            continue;
+        }
+        my_assert(pred, "?");
+        
+        Ir::Block* body = nullptr;
+
+        for (auto&& block : loop->loop_blocks) {
+            if (block == loop->header) continue;
+            body = block;
+        }
+        my_assert(body, "?");
+        if (body->size() != 5) continue;
+        /*
+            L2:
+                %2 = phi i32 [ %5, %L3 ], [ 0, %L1 ]
+                %3 = icmp slt i32 %2, 100
+                br i1 %3, label %L3, label %L4
+            L3:
+                %4 = getelementptr [100 x i32], [100 x i32]* %0, i32 0, i32 %2
+                store i32 0, i32* %4
+                %5 = add i32 %2, 1
+                br label %L2
+            
+            GEP arr, index
+            store arr, 0
+            add ind, 1
+        */
+        auto i = std::next(body->begin()); // jump label
+        auto gep = dynamic_cast<Ir::MiniGepInstr*>((i++)->get());
+        auto store = dynamic_cast<Ir::StoreInstr*>((i++)->get());
+        auto bin_ind = dynamic_cast<Ir::BinInstr*>((i++)->get());
+        
+        if (store == nullptr || gep == nullptr || bin_ind == nullptr)
+            continue;
+        if (store->operand(0)->usee != gep)
+            continue;
+        if (loop->ind != gep->operand(1)->usee)
+            continue;
+        if (store->operand(1)->usee->type() != Ir::VAL_CONST)
+            continue;
+        if (!is_basic_type(static_cast<Ir::Const*>(store->operand(1)->usee)->v.ty))
+            continue;
+
+        ImmValue allv = static_cast<Ir::Const*>(store->operand(1)->usee)->v.imm_value();
+        
+        // only for 1 dimension
+        // and it must NOT be global
+        auto arr = dynamic_cast<Ir::AllocInstr*>(gep->operand(0)->usee);
+        if (!arr || !is_pointer(arr->ty) 
+            || !is_array(to_pointed_type(arr->ty))
+            || !is_basic_type(to_elem_type(to_pointed_type(arr->ty)))) continue;
+
+        if (end - start > 200)
+            continue;
+
+        for (int i=start; i<=end; ++i) {
+            auto gep = Ir::make_mini_gep_instr(arr, pred->add_imm(ImmValue(i)).get());
+            auto store = Ir::make_store_instr(gep.get(), pred->add_imm(allv).get());
+            pred->push_behind_end(gep);
+            pred->push_behind_end(store);
+        }
 
         auto header = loop->header;
         header->squeeze_out(false);

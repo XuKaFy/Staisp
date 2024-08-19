@@ -86,6 +86,13 @@ void func_pass_gvn(const Ir::pFuncDefined &func) {
 
 void func_pass_array_accumulate(const Ir::pFuncDefined &func)
 {
+    {
+        Alys::DomTree dom = func_pass_get_dom_ctx(func);
+        Alys::LoopInfo loop_info(func->p, dom);
+        replace_init_with_force(func, loop_info);
+        func->p.plain_opt_all();
+    }
+
     // only get cp data
     auto ans = from_top_analysis<OptConstPropagate::BlockValue,
                                  OptConstPropagate::TransferFunction>(func->p, false);
@@ -156,6 +163,8 @@ void optimize(const Ir::pModule &mod) {
         func_pass_pointer_iteration(func);
         func_pass_loop_unrolling(func);
         func_pass_gvn(func);
+        // func_pass_dse(func);
+        // func->p.re_generate();
     }
 }
 

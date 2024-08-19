@@ -101,8 +101,24 @@ struct ConstantMap {
 
     bool operator==(const ConstantMap &map) const { return val == map.val; }
 
+    void saveArrayValue(Ir::Instr* arr, int64_t index, const ImmValue &v) {
+        array_val[arr][index] = v;
+    }
+
+    std::optional<ImmValue> getArrayValue(Ir::Instr* arr, int64_t index) const {
+        if (!array_val.count(arr))
+            return {};
+        auto found = array_val.at(arr);
+        return found[index];
+    }
+
+    void clearArrayValue(Ir::Instr* arr) {
+        array_val.erase(arr);
+    }
+
 private:
     Map<Ir::Instr*, Val> val;
+    Map<Ir::Instr*, Map<int64_t, ImmValue>> array_val;
     mutable std::optional<Map<Ir::Instr *, Val>::const_iterator> last_found;
 };
 
