@@ -73,6 +73,7 @@ void func_pass_pointer_iteration(const Ir::pFuncDefined &func) {
 void func_pass_loop_unrolling(const Ir::pFuncDefined &func) {
     Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
     loop_unrolling(func->p, dom_ctx);
+    func->p.plain_opt_all();
     func->p.re_generate();
 }
 

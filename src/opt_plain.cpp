@@ -1,6 +1,7 @@
 #include <ir_call_instr.h>
 #include <ir_cast_instr.h>
 #include <ir_func_defined.h>
+#include <ir_ptr_instr.h>
 
 #include "alys_dom.h"
 #include "ir_block.h"
@@ -306,6 +307,13 @@ bool BlockedProgram::opt_simplify_branch()
     return modified;
 }
 
+std::optional<Value> extractConstant(Val* val) {
+    if (val->type() == VAL_CONST) {
+        return static_cast<Const *>(val)->v;
+    }
+    return {};
+}
+
 std::optional<Value> extractConstant(BinInstrType type, Val* val) {
     if (auto bin = dynamic_cast<Ir::BinInstr*>(val)) {
         auto rhs = bin->operand(1)->usee;
@@ -442,6 +450,23 @@ void optimize_accumulate(const pBlock &block) {
     }
 }
 
+void optimize_unrolled_gep(const pBlock &block, const pInstr &instr) {
+    auto gep = dynamic_cast<MiniGepInstr*>(instr.get());
+    if (!gep) return;
+    if (!gep->in_this_dim) return;
+    auto parent = dynamic_cast<MiniGepInstr*>(gep->operand(0)->usee);
+    if (!parent) return;
+    if (!parent->in_this_dim) return;
+    if (parent->block() != block.get()) return;
+    auto grandparent = parent->operand(0)->usee;
+    auto offset1 = extractConstant(gep->operand(1)->usee);
+    if (!offset1) return;
+    auto offset2 = extractConstant(parent->operand(1)->usee);
+    if (!offset2) return;
+    auto offset = offset1->imm_value().val.ival + offset2->imm_value().val.ival;
+    gep->change_operand(0, grandparent);
+    gep->change_operand(1, block->add_imm(Value(ImmValue(offset))).get());
+}
 
 void BlockedProgram::opt_trivial() {
     for (const auto &block : blocks) {
@@ -450,6 +475,7 @@ void BlockedProgram::opt_trivial() {
             optimize_identity_operation(instr);
             optimize_constant_propagate(instr);
             optimize_subtract_after_add(instr);
+            optimize_unrolled_gep(block, instr);
         }
         optimize_bitwise_boolean(block);
         optimize_accumulate(block);
