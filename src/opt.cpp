@@ -126,12 +126,13 @@ void pass_dfa(const Ir::pModule &mod) {
 
 void pass_print(const Ir::pModule &mod) {
     for (auto &&func : mod->funsDefined) {
+        func->p.re_generate();
         function_pass_print(func);
     }
 }
 
 void optimize(const Ir::pModule &mod) {
-    // pass_inline(mod);
+    pass_inline(mod);
     // pass_print(mod);
     for (auto &&func : mod->funsDefined) {
         func_pass_const_propagate(func);

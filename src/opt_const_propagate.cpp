@@ -121,7 +121,11 @@ void when_phi(Ir::PhiInstr *phi, BlockValue &v)
 {
     for (auto [label, val] : *phi) {
         fill_val(phi, read_val(val, v), v);
-        if (!v.val.hasValue(phi) || v.val.isValueNac(phi)) {
+        if (!v.val.hasValue(phi)) {
+            v.val.setValueNac(phi);
+            break;
+        }
+        if (v.val.isValueNac(phi)) {
             break;
         }
     }
@@ -238,7 +242,12 @@ int TransferFunction::operator()(Ir::Block *p, const BlockValue &IN,
 #endif
     int ans = 0;
     OUT.val.ergodic([p, &ans](Ir::Instr* instr, ImmValue v) {
-        if (instr->instr_type() == Ir::INSTR_ALLOCA)
+        if (instr->instr_type() == Ir::INSTR_ALLOCA
+#ifdef USING_MINI_GEP
+            || instr->instr_type() == Ir::INSTR_MINI_GEP
+#endif
+            ) { return ; }
+        if (instr->block() != p)
             return ;
 #ifdef OPT_CONST_PROPAGATE_DEBUG
         printf("    FOUND INSTR [%s] in Block %s\n", instr->name().c_str(), p->label()->name().c_str());
