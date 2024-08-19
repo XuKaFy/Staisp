@@ -111,7 +111,6 @@ void optimize(const Ir::pModule &mod) {
     pass_dfa(mod);
     for (auto &&func : mod->funsDefined) {
         func_pass_canonicalizer(func);
-        memoi_wrapper(mod.get()).ap();
         func_pass_loop_gep_motion(func);
         func_pass_pointer_iteration(func);
         func_pass_loop_unrolling(func);

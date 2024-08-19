@@ -8,12 +8,12 @@ class memoi_wrapper {
 
 public:
     Ir::Module *module;
-    static const int CACHE_MEMOI_SIZE = 4096;
     static bool is_purely_recursive(Ir::FuncDefined *func);
     memoi_wrapper(Ir::Module *module) : module(module) {};
     memoi_wrapper() = delete;
 
     void ap();
-    static void bk_fill(String &res);
+
+    static void bk_fill(Ir::Module* mod, String &res);
 };
 } // namespace Optimize

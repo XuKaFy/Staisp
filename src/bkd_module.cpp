@@ -44,7 +44,7 @@ __builtin_fill_zero:
 )";
 
     if (res.find("_cached") != std::string::npos)
-        Optimize::memoi_wrapper::bk_fill(res);
+        Optimize::memoi_wrapper::bk_fill(mod.get(), res);
 
     return res;
 }

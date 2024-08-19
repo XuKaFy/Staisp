@@ -2,6 +2,7 @@
 #include "def.h"
 
 #include <memory>
+#include <trans_wrapper.h>
 
 namespace Ir {
 
@@ -37,7 +38,7 @@ String Module::print_module() const {
 void Module::remove_unused_function()
 {
     for (auto i = funsDefined.begin(); i != funsDefined.end(); ) {
-        if ((*i)->users().empty() && (*i)->name() != "main") {
+        if (!funsCache.count(*i) && (*i)->users().empty() && (*i)->name() != "main") {
             i = funsDefined.erase(i);
         } else ++i;
     }

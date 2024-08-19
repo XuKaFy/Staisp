@@ -19,6 +19,7 @@ struct Module {
     Vector<pFuncDefined> funsDefined;
     Vector<pGlobal> globs;
     Vector<pFunc> funsDeclared;
+    Set<pFuncDefined> funsCache;
 };
 
 using pModule = Pointer<Module>;
