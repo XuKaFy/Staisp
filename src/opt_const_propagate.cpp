@@ -7,6 +7,7 @@
 #include "ir_mem_instr.h"
 #include "ir_phi_instr.h"
 #include "ir_call_instr.h"
+#include "ir_ptr_instr.h"
 #include "ir_val.h"
 #include "type.h"
 #include "value.h"
@@ -60,6 +61,21 @@ struct ValResult {
         : stat(VALUE), val(val){ }
 };
 
+void fill_val(Ir::Instr* instr, const ValResult &res, BlockValue &v)
+{
+    // printf("*** FILL %s with stat = %s, val = %s\n", instr->instr_print().c_str(), res.stat == ValResult::NAC ? "NAC" : (res.stat == ValResult::VALUE ? "VALUE" : "UNDEF"), res.val.print().c_str());
+    switch (res.stat) {
+    case ValResult::NAC:
+        v.val.setValueNac(instr);
+        break;
+    case ValResult::UNDEF:
+        break;
+    case ValResult::VALUE:
+        v.val.setValue(instr, res.val);
+        break;
+    }
+}
+
 ValResult read_val(Ir::Val* val, BlockValue &v) {
     switch (val->type()) {
     case Ir::VAL_CONST: {
@@ -74,6 +90,15 @@ ValResult read_val(Ir::Val* val, BlockValue &v) {
     case Ir::VAL_INSTR: {
         auto oprd_instr = dynamic_cast<Ir::Instr*>(val);
         if (v.val.hasValue(oprd_instr)) {
+            if (oprd_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+                // when loading a GEP
+                // first check whether its array is disabled
+                auto arr = dynamic_cast<Ir::AllocInstr*>(oprd_instr->operand(0)->usee);
+                if (arr == nullptr)
+                    return ValResult::NAC;
+                if (v.val.isValueNac(arr))
+                    return ValResult::NAC;
+            }
             auto res = v.val.value(oprd_instr);
             if (res) {
                 return res.value();
@@ -102,35 +127,6 @@ ValResult read_val(Ir::Val* val, BlockValue &v) {
     return ValResult::NAC;
 }
 
-void fill_val(Ir::Instr* instr, const ValResult &res, BlockValue &v)
-{
-    // printf("*** FILL %s with stat = %s, val = %s\n", instr->instr_print().c_str(), res.stat == ValResult::NAC ? "NAC" : (res.stat == ValResult::VALUE ? "VALUE" : "UNDEF"), res.val.print().c_str());
-    switch (res.stat) {
-    case ValResult::NAC:
-        v.val.setValueNac(instr);
-        break;
-    case ValResult::UNDEF:
-        break;
-    case ValResult::VALUE:
-        v.val.setValue(instr, res.val);
-        break;
-    }
-}
-
-void when_phi(Ir::PhiInstr *phi, BlockValue &v)
-{
-    for (auto [label, val] : *phi) {
-        fill_val(phi, read_val(val, v), v);
-        if (!v.val.hasValue(phi)) {
-            v.val.setValueNac(phi);
-            break;
-        }
-        if (v.val.isValueNac(phi)) {
-            break;
-        }
-    }
-}
-
 void when_store(Ir::StoreInstr* store, BlockValue& v)
 {
     auto to = store->operand(0)->usee;
@@ -148,9 +144,6 @@ void when_store(Ir::StoreInstr* store, BlockValue& v)
         return ;
     }
 
-    v.val.setValueNac(to_instr);
-    return ;
-
     if(to_instr->instr_type() == Ir::INSTR_MINI_GEP) {
         auto target = to_instr->operand(0)->usee;
         auto index = to_instr->operand(1)->usee;
@@ -166,6 +159,7 @@ void when_store(Ir::StoreInstr* store, BlockValue& v)
         }
         // 1. store a[i], N, NAC all a[...]
         if (index->type() != Ir::VAL_CONST) {
+            // disable the array
             v.val.setValueNac(arr_target);
             return ;
         }
@@ -185,6 +179,20 @@ void when_load(Ir::LoadInstr* load, BlockValue& v)
 {
     auto from = load->operand(0)->usee;
     fill_val(load, read_val(from, v), v);
+}
+
+void when_phi(Ir::PhiInstr *phi, BlockValue &v)
+{
+    for (auto [label, val] : *phi) {
+        fill_val(phi, read_val(val, v), v);
+        if (!v.val.hasValue(phi)) {
+            v.val.setValueNac(phi);
+            break;
+        }
+        if (v.val.isValueNac(phi)) {
+            break;
+        }
+    }
 }
 
 void when_calculatable(Ir::CalculatableInstr* cal, BlockValue& v)
@@ -207,6 +215,21 @@ void when_calculatable(Ir::CalculatableInstr* cal, BlockValue& v)
     v.val.setValue(cal, cal->calculate(vv));
 }
 
+void when_call(Ir::CallInstr* call, BlockValue &v)
+{
+    v.val.setValueNac(call); // all function regarded as NAK
+    // all array arguments passed are NAK
+    for (auto oprd_use : call->operands()) {
+        auto oprd = oprd_use->usee;
+        while (auto oprd_gep = dynamic_cast<Ir::MiniGepInstr*>(oprd)) {
+            oprd = oprd_gep->operand(0)->usee;
+        }
+        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(oprd)) {
+            v.val.setValueNac(alloc);
+        }
+    }
+}
+
 void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
 #ifdef OPT_CONST_PROPAGATE_DEBUG
     printf("Analyzing Block %s\n", p->label()->name().c_str());
@@ -219,7 +242,7 @@ void TransferFunction::operator()(Ir::Block *p, BlockValue &v) {
         } else if (auto instr = dynamic_cast<Ir::LoadInstr*>(i.get()); instr) {
             when_load(instr, v);
         } else if (auto instr = dynamic_cast<Ir::CallInstr*>(i.get()); instr) {
-            v.val.setValueNac(instr); // all function regarded as NAK
+            when_call(instr, v);
         } else if (auto instr = dynamic_cast<Ir::CalculatableInstr*>(i.get()); instr) {
             when_calculatable(instr, v);
         }

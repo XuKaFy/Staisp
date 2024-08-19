@@ -87,13 +87,13 @@ void func_pass_gvn(const Ir::pFuncDefined &func) {
 void func_pass_array_accumulate(const Ir::pFuncDefined &func)
 {
     // only get cp data
-    auto ans = from_bottom_analysis<OptConstPropagate::BlockValue,
-                                    OptConstPropagate::TransferFunction>(func->p, false);
+    auto ans = from_top_analysis<OptConstPropagate::BlockValue,
+                                 OptConstPropagate::TransferFunction>(func->p, false);
     
     Alys::DomTree dom = func_pass_get_dom_ctx(func);
     Alys::LoopInfo loop_info(func->p, dom);
 
-    array_accumulate(func, dom, loop_info);
+    array_accumulate(func, ans, loop_info);
 
     func_pass_dse(func);
 
@@ -133,7 +133,9 @@ void pass_print(const Ir::pModule &mod) {
 
 void optimize(const Ir::pModule &mod) {
     pass_inline(mod);
-    // pass_print(mod);
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+    pass_print(mod);
+#endif
     for (auto &&func : mod->funsDefined) {
         func_pass_const_propagate(func);
     }
@@ -146,7 +148,11 @@ void optimize(const Ir::pModule &mod) {
         Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
-        // func_pass_array_accumulate(func);
+        #ifdef OPT_CONST_PROPAGATE_DEBUG
+            function_pass_print(func);
+            printf("----------------------------------------------\n");
+        #endif
+        func_pass_array_accumulate(func);
         func_pass_pointer_iteration(func);
         func_pass_loop_unrolling(func);
         func_pass_gvn(func);

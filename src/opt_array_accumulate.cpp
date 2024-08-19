@@ -16,62 +16,62 @@
 
 namespace Optimize {
 
-Vector<ImmValue> getarray(const Ir::AllocInstr* arr, Ir::Block* cur_block, const Alys::DomTree &dom, size_t end)
+Vector<ImmValue> getarray(Ir::AllocInstr* arr, 
+                          Ir::Block* cur_block,
+                          const DFAAnalysisData<OptConstPropagate::BlockValue> &cp_ans,
+                          size_t end)
 {
-    Vector<ImmValue> ans;
-    ans.resize(end + 1);
-    Ir::Block* store_at = nullptr;
+    if (cp_ans.INs.at(cur_block).val.hasValue(arr) && 
+        cp_ans.INs.at(cur_block).val.isValueNac(arr)) {
+        // this array is mutable
+        return {};
+    }
 
-    // printf("TRY FIND ARRAY %s\n", arr->instr_print().c_str());
-
+    // check twice that in this block
+    // the array is NOT mutable
     for (auto && use : arr->users()) {
         auto gep_user = dynamic_cast<Ir::MiniGepInstr*>(use->user);
         if (gep_user == nullptr) {
             return {};
         }
 
-        // printf("    FIND GEP %s\n", gep_user->instr_print().c_str());
         for (auto &&use2 : gep_user->users()) {
             auto store_user = dynamic_cast<Ir::StoreInstr*>(use2->user);
             if (store_user == nullptr)
                 continue;
 
-            // printf("    FIND STORE %s\n", store_user->instr_print().c_str());
-
-            if (gep_user->operand(1)->usee->type() != Ir::VAL_CONST) {
-                // printf("    GEP NOT A CONSTANT\n");
-                continue;
+            if (store_user->block() == cur_block) {
+                // if current block has store
+                // then we regard it as a mutable array
                 return {};
             }
-        
-            if (store_user->operand(1)->usee->type() != Ir::VAL_CONST) {
-                // printf("    STORE NOT A CONSTANT\n");
-                return {};
-            }
-        
-            if (store_at == nullptr) {
-                store_at = store_user->block();
-                if (!dom.is_dom(cur_block, store_at)) {
-                    // printf("    NOT DOMED\n");
-                    return {};
-                }
-            } else if (store_at != store_user->block()) {
-                // printf("    HAS MULTIPLY BLOCK\n");
-                return {};
-            }
-
-            uint64_t index = static_cast<Ir::Const*>(gep_user->operand(1)->usee)->v.imm_value().val.uval;
-            ImmValue cur = static_cast<Ir::Const*>(store_user->operand(1)->usee)->v.imm_value();
-            // printf("    STORE [%lu] = %s\n", index, cur.print().c_str());
-            
-            ans[index] = cur;
         }
     }
+
+    // printf("ARRAY %s SATISFIED in Block %s\n", arr->instr_print().c_str(), cur_block->label()->instr_print().c_str());
+
+    Vector<ImmValue> ans;
+    ans.resize(end + 1);
+    
+    cp_ans.INs.at(cur_block).val.ergodic([&] (Ir::Instr* instr, ImmValue v) {
+        if (instr->instr_type() != Ir::INSTR_MINI_GEP)
+            return ;
+        auto gep = static_cast<Ir::MiniGepInstr*>(instr);
+        if (gep->operand(0)->usee != arr)
+            return ;
+        if (gep->operand(1)->usee->type() != Ir::VAL_CONST) {
+            // impossible if everything goes right
+            return ;
+        }
+        int64_t index = static_cast<Ir::Const*>(gep->operand(1)->usee)->v.imm_value().val.ival;
+        ans[index] = v;
+    });
+    
     return ans;
 }
 
 void array_accumulate(const Ir::pFuncDefined& func, 
-                      const Alys::DomTree &dom,
+                      const DFAAnalysisData<OptConstPropagate::BlockValue> &ans,
                       const Alys::LoopInfo &loop_info)
 {
     for (auto&& [_, loop] : loop_info.loops) {
@@ -84,11 +84,15 @@ void array_accumulate(const Ir::pFuncDefined& func,
         if (iter_info) {
             if (loop->cmp_op != Ir::CMP_SLT && loop->cmp_op != Ir::CMP_SLE)
                 continue;
+
             if (iter_info->initial->type() != Ir::VAL_CONST)
                 continue;
-
             start = static_cast<Ir::Const*>(iter_info->initial)->v.imm_value().val.ival;
+            
+            if (loop->bound->type() != Ir::VAL_CONST)
+                continue;
             end = static_cast<Ir::Const*>(loop->bound)->v.imm_value().val.ival;
+
             if (loop->cmp_op == Ir::CMP_SLT)
                 --end;
 
@@ -157,7 +161,7 @@ void array_accumulate(const Ir::pFuncDefined& func,
         if (!is_basic_type(outer_sum->ty))
             continue;
     
-        auto arr_val = getarray(arr, body, dom, end);
+        auto arr_val = getarray(arr, body, ans, end);
         if (arr_val.empty()) continue;
 
         ImmValue accumu (to_basic_type(outer_sum->ty)->ty);

@@ -6,7 +6,7 @@
 namespace Optimize {
 
 void array_accumulate(const Ir::pFuncDefined& func, 
-                      const Alys::DomTree &dom,
+                      const DFAAnalysisData<OptConstPropagate::BlockValue> &dom,
                       const Alys::LoopInfo &info);
 
 } // namespace Optimize
