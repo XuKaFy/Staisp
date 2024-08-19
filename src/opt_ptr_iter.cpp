@@ -262,7 +262,7 @@ void detect_sum_and_transform(IterationInfo info) {
     }
 }
 
-constexpr int UNROLLING_CYCLE = 2;
+constexpr int UNROLLING_CYCLE = 4;
 
 bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
     if (!info.succ_block) return false;
@@ -287,7 +287,7 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
     Ir::CloneContext ctx;
     std::vector<Ir::pBlock> blocks;
     std::vector<Ir::pBlock> body;
-    std::vector<Ir::pBlock> continues;
+    std::vector<int> continues;
     Ir::Block* cloned_header = nullptr;
     int entry_index = -1; int index = entry_index;
     for (auto&& block : info.loop->loop_blocks) {
@@ -303,7 +303,7 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
             body.push_back(blocks.back());
             for (auto&& out : block->out_blocks()) {
                 if (out == info.loop->header) {
-                    continues.push_back(blocks.back());
+                    continues.push_back(index);
                 }
             }
         }
@@ -351,21 +351,27 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
         }
     }
     // step 2.2 duplicate loop body
-
-    auto initial_body = body;
+    auto inserter = func.find(info.loop->header);
+    std::vector<Ir::pBlock> last_body = body;
+    Map<Ir::PhiInstr*, std::vector<std::pair<Ir::LabelInstr*, Ir::Val*>>> old_phi;
+    for (auto&& instr : *cloned_header) {
+        auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
+        if (!phi) continue;
+        std::vector<std::pair<Ir::LabelInstr*, Ir::Val*>> pairs;
+        for (auto&& pair : *phi) {
+            pairs.emplace_back(pair);
+        }
+        old_phi[phi] = pairs;
+    }
     for (int cycle = 1; cycle < UNROLLING_CYCLE; ++cycle) {
         Ir::CloneContext body_ctx;
         std::vector<Ir::pInstr> sub_phis;
-        Set<Ir::LabelInstr*> labels;
-        for (auto&& block : blocks) {
-            labels.insert(block->label().get());
-        }
         for (auto&& instr : *cloned_header) {
             auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
             if (!phi) continue;
             std::vector<std::pair<Ir::LabelInstr*, Ir::Val*>> incoming;
             for (auto [label, val] : *phi) {
-                if (labels.count(label)) {
+                if (label->block() != info.pred_block) {
                     incoming.emplace_back(label, val);
                 }
             }
@@ -381,20 +387,12 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
             }
         }
         std::vector<Ir::pBlock> cloned_body;
-        std::vector<Ir::pBlock> cloned_continues;
-        Map<Ir::PhiInstr*, Ir::Val*> cloned_phi_map;
-        for (auto&& block : initial_body) {
+        for (auto&& block : body) {
             cloned_body.push_back(block->clone(body_ctx));
-            for (auto&& out : block->out_blocks()) {
-                if (out == cloned_header) {
-                    cloned_continues.push_back(cloned_body.back());
-                }
-            }
         }
         for (auto&& block : cloned_body) {
             block->fix_clone(body_ctx);
         }
-        auto inserter = ++func.find(body.back().get());
         for (auto&& block : cloned_body) {
             func.insert(inserter, block);
         }
@@ -403,27 +401,28 @@ bool loop_unrolling(Ir::BlockedProgram &func, const IterationInfo& info) {
             entry_block->push_after_label(phi);
         }
         for (auto&& cont : continues) {
-            cont->replace_out(cloned_header, entry_block.get());
-            // cloned_header->replace_in(cont.get(), static_cast<Ir::LabelInstr*>(body_ctx.lookup(cont->label().get()))->block());
+            last_body[cont]->replace_out(nullptr, entry_block.get());
         }
         for (auto&& instr : *cloned_header) {
             auto phi = dynamic_cast<Ir::PhiInstr*>(instr.get());
             if (!phi) continue;
-            for (size_t i = 0; i < phi->phi_pairs(); ++i) {
-                auto old_label = phi->phi_label(i);
+            int i = 0;
+            for (auto [old_label, old_val] : old_phi[phi]) {
                 auto mapped_label = body_ctx.lookup(old_label);
                 if (mapped_label != old_label) {
                     phi->change_phi_label(i, static_cast<Ir::LabelInstr *>(mapped_label));
                 }
-                auto old_val = phi->phi_val(i);
                 auto mapped_val = body_ctx.lookup(old_val);
                 if (old_val != mapped_val) {
                     phi->change_phi_val(i, mapped_val);
                 }
+                ++i;
             }
         }
-        body = std::move(cloned_body);
-        continues = std::move(cloned_continues);
+        last_body = std::move(cloned_body);
+    }
+    for (auto&& cont : continues) {
+        last_body[cont]->replace_out(nullptr, cloned_header);
     }
     return true;
 }
