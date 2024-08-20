@@ -194,8 +194,8 @@ void when_store(Ir::StoreInstr* store, BlockValue& v)
         switch (res.stat) {
         case ValResult::VALUE:
 #ifdef OPT_CONST_PROPAGATE_DEBUG
-#endif
             printf("    SETVALUE %s[%llu] = %s \n", arr_target->name().c_str(), index_val, read_val(val, v).val.print().c_str());
+#endif
             v.val.saveArrayValue(arr_target, index_val, read_val(val, v).val);
             break;
         case ValResult::NAC:
