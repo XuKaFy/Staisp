@@ -209,7 +209,7 @@ void replace_init_with_fill_zero(const Ir::pFuncDefined& func, const Alys::LoopI
     for (auto&& [_, loop] : loop_info.loops) {
         if (loop->loop_blocks.size() != 2) continue;
 
-        int64_t start, end;
+        Ir::Val* end = nullptr;
         Ir::Block* pred = nullptr;
         auto iter_info = detect_iteration(loop);
 
@@ -219,24 +219,16 @@ void replace_init_with_fill_zero(const Ir::pFuncDefined& func, const Alys::LoopI
 
             if (iter_info->initial->type() != Ir::VAL_CONST)
                 continue;
-            start = static_cast<Ir::Const*>(iter_info->initial)->v.imm_value().val.ival;
-            
-            if (loop->bound->type() != Ir::VAL_CONST)
-                continue;
-            end = static_cast<Ir::Const*>(loop->bound)->v.imm_value().val.ival;
+            if (static_cast<Ir::Const*>(iter_info->initial)->v.imm_value().val.ival != 0)
+                continue; // must start with 0
 
-            if (loop->cmp_op == Ir::CMP_SLT)
-                --end;
-
+            end = loop->bound;
             pred = iter_info->pred_block;
         } else {
             continue;
         }
         my_assert(pred, "?");
-
-        // only for i=0...N
-        if (start != 0)
-            continue;
+        my_assert(end, "?");
         
         Ir::Block* body = nullptr;
 
@@ -261,6 +253,12 @@ void replace_init_with_fill_zero(const Ir::pFuncDefined& func, const Alys::LoopI
             store arr, 0
             add ind, 1
         */
+        /*
+            !!!
+                if ind is NOT 1
+                will be wrong!!!!
+            !!!
+        */
         auto i = std::next(body->begin()); // jump label
         auto gep = dynamic_cast<Ir::MiniGepInstr*>((i++)->get());
         auto store = dynamic_cast<Ir::StoreInstr*>((i++)->get());
@@ -280,19 +278,18 @@ void replace_init_with_fill_zero(const Ir::pFuncDefined& func, const Alys::LoopI
         ImmValue allv = static_cast<Ir::Const*>(store->operand(1)->usee)->v.imm_value();
         if (allv != 0) // for builtin_fill_zero
             continue;
-        
-        // only for 1 dimension
-        // and it must NOT be global
-        auto arr = dynamic_cast<Ir::AllocInstr*>(gep->operand(0)->usee);
-        if (!arr || !is_pointer(arr->ty) 
-            || !is_array(to_pointed_type(arr->ty))
-            || !is_basic_type(to_elem_type(to_pointed_type(arr->ty)))) continue;
+
+        // all a[0...N]=0 can be replaced by fillzero
+        auto arr = gep->operand(0)->usee;
+        my_assert(arr, "?");
 
         auto cast = Ir::make_cast_instr(make_pointer_type(make_basic_type(IMM_I8)), arr);
         pred->push_behind_end(cast);
+        if (loop->cmp_op == Ir::CMP_SLE)
+            pred->push_behind_end(Ir::make_binary_instr(Ir::INSTR_ADD, end, pred->add_imm(ImmValue(1)).get()));
         pred->push_behind_end(Ir::make_call_instr(
             fill_zero.get(),
-            { cast.get(), pred->add_imm(ImmValue((int)(end+1))).get() }
+            { cast.get(), end }
         ));
 
         auto header = loop->header;
