@@ -5,6 +5,7 @@
 #include "ir_block.h"
 #include "ir_constant.h"
 #include "ir_instr.h"
+#include "ir_phi_instr.h"
 #include "ir_val.h"
 #include <cstddef>
 #include <cstdio>
@@ -56,6 +57,7 @@ class GVN_pass {
     DomPredicate dom_set;
     Map<Exp *, Ir::Const *> exp_const;
     Vector<Ir::Instr *> shared_gep;
+    Map<Ir::Block *, Vector<Ir::PhiInstr *>> phi_in_blks;
 
 public:
     bool hoist_fold(Ir::Instr *&real_instr, Ir::Instr *&arg_instr);
@@ -73,6 +75,7 @@ public:
     void perform_congruence_finding(Ir::Instr *arg_instr, Exp *exp);
     void process_out_blks(Ir::Block *arg_blk);
     void sink_gep();
+    void phi_predication(Ir::Instr *arg_phi_instr);
 };
 
 } // namespace OptGVN

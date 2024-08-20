@@ -3,7 +3,9 @@
 #include "imm.h"
 #include "ir_block.h"
 #include "ir_constant.h"
+#include "ir_control_instr.h"
 #include "ir_instr.h"
+#include "ir_phi_instr.h"
 #include "ir_val.h"
 #include "trans_loop.h"
 #include "type.h"
@@ -148,8 +150,10 @@ void GVN_pass::handle_cur_instr(
         }
 
             // not need to handle
+        case Ir::INSTR_PHI: {
+            phi_predication(cur_instr.get());
+        }
         case Ir::INSTR_CALL:
-        case Ir::INSTR_PHI:
         case Ir::INSTR_ALLOCA:
         case Ir::INSTR_STORE:
         case Ir::INSTR_LOAD:
@@ -300,7 +304,7 @@ bool exp_eq::operator()(const Exp &a, const Exp &b) const {
 }
 
 void GVN_pass::sink_gep() {
-    auto dumpGepOperand = [](const String& str) -> String {
+    auto dumpGepOperand = [](const String &str) -> String {
         return str.substr(str.find('g'));
     };
     Map<String, Ir::Instr *> gep_map;
@@ -348,5 +352,132 @@ bool GVN_pass::hoist_fold(Ir::Instr *&real_instr, Ir::Instr *&arg_instr) {
     arg_instr->replace_self(real_instr);
     arg_instr->block()->erase(arg_instr);
     return true;
+}
+
+void GVN_pass::phi_predication(Ir::Instr *arg_phi_instr) {
+    auto arg_phi = static_cast<Ir::PhiInstr *>(arg_phi_instr);
+    auto cur_blk = arg_phi->block();
+    if (phi_in_blks.count(arg_phi->block()) == 0) {
+        phi_in_blks[cur_blk] = Vector<Ir::PhiInstr *>{arg_phi};
+        return;
+    }
+
+    auto &cur_phis = phi_in_blks[cur_blk];
+    /*
+    0 dominating values as initial
+    1 dominated values as user
+    2 nither 0 or 1
+    */
+    Vector<Ir::Val *> arg_vals[3];
+    auto global_defined = [this](Ir::Val *val) -> bool {
+        return val->type() == Ir::VAL_GLOBAL || val->type() == Ir::VAL_CONST ||
+               Optimize::LoopGEPMotion_pass::is_func_parameter(val, cur_func);
+    };
+    auto val_filter =
+        [this, // they share the same block as assumed
+         cur_blk, global_defined](Ir::PhiInstr *arg_phi,
+                                  Vector<Ir::Val *>(&val_of_phis)[3]) -> void {
+        for (auto &&[lb, val] : *arg_phi) {
+            // val >> arg_phi
+            if (global_defined(val)) {
+                val_of_phis[0].push_back(val);
+                continue;
+            } else if (val->type() == Ir::VAL_INSTR) {
+                auto val_instr = static_cast<Ir::Instr *>(val);
+                if (dom_ctx.is_dom(cur_blk, val_instr->block())) {
+                    val_of_phis[0].push_back(val);
+                } else if (dom_ctx.is_dom(val_instr->block(), cur_blk)) {
+                    val_of_phis[1].push_back(val);
+                } else {
+                    val_of_phis[2].push_back(val);
+                }
+            }
+        }
+    };
+
+    auto is_same_calculation = [](Ir::Val *cur, Ir::Val *arg,
+                                  Ir::PhiInstr *curphi,
+                                  Ir::PhiInstr *argphi) -> bool {
+        auto cur_instr = dynamic_cast<Ir::Instr *>(cur);
+        auto arg_instr = dynamic_cast<Ir::Instr *>(arg);
+        if (cur_instr->instr_type() != arg_instr->instr_type())
+            return false;
+        if (cur_instr->operand_size() != arg_instr->operand_size())
+            return false;
+        if (cur_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+            auto cur_gep = dynamic_cast<Ir::MiniGepInstr *>(cur_instr);
+            auto arg_gep = dynamic_cast<Ir::MiniGepInstr *>(arg_instr);
+            if (cur_gep->in_this_dim != arg_gep->in_this_dim)
+                return false;
+            if (cur_gep->operand_size() != arg_gep->operand_size())
+                return false;
+            for (size_t i = 0; i < cur_gep->operand_size(); ++i) {
+                auto cur_gep_usee = cur_gep->operand(i)->usee;
+                auto arg_gep_usee = arg_gep->operand(i)->usee;
+                if (cur_gep_usee->type() != cur_gep_usee->type()) {
+                    return false;
+                }
+                if (cur_gep_usee->type() == Ir::VAL_CONST) {
+                    auto cur_gep_const =
+                        dynamic_cast<Ir::Const *>(cur_gep_usee);
+                    auto arg_gep_const =
+                        dynamic_cast<Ir::Const *>(arg_gep_usee);
+                    if (cur_gep_const->v.imm_value() !=
+                        arg_gep_const->v.imm_value())
+                        return false;
+                    continue;
+                } else if (cur_gep_usee->type() == Ir::VAL_INSTR) {
+                    if (!(cur_gep_usee == curphi && arg_gep_usee == argphi))
+                        return false;
+                    continue;
+                }
+            }
+            return true;
+        }
+        return false;
+    };
+
+    val_filter(arg_phi, arg_vals);
+    for (auto &&cur_phi : cur_phis) {
+        if (cur_phi == arg_phi)
+            continue;
+        if (!is_same_type(cur_phi->ty, arg_phi->ty))
+            continue;
+        Vector<Ir::Val *> cur_vals[3];
+        val_filter(cur_phi, cur_vals);
+        if (!(cur_vals[0].size() == arg_vals[0].size() &&
+              cur_vals[1].size() == arg_vals[1].size() &&
+              cur_vals[2].size() == arg_vals[2].size()))
+            continue;
+        Set<Ir::Val *> vals_0_arg{arg_vals[0].begin(), arg_vals[0].end()};
+        Set<Ir::Val *> vals_0_cur{cur_vals[0].begin(), cur_vals[0].end()};
+        // same initializator
+        Set<Pair<Ir::LabelInstr *, Ir::Val *>> arg, cur;
+        for (size_t i = 0; i < arg_phi->phi_pairs(); ++i) {
+            if (vals_0_arg.count(arg_phi->phi_val(i)) > 0) {
+                arg.insert({arg_phi->phi_label(i), arg_phi->phi_val(i)});
+            }
+            if (vals_0_cur.count(cur_phi->phi_val(i)) > 0) {
+                cur.insert({cur_phi->phi_label(i), cur_phi->phi_val(i)});
+            }
+        }
+        if (arg != cur)
+            continue;
+        if (!(cur_vals[2].empty() && arg_vals[2].empty()))
+            continue;
+        if (cur_vals[1].size() != arg_vals[1].size())
+            continue;
+        if (cur_vals[1].size() >= 2)
+            continue;
+        if (is_same_calculation(cur_vals[1].at(0), arg_vals[1].at(0), cur_phi,
+                                arg_phi)) {
+            // printf("cur : %s\n arg : %s \n", cur_phi->instr_print().c_str(),
+            //        arg_phi->instr_print().c_str());
+            arg_phi->replace_self(cur_phi);
+            cur_blk->erase(arg_phi);
+            return;
+        }
+    }
+    cur_phis.push_back(arg_phi);
 }
 } // namespace OptGVN
