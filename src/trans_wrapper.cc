@@ -37,13 +37,6 @@ bool memoi_wrapper::is_purely_recursive(Ir::FuncDefined *func) {
                 break;
             }
             case Ir::INSTR_LOAD:
-            // {
-            //     auto src_ptr = instr->operand(0)->usee;
-            //     if (src_ptr->type() == Ir::VAL_GLOBAL) {
-            //         auto src_global_val = static_cast<Ir::Global *>(src_ptr);
-            //         if (src_global_val->is_effectively_final()) break;
-            //     }
-            // }
             case Ir::INSTR_ITEM:
             case Ir::INSTR_STORE: {
                 if (instr->operand(0)->usee->name()[0] == '@') {

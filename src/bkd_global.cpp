@@ -68,6 +68,7 @@ String Global::print() const
 {
     String res;
     res += ".globl " + name + "\n";
+    res += ".align 5\n"; // 32 bytes
     res += name + ":\n";
     for (auto &&i : component) {
         res += i.print() + "\n";

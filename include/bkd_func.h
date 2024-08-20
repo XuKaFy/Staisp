@@ -30,15 +30,27 @@ struct StackFrame {
     StackObject ra{8, 8};
     int offset = 8;
     std::vector<StackObject> locals; // all except ra and args
+    size_t args = 0;
+
     size_t push(int size) {
         size_t index = locals.size();
-        if (size == 8 && offset % 8 == 4) offset += 4;
+        if (size >= 8 && offset % 8) {
+            offset |= 7;
+            offset += 1;
+        }
+        if (size >= 16 && offset % 16) {
+            offset |= 15;
+            offset += 1;
+        }
         offset += size;
         locals.push_back({offset, size});
         return index;
     }
 
-    size_t args = 0;
+
+    void spill_args(size_t spilled) {
+        args = std::max(args, spilled);
+    }
 
     int size() const {
         int sz = offset;

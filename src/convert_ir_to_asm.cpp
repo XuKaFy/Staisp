@@ -644,7 +644,7 @@ struct ConvertBulk {
                 }
             }
         }
-        func.frame.args = std::max(func.frame.args, spilled.size());
+        func.frame.spill_args(spilled.size());
         for (size_t i = 0; i < spilled.size(); ++i) {
             auto rs = spilled[i];
             add({ StoreStackInstr {

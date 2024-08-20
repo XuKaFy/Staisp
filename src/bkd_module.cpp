@@ -25,23 +25,23 @@ String Module::print_module() const {
 .text
 .globl  __builtin_fill_zero
 __builtin_fill_zero:
-    slli    a1,a1,2
-    add     a1,a0,a1
-__builtin_fill_zero_loop:
-    addi    a0,a0,4
-    sw      zero,-4(a0)
-    bne     a1,a0,__builtin_fill_zero_loop
-    ret
-)";
-    // -O3
-    std::ignore = R"(
-.text
-.globl  __builtin_fill_zero
-__builtin_fill_zero:
     slli    a2,a1,2
     li      a1,0
     tail    memset
 )";
+
+//         res += R"(
+// .text
+// .globl  __builtin_fill_zero
+// __builtin_fill_zero:
+//     slli    a1,a1,2
+//     add     a1,a0,a1
+// __builtin_fill_zero_loop:
+//     addi    a0,a0,4
+//     sw      zero,-4(a0)
+//     bne     a1,a0,__builtin_fill_zero_loop
+//     ret
+// )";
 
     if (res.find("_cached") != std::string::npos)
         Optimize::memoi_wrapper::bk_fill(mod.get(), res);
