@@ -5,7 +5,9 @@
 
 namespace Optimize {
 
-void replace_init_with_force(const Ir::pFuncDefined& func, const Alys::LoopInfo &info);
+void replace_init_with_fill_zero(const Ir::pFuncDefined& func,
+                                 const Alys::LoopInfo &loop_info,
+                                 const Ir::pFunc &fill_zero);
 
 void array_accumulate(const Ir::pFuncDefined& func, 
                       const DFAAnalysisData<OptConstPropagate::BlockValue> &dom,

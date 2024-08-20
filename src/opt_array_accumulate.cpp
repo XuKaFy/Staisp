@@ -1,7 +1,10 @@
 #include "opt_array_accumulate.h"
 #include "common_node.h"
 #include "def.h"
+#include "imm.h"
 #include "ir_block.h"
+#include "ir_call_instr.h"
+#include "ir_cast_instr.h"
 #include "ir_cmp_instr.h"
 #include "ir_constant.h"
 #include "ir_instr.h"
@@ -32,7 +35,7 @@ Vector<ImmValue> getarray(Ir::AllocInstr* arr,
     for (auto && use : arr->users()) {
         auto gep_user = dynamic_cast<Ir::MiniGepInstr*>(use->user);
         if (gep_user == nullptr) {
-            return {};
+            continue;
         }
 
         for (auto &&use2 : gep_user->users()) {
@@ -57,7 +60,7 @@ Vector<ImmValue> getarray(Ir::AllocInstr* arr,
         auto val = cp_ans.INs.at(cur_block).val.getArrayValue(arr, i);
         if (val.has_value()) {
             ans[i] = val.value();
-            // printf("FILL [%ld] = %s\n", i, val.value().print().c_str());
+            printf("FILL [%ld] = %s\n", i, val.value().print().c_str());
         }
         // else is UB
     }
@@ -201,7 +204,7 @@ void array_accumulate(const Ir::pFuncDefined& func,
     }
 }
 
-void replace_init_with_force(const Ir::pFuncDefined& func, const Alys::LoopInfo &loop_info)
+void replace_init_with_fill_zero(const Ir::pFuncDefined& func, const Alys::LoopInfo &loop_info, const Ir::pFunc &fill_zero)
 {
     for (auto&& [_, loop] : loop_info.loops) {
         if (loop->loop_blocks.size() != 2) continue;
@@ -230,6 +233,10 @@ void replace_init_with_force(const Ir::pFuncDefined& func, const Alys::LoopInfo 
             continue;
         }
         my_assert(pred, "?");
+
+        // only for i=0...N
+        if (start != 0)
+            continue;
         
         Ir::Block* body = nullptr;
 
@@ -271,6 +278,8 @@ void replace_init_with_force(const Ir::pFuncDefined& func, const Alys::LoopInfo 
             continue;
 
         ImmValue allv = static_cast<Ir::Const*>(store->operand(1)->usee)->v.imm_value();
+        if (allv != 0) // for builtin_fill_zero
+            continue;
         
         // only for 1 dimension
         // and it must NOT be global
@@ -279,15 +288,12 @@ void replace_init_with_force(const Ir::pFuncDefined& func, const Alys::LoopInfo 
             || !is_array(to_pointed_type(arr->ty))
             || !is_basic_type(to_elem_type(to_pointed_type(arr->ty)))) continue;
 
-        if (end - start > 200)
-            continue;
-
-        for (int i=start; i<=end; ++i) {
-            auto gep = Ir::make_mini_gep_instr(arr, pred->add_imm(ImmValue(i)).get());
-            auto store = Ir::make_store_instr(gep.get(), pred->add_imm(allv).get());
-            pred->push_behind_end(gep);
-            pred->push_behind_end(store);
-        }
+        auto cast = Ir::make_cast_instr(make_pointer_type(make_basic_type(IMM_I8)), arr);
+        pred->push_behind_end(cast);
+        pred->push_behind_end(Ir::make_call_instr(
+            fill_zero.get(),
+            { cast.get(), pred->add_imm(ImmValue((int)(end+1))).get() }
+        ));
 
         auto header = loop->header;
         header->squeeze_out(false);

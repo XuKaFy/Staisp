@@ -84,14 +84,24 @@ void func_pass_gvn(const Ir::pFuncDefined &func) {
     func->p.re_generate();
 }
 
-void func_pass_array_accumulate(const Ir::pFuncDefined &func)
+void function_pass_print(const Ir::pFuncDefined &func)
+{
+    printf("%s\n", func->print_func().c_str());
+}
+
+void func_pass_array_accumulate(const Ir::pFuncDefined &func, const Ir::pFunc &fill_zero)
 {
     {
         Alys::DomTree dom = func_pass_get_dom_ctx(func);
         Alys::LoopInfo loop_info(func->p, dom);
-        replace_init_with_force(func, loop_info);
+        replace_init_with_fill_zero(func, loop_info, fill_zero);
         func->p.plain_opt_all();
     }
+
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+    function_pass_print(func);
+    printf("----------------------------------------------\n");
+#endif
 
     // only get cp data
     auto ans = from_top_analysis<OptConstPropagate::BlockValue,
@@ -106,11 +116,9 @@ void func_pass_array_accumulate(const Ir::pFuncDefined &func)
 
     func->p.plain_opt_all();
     func->p.re_generate();
-}
 
-void function_pass_print(const Ir::pFuncDefined &func)
-{
-    printf("%s\n", func->print_func().c_str());
+    // func_pass_const_propagate(func);
+    // func_pass_dse(func);
 }
 
 void pass_inline(const Ir::pModule &mod) {
@@ -139,6 +147,12 @@ void pass_print(const Ir::pModule &mod) {
 }
 
 void optimize(const Ir::pModule &mod) {
+    Ir::pFunc fill_zero;
+    for (auto &&func : mod->funsDeclared) {
+        if (func->name() == "__builtin_fill_zero")
+            fill_zero = func;
+    }
+    my_assert(fill_zero, "?");
     pass_inline(mod);
 #ifdef OPT_CONST_PROPAGATE_DEBUG
     pass_print(mod);
@@ -155,11 +169,7 @@ void optimize(const Ir::pModule &mod) {
         Alys::DomTree dom_ctx = func_pass_get_dom_ctx(func);
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
-        #ifdef OPT_CONST_PROPAGATE_DEBUG
-            function_pass_print(func);
-            printf("----------------------------------------------\n");
-        #endif
-        func_pass_array_accumulate(func);
+        func_pass_array_accumulate(func, fill_zero);
         func_pass_pointer_iteration(func);
         func_pass_loop_unrolling(func);
         func_pass_gvn(func);

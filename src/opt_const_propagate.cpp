@@ -10,6 +10,7 @@
 #include "ir_ptr_instr.h"
 #include "ir_val.h"
 #include "type.h"
+#include "ir_cast_instr.h"
 #include "value.h"
 #include <memory>
 #include <optional>
@@ -89,24 +90,33 @@ ValResult read_val(Ir::Val* val, BlockValue &v) {
     }
     case Ir::VAL_INSTR: {
         auto oprd_instr = dynamic_cast<Ir::Instr*>(val);
-        if (v.val.hasValue(oprd_instr)) {
-            if (oprd_instr->instr_type() == Ir::INSTR_MINI_GEP) {
-                // when loading a GEP
-                // first check whether its array is disabled
-                auto arr = dynamic_cast<Ir::AllocInstr*>(oprd_instr->operand(0)->usee);
-                if (arr == nullptr)
-                    return ValResult::NAC;
-                if (v.val.isValueNac(arr))
-                    return ValResult::NAC;
-                
-                if (oprd_instr->operand(1)->usee->type() != Ir::VAL_CONST)
-                    return ValResult::NAC;
-                int64_t index = static_cast<Ir::Const*>(oprd_instr->operand(1)->usee)->v.imm_value().val.ival;
-                auto res = v.val.getArrayValue(arr, index);
-                if (res.has_value())
-                    return res.value();
-                return ValResult::UNDEF;
+        /*if (oprd_instr->instr_type() == Ir::INSTR_MINI_GEP) {
+            // when loading a GEP
+            // first check whether its array is disabled
+            auto arr = dynamic_cast<Ir::AllocInstr*>(oprd_instr->operand(0)->usee);
+            if (arr == nullptr) {
+                return ValResult::NAC;
             }
+            if (v.val.hasValue(arr) && v.val.isValueNac(arr)) {
+                return ValResult::NAC;
+            }
+                
+            if (oprd_instr->operand(1)->usee->type() != Ir::VAL_CONST) {
+                return ValResult::NAC;
+            }
+    
+            int64_t index = static_cast<Ir::Const*>(oprd_instr->operand(1)->usee)->v.imm_value().val.ival;
+            auto res = v.val.getArrayValue(arr, index);
+            if (res.has_value()) {
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+                printf("    LOAD %s[%ld] = %s \n", arr->name().c_str(), index, res->print().c_str());
+#endif
+
+                return res.value();
+            }
+            return ValResult::UNDEF;
+        }*/
+        if (v.val.hasValue(oprd_instr)) {
             auto res = v.val.value(oprd_instr);
             if (res) {
                 return res.value();
@@ -183,6 +193,9 @@ void when_store(Ir::StoreInstr* store, BlockValue& v)
         ValResult res = read_val(val, v);
         switch (res.stat) {
         case ValResult::VALUE:
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+#endif
+            printf("    SETVALUE %s[%llu] = %s \n", arr_target->name().c_str(), index_val, read_val(val, v).val.print().c_str());
             v.val.saveArrayValue(arr_target, index_val, read_val(val, v).val);
             break;
         case ValResult::NAC:
@@ -236,18 +249,46 @@ void when_calculatable(Ir::CalculatableInstr* cal, BlockValue& v)
     v.val.setValue(cal, cal->calculate(vv));
 }
 
+void disable_minigep(Ir::Val* oprd, BlockValue &v)
+{
+    while (auto oprd_gep = dynamic_cast<Ir::MiniGepInstr*>(oprd)) {
+        oprd = oprd_gep->operand(0)->usee;
+    }
+    if (auto alloc = dynamic_cast<Ir::AllocInstr*>(oprd)) {
+        printf("ALLOCA [%s] IS DISABLED\n", alloc->instr_print().c_str());
+        v.val.setValueNac(alloc);
+    }
+}
+
 void when_call(Ir::CallInstr* call, BlockValue &v)
 {
     v.val.setValueNac(call); // all function regarded as NAK
+    // when call builtin fill zero, erase front
+    // it doesn't modify the mutability
+    if (call->operand(0)->usee->name() == "__builtin_fill_zero") {
+        if (call->operand(2)->usee->type() != Ir::VAL_CONST) {
+            disable_minigep(call->operand(1)->usee, v);
+            return ;
+        }
+        Ir::Instr* arr = dynamic_cast<Ir::AllocInstr*>(call->operand(1)->usee);
+
+        if (arr == nullptr) {
+            arr = dynamic_cast<Ir::CastInstr*>(call->operand(1)->usee);
+            if (arr == nullptr) {
+                return ;
+            }
+            arr = dynamic_cast<Ir::AllocInstr*>(arr->operand(0)->usee);
+            if (arr == nullptr)
+                return ;
+        }
+
+        int64_t len = static_cast<Ir::Const*>(call->operand(2)->usee)->v.imm_value().val.ival;
+        v.val.eraseArrayValueLeq(arr, len);
+        return ;
+    }
     // all array arguments passed are NAK
-    for (auto oprd_use : call->operands()) {
-        auto oprd = oprd_use->usee;
-        while (auto oprd_gep = dynamic_cast<Ir::MiniGepInstr*>(oprd)) {
-            oprd = oprd_gep->operand(0)->usee;
-        }
-        if (auto alloc = dynamic_cast<Ir::AllocInstr*>(oprd)) {
-            v.val.setValueNac(alloc);
-        }
+    for (auto&& oprd_use : call->operands()) {
+        disable_minigep(oprd_use->usee, v);
     }
 }
 

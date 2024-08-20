@@ -5,6 +5,8 @@
 #include "ir_block.h"
 #include "ir_constant.h"
 #include "ir_instr.h"
+#include "type.h"
+#include <algorithm>
 #include <functional>
 #include <optional>
 
@@ -114,6 +116,16 @@ struct ConstantMap {
 
     void clearArrayValue(Ir::Instr* arr) {
         array_val.erase(arr);
+    }
+
+    void eraseArrayValueLeq(Ir::Instr* arr, int64_t index) {
+        for (auto i = array_val[arr].begin(); i != array_val[arr].end(); ) {
+            if (i->first < index) {
+                i = array_val[arr].erase(i);
+            } else {
+                ++i;
+            }
+        }
     }
 
 private:
