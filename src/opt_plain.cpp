@@ -2,12 +2,16 @@
 #include <ir_cast_instr.h>
 #include <ir_func_defined.h>
 #include <ir_ptr_instr.h>
+#include <iterator>
+#include <optional>
 
 #include "alys_dom.h"
 #include "ir_block.h"
 #include "ir_control_instr.h"
 #include "ir_instr.h"
+#include "ir_mem_instr.h"
 #include "ir_opr_instr.h"
+#include "type.h"
 
 namespace Ir {
 
@@ -53,25 +57,8 @@ bool BlockedProgram::is_pure() const
 
 void BlockedProgram::plain_opt_bb() {
     int modified = 1;
-    // re_generate();
     while (modified) {
-        /*
-        static int cnt = 0;
-        printf("Opt %d\n", ++cnt);
-        for(auto i : *this) {
-            printf("%s", i->print_block().c_str());
-        }
-        puts("");
-        */
-        modified = 0;
-        /*
-        static int cnt = 0;
-        printf("Opt %d\n", ++cnt);
-        for(auto i : *this) {
-            printf("%s", i->print_block().c_str());
-        }
-        puts("");
-        */
+            modified = 0;
         // 连接块不需要考虑 PHI
         // 因为所有的 PHI 在无分支的情况下
         // 会替换自身为某个量
@@ -85,6 +72,10 @@ void BlockedProgram::plain_opt_bb() {
         modified += opt_simplify_branch();
         my_assert(check_empty_use("SIMPLIFY BRANCH") == 0, "SIMPLIFY BRANCH FAILED");
         my_assert(check_invalid_phi("SIMPLIFY BRANCH") == 0, "SIMPLIFY BRANCH FAILED");
+        // 删掉所有 if (xxx) N=1 else N=0 的分支
+        modified += opt_remove_simple_branch();
+        my_assert(check_empty_use("REMOVE SIMPLE BRANCH") == 0, "REMOVE SIMPLE BRANCH");
+        my_assert(check_invalid_phi("REMOVE SIMPLE BRANCH") == 0, "REMOVE SIMPLE BRANCH");
         // 删除块需要考虑 PHI
         // PHI 指令可能存在某些入边
         // 来自于永远不会执行的块
@@ -122,6 +113,82 @@ void BlockedProgram::plain_opt_all() {
     plain_opt_bb();
 }
 
+struct SingleAssign {
+    Ir::Val* to;
+    Ir::Block* next_block;
+    int x;
+};
+
+std::optional<SingleAssign> check_block(Ir::Block* block)
+{
+    if (block->size() != 3)
+        return {};
+    
+    SingleAssign ass;
+    
+    if (block->back()->instr_type() != Ir::INSTR_BR)
+        return {};
+    ass.next_block = static_cast<Ir::LabelInstr*>(block->back()->operand(0)->usee)->block();
+
+    auto store = dynamic_cast<Ir::StoreInstr*>(std::next(block->begin())->get());
+    if (store == nullptr)
+        return {};
+    ass.to = store->operand(0)->usee;
+
+    auto imm = dynamic_cast<Ir::Const*>(store->operand(1)->usee);
+    if (imm == nullptr || !is_basic_type(imm->ty))
+        return {};
+    ass.x = imm->v.imm_value().val.ival;
+
+    return ass;
+}
+
+bool BlockedProgram::opt_remove_simple_branch()
+{
+    // re_generate();
+    auto try_remove = [](Ir::Block* block) -> bool {
+        if (block->back()->instr_type() != INSTR_BR_COND)
+            return false;
+        auto br_cond = std::static_pointer_cast<Ir::BrCondInstr>(block->back());
+        auto true_block = static_cast<Ir::LabelInstr*>(br_cond->operand(1)->usee)->block();
+        auto false_block = static_cast<Ir::LabelInstr*>(br_cond->operand(2)->usee)->block();
+        auto true_block_info = check_block(true_block);
+        auto false_block_info = check_block(false_block);
+        if (!true_block_info || !false_block_info)
+            return false;
+        if (true_block_info->next_block != false_block_info->next_block)
+            return false;
+        if (true_block_info->to != false_block_info->to)
+            return false;
+        if (true_block_info->x != 1 || false_block_info->x != 0)
+            return false;
+        // printf("FOUND BLOCK %s\n", block->print_block().c_str());
+        // printf("TRUE BLOCK %s\n", true_block->print_block().c_str());
+        // printf("FALSE BLOCK %s\n", false_block->print_block().c_str());
+        // printf("TO BLOCK %s\n", true_block_info->next_block->print_block().c_str());
+        block->pop_back();
+        block->push_back(Ir::make_br_instr(true_block_info->next_block->label().get()));
+        Ir::Val* value = br_cond->operand(0)->usee;
+        if (!is_same_type(to_pointed_type(true_block_info->to->ty), value->ty)) {
+            auto cast = Ir::make_cast_instr(to_pointed_type(true_block_info->to->ty), value);
+            block->push_behind_end(cast);
+            value = cast.get();
+        }
+        block->push_behind_end(Ir::make_store_instr(true_block_info->to, value));
+        true_block->erase_from_phi();
+        false_block->erase_from_phi();
+        // printf("AFTER BLOCK %s\n", block->print_block().c_str());
+        return true;
+    };
+    int ans = 0;
+    for (auto i = begin(); i != end(); ++i) {
+        if (try_remove(i->get())) {
+            // printf("ONCE opt_remove_simple_branch\n\n");
+            ++ans;
+        }
+    }
+    return ans;
+}
 
 bool BlockedProgram::opt_join_blocks() {
     bool modified = false;

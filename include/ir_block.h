@@ -154,10 +154,11 @@ struct BlockedProgram {
     // 所有的 plain 优化
     void plain_opt_all();
 
+    bool opt_remove_simple_branch();     // 去除 if (xxx) N=1 else N=0 分支
     bool opt_join_blocks();              // 连接可连接的块
     bool opt_remove_unreachable_block(); // 去除无用 basic block
-    bool opt_remove_only_jump_block(); // 连接只有强制跳转的 basic block
-    bool opt_simplify_branch();        // 简化分支
+    bool opt_remove_only_jump_block();   // 连接只有强制跳转的 basic block
+    bool opt_simplify_branch();          // 简化分支
 
     void opt_remove_dead_code(); // 消除死代码
     void opt_trivial();          // 针对个别指令的优化
