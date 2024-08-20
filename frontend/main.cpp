@@ -7,6 +7,7 @@
 #include "convert_ir_to_asm.h"
 
 #include <fstream>
+#include <trans_wrapper.h>
 
 extern void setFileName(const char *name);
 extern void yyparse();
@@ -93,6 +94,7 @@ int main(int argc, char *argv[]) {
             mod = convertor.generate(ast_root);
         }
 
+        if (flag_O1) Optimize::memoi_wrapper(mod.get()).ap();
         Optimize::optimize(mod);
 
         if (!out_file_ll.empty()) {

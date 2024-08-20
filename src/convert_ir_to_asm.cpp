@@ -59,6 +59,7 @@ Module Convertor::convert(const Ir::pModule &mod)
     mod->remove_unused_function();
 
     Module module;
+    module.mod = mod;
 
     for (auto && global : mod->globs) {
         module.globs.push_back(convert(global));
