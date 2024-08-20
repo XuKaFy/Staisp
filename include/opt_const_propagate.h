@@ -1,9 +1,12 @@
 #pragma once
 
 #include "def.h"
+#include "imm.h"
 #include "ir_block.h"
 #include "ir_constant.h"
 #include "ir_instr.h"
+#include "type.h"
+#include <algorithm>
 #include <functional>
 #include <optional>
 
@@ -14,7 +17,7 @@ namespace OptConstPropagate {
 typedef std::optional<ImmValue> Val;
 
 struct ConstantMap {
-    Val value(Ir::Instr *instr) {
+    Val value(Ir::Instr *instr) const {
         if (last_found.has_value() && last_found.value() != val.end() &&
             last_found.value()->first == instr) {
             return last_found.value()->second;
@@ -27,12 +30,12 @@ struct ConstantMap {
         return last_found.value()->second;
     }
 
-    bool hasValue(Ir::Instr *instr) {
+    bool hasValue(Ir::Instr *instr) const {
         last_found = val.find(instr);
         return last_found == val.end() ? false : true;
     }
 
-    bool isValueNac(Ir::Instr *instr) {
+    bool isValueNac(Ir::Instr *instr) const {
         Val val = value(instr);
         return val.has_value() == false;
     }
@@ -87,7 +90,7 @@ struct ConstantMap {
 
     void
     ergodic(std::function<void(Ir::Instr *instr, ImmValue val)> func) const {
-        for (auto i : val) {
+        for (auto&& i : val) {
             if (i.second.has_value()) {
                 func(i.first, i.second.value());
             }
@@ -100,16 +103,44 @@ struct ConstantMap {
 
     bool operator==(const ConstantMap &map) const { return val == map.val; }
 
+    void saveArrayValue(Ir::Instr* arr, int64_t index, const ImmValue &v) {
+        array_val[arr][index] = v;
+    }
+
+    std::optional<ImmValue> getArrayValue(Ir::Instr* arr, int64_t index) const {
+        if (!array_val.count(arr))
+            return {};
+        auto found = array_val.at(arr);
+        return found[index];
+    }
+
+    void clearArrayValue(Ir::Instr* arr) {
+        array_val.erase(arr);
+    }
+
+    void eraseArrayValueLeq(Ir::Instr* arr, int64_t index) {
+        for (auto i = array_val[arr].begin(); i != array_val[arr].end(); ) {
+            if (i->first < index) {
+                i = array_val[arr].erase(i);
+            } else {
+                ++i;
+            }
+        }
+    }
+
 private:
-    Map<Ir::Instr *, Val> val;
-    std::optional<Map<Ir::Instr *, Val>::iterator> last_found;
+    Map<Ir::Instr*, Val> val;
+    Map<Ir::Instr*, Map<int64_t, ImmValue>> array_val;
+    mutable std::optional<Map<Ir::Instr *, Val>::const_iterator> last_found;
 };
 
 struct BlockValue {
     bool operator==(const BlockValue &b) const { return val == b.val; }
     bool operator!=(const BlockValue &b) const { return !operator==(b); }
 
-    void cup(const BlockValue &v);
+    void cup(const BlockValue &v) {
+        val.cup(v.val);
+    }
 
     void clear() { val.clear(); }
 

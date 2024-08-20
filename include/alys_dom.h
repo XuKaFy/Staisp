@@ -35,7 +35,7 @@ struct DomTree {
     const Vector<Ir::Block *> &order() const { return dom_order; }
     Ir::Block *LCA(Ir::Block *, Ir::Block *);
     // a is dominated by b
-    inline bool is_dom(Ir::Block *a, Ir::Block *b) {
+    inline bool is_dom(Ir::Block *a, Ir::Block *b) const {
         return ::Alys::is_dom(a, b, dom_set);
     }
 };

@@ -9,28 +9,29 @@
 #include "opt_DSE.h"
 #include "opt_GVN.h"
 #include "opt_const_propagate.h"
+#include "opt_ptr_iter.h"
 #include "opt_interprocedural.h"
+#include "opt_array_accumulate.h"
 #include "trans_SSA.h"
 #include "trans_loop.h"
 #include "trans_wrapper.h"
 
 namespace Optimize {
 
-int func_pass_dse(const Ir::pFuncDefined &func) {
-    int cnt =
-        from_bottom_analysis<OptDSE::BlockValue, OptDSE::TransferFunction>(
-            func->p);
+DFAAnalysisData<OptDSE::BlockValue> func_pass_dse(const Ir::pFuncDefined &func) {
+    auto ans = from_bottom_analysis<OptDSE::BlockValue,
+                                    OptDSE::TransferFunction>(func->p);
     func->p.plain_opt_all();
     my_assert(func->p.check_empty_use("DSE") == 0, "DSE Failed");
-    return cnt;
+    return ans;
 }
 
-int func_pass_const_propagate(const Ir::pFuncDefined &func) {
-    int cnt = from_top_analysis<OptConstPropagate::BlockValue,
-                                OptConstPropagate::TransferFunction>(func->p);
+DFAAnalysisData<OptConstPropagate::BlockValue> func_pass_const_propagate(const Ir::pFuncDefined &func) {
+    auto ans = from_top_analysis<OptConstPropagate::BlockValue,
+                                 OptConstPropagate::TransferFunction>(func->p);
     func->p.plain_opt_all();
     my_assert(func->p.check_empty_use("CP") == 0, "CP Failed");
-    return cnt;
+    return ans;
 }
 
 void func_pass_ssa(const Ir::pFuncDefined &func) {
@@ -82,6 +83,43 @@ void func_pass_gvn(const Ir::pFuncDefined &func) {
     func->p.re_generate();
 }
 
+void function_pass_print(const Ir::pFuncDefined &func)
+{
+    printf("%s\n", func->print_func().c_str());
+}
+
+void func_pass_array_accumulate(const Ir::pFuncDefined &func, const Ir::pFunc &fill_zero)
+{
+    {
+        Alys::DomTree dom = func_pass_get_dom_ctx(func);
+        Alys::LoopInfo loop_info(func->p, dom);
+        replace_init_with_fill_zero(func, loop_info, fill_zero);
+        func->p.plain_opt_all();
+    }
+
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+    function_pass_print(func);
+    printf("----------------------------------------------\n");
+#endif
+
+    // only get cp data
+    auto ans = from_top_analysis<OptConstPropagate::BlockValue,
+                                 OptConstPropagate::TransferFunction>(func->p, false);
+
+    Alys::DomTree dom = func_pass_get_dom_ctx(func);
+    Alys::LoopInfo loop_info(func->p, dom);
+
+    array_accumulate(func, ans, loop_info);
+
+    func_pass_dse(func);
+
+    func->p.plain_opt_all();
+    func->p.re_generate();
+
+    // func_pass_const_propagate(func);
+    // func_pass_dse(func);
+}
+
 void pass_inline(const Ir::pModule &mod) {
     mod->remove_unused_function();
     while (inline_all_function(mod))
@@ -93,15 +131,31 @@ void pass_dfa(const Ir::pModule &mod) {
         int cnt = 0;
         const int MAX_OPT_COUNT = 8;
         for (int opt_cnt = 1; cnt < MAX_OPT_COUNT && (opt_cnt != 0); ++cnt) {
-            opt_cnt = func_pass_dse(func);
-            opt_cnt += func_pass_const_propagate(func);
+            opt_cnt = func_pass_dse(func).cnt;
+            opt_cnt += func_pass_const_propagate(func).cnt;
         }
         func->p.re_generate();
     }
 }
 
+void pass_print(const Ir::pModule &mod) {
+    for (auto &&func : mod->funsDefined) {
+        func->p.re_generate();
+        function_pass_print(func);
+    }
+}
+
 void optimize(const Ir::pModule &mod) {
+    Ir::pFunc fill_zero;
+    for (auto &&func : mod->funsDeclared) {
+        if (func->name() == "__builtin_fill_zero")
+            fill_zero = func;
+    }
+    my_assert(fill_zero, "?");
     pass_inline(mod);
+#ifdef OPT_CONST_PROPAGATE_DEBUG
+    pass_print(mod);
+#endif
     for (auto &&func : mod->funsDefined) {
         func_pass_const_propagate(func);
     }
@@ -113,9 +167,12 @@ void optimize(const Ir::pModule &mod) {
     for (auto &&func : mod->funsDefined) {
         func_pass_canonicalizer(func);
         func_pass_loop_gep_motion(func);
+        func_pass_array_accumulate(func, fill_zero);
         func_pass_pointer_iteration(func);
         func_pass_loop_unrolling(func);
         func_pass_gvn(func);
+        // func_pass_dse(func);
+        // func->p.re_generate();
     }
 }
 

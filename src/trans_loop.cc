@@ -157,9 +157,6 @@ void Canonicalizer_pass::ap() {
     for (auto cur_bb : cur_func) {
         auto back_instr = cur_bb->back();
         if (back_instr->instr_type() != Ir::INSTR_BR_COND) {
-            my_assert(back_instr->instr_type() == Ir::INSTR_BR ||
-                          back_instr->instr_type() == Ir::INSTR_RET,
-                      "br instr");
             continue;
         }
 

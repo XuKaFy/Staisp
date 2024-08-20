@@ -35,23 +35,6 @@ struct Exp {
     Vector<Ir::Instr *> fa;
 };
 
-struct BlockValue {
-    bool operator==(const BlockValue &b);
-    bool operator!=(const BlockValue &b);
-
-    void cup(const BlockValue &v);
-
-    void clear();
-
-    Set<Exp> exps; // 所有的子表达式
-    Map<Ir::Instr *, Exp>
-        exp_func; // 某个 Instr 对应的子表达式，用于查找 father
-};
-
-struct TransferFunction {
-    void operator()(Ir::Block *p, BlockValue &v);
-    void operator()(Ir::Block *p, const BlockValue &IN, const BlockValue &OUT);
-};
 using DomPredicate = Map<Ir::Block *, Set<Ir::Block *>>;
 
 struct exp_eq {

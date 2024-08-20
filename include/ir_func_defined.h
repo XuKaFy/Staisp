@@ -15,7 +15,7 @@ struct FuncDefined : public Func {
     FuncDefined(const TypedSym &var, Vector<pType> arg_types,
                 Vector<String> arg_name);
 
-    String print_func() const;
+    [[nodiscard]] String print_func() const;
 
     void end_function(FunctionContext& context);
 
