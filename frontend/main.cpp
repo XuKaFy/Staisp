@@ -10,7 +10,7 @@
 #include <trans_wrapper.h>
 
 extern void setFileName(const char *name);
-extern void yyparse();
+extern int yyparse();
 extern Vector<pNode> root;
 bool flag_O1 = false;
 bool flag_no_backend;
