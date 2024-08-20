@@ -60,7 +60,7 @@ Vector<ImmValue> getarray(Ir::AllocInstr* arr,
         auto val = cp_ans.INs.at(cur_block).val.getArrayValue(arr, i);
         if (val.has_value()) {
             ans[i] = val.value();
-            printf("FILL [%ld] = %s\n", i, val.value().print().c_str());
+            // printf("FILL [%ld] = %s\n", i, val.value().print().c_str());
         }
         // else is UB
     }
