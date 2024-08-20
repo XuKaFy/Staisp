@@ -255,7 +255,7 @@ void disable_minigep(Ir::Val* oprd, BlockValue &v)
         oprd = oprd_gep->operand(0)->usee;
     }
     if (auto alloc = dynamic_cast<Ir::AllocInstr*>(oprd)) {
-        printf("ALLOCA [%s] IS DISABLED\n", alloc->instr_print().c_str());
+        // printf("ALLOCA [%s] IS DISABLED\n", alloc->instr_print().c_str());
         v.val.setValueNac(alloc);
     }
 }
